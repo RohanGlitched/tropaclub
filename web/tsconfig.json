@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@shared/*": ["../shared/*"],
+      "@tropaclub/buy": ["../buy/src/index.ts"],
+      "@buy/*": ["../buy/src/*"],
+      "@tropaclub/clubs": ["../clubs/src/index.ts"],
+      "@clubs/*": ["../clubs/src/*"],
+      "viem": ["./node_modules/viem"],
+      "viem/*": ["./node_modules/viem/*"],
+      "ox": ["./node_modules/ox"],
+      "ox/*": ["./node_modules/ox/*"],
+      "firebase-admin": ["./node_modules/firebase-admin"],
+      "firebase-admin/*": ["./node_modules/firebase-admin/lib/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../shared/*.ts"],
+  "exclude": ["node_modules"]
+}

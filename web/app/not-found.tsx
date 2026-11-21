@@ -1,0 +1,34 @@
+import Link from 'next/link';
+import { SiteFooter, SiteHeader } from '@/components/Chrome';
+import SeatSearchBox from '@/components/SeatSearchBox';
+import { getIndex } from '@/lib/server/data';
+import { groundPath } from '@/lib/clubs';
+
+export const metadata = { title: 'No such seat' };
+
+export default async function NotFound() {
+  const { data, source } = await getIndex();
+  const ground = groundPath(data.tokens[0].symbol);
+  return (
+    <>
+      <SiteHeader source={source} ground={ground} />
+      <main id="main">
+        <section className="wrap page-head empty">
+          <div className="gate-shut" aria-hidden="true">
+            {Array.from({ length: 28 }, (_, i) => <i key={i} className={i === 17 ? 'gone' : undefined} />)}
+          </div>
+          <h1>Block 404. There is no seat here.</h1>
+          <p className="lede">The page you asked for is not in the ground. It may have moved, or the link may be mistyped.</p>
+          <p className="closing-links">
+            <Link href="/">Home</Link>
+            <Link href="/attendance">The Attendance</Link>
+            <Link href={ground}>The Ground</Link>
+            <Link href="/about">How it works</Link>
+          </p>
+          <SeatSearchBox label="Or find a seat that does exist" />
+        </section>
+      </main>
+      <SiteFooter source={source} asOf={data.asOf} ground={ground} />
+    </>
+  );
+}

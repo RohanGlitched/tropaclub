@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Tropa Club. Clients never write: every write goes through the server API with the Admin SDK
+// (which bypasses these rules). Clients may read only public, non-sensitive aggregates.
+// Never readable by clients: members, wallets, buys, buyRejects, transfers, callups, attestations,
+// clubSecrets, invites, matchQueue (salted country hash), geoLog, syncState, and private clubs.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public stock clubs and pick-up clubs (no invite code, no member list inside the doc).
+    match /clubs/{clubId} {
+      allow read: if resource.data.kind in ['stock', 'pickup'];
+      allow write: if false;
+    }
+
+    // Public aggregates: Matchday results (short addresses / nicknames only), fixtures, tables, marks.
+    match /gwResults/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /fixtures/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /tables/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /marks/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // The exclusion list (founder / test / contest wallets) is public by design.
+    match /exclusions/{wallet} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Everything else: server only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

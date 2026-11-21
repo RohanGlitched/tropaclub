@@ -1,0 +1,18 @@
+{
+  "source": "https://api.coinbase.com/v1/tokenized-stocks (multiplier field), fetched 2026-11-22",
+  "note": "Cumulative uiMultiplier of every token whose multiplier is not 1. Each is classified as one change from 1.0.",
+  "tokens": [
+    { "symbol": "SANc",   "address": "0xb20000000000000000000017bb66e9301e913a99", "multiplier": 1.0105710788687274, "expect": "dividend" },
+    { "symbol": "GOOGLc", "address": "0xb2000000000000000000002d0ba3164cc74f58b7", "multiplier": 1.0003771186767842, "expect": "dividend" },
+    { "symbol": "ORCLc",  "address": "0xb200000000000000000000347afba223d7b6b63c", "multiplier": 1.0000399883233386, "expect": "dividend" },
+    { "symbol": "SNDKc",  "address": "0xb200000000000000000000397293cb8cda9a10c5", "multiplier": 8,                  "expect": "split" },
+    { "symbol": "NOKc",   "address": "0xb2000000000000000000005ac674f707e357409c", "multiplier": 1.0019604756256093, "expect": "dividend" },
+    { "symbol": "NVDAc",  "address": "0xb20000000000000000000078ee7ce2fe4908108c", "multiplier": 1.0005379395763694, "expect": "dividend" },
+    { "symbol": "METAc",  "address": "0xb2000000000000000000008bc8786b856e61707c", "multiplier": 1.0003137922895982, "expect": "dividend" },
+    { "symbol": "PMc",    "address": "0xb2000000000000000000008fc2a8c23cf5937b66", "multiplier": 1.558821201905387,  "expect": "unclassified" },
+    { "symbol": "AAPLc",  "address": "0xb200000000000000000000c2e324d24d7eecd1fb", "multiplier": 1.0005003893019802, "expect": "dividend" },
+    { "symbol": "MRVLc",  "address": "0xb200000000000000000000ec3c4c7395cc609813", "multiplier": 1.0000018650482796, "expect": "dividend" },
+    { "symbol": "INFYc",  "address": "0xb200000000000000000000f6b0417af5f52341fc", "multiplier": 1.0216429909252833, "expect": "dividend" },
+    { "symbol": "MUc",    "address": "0xb200000000000000000000fd2f87532b90095211", "multiplier": 1.0001006811764792, "expect": "dividend" }
+  ]
+}

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+dist/
+.env*
+!.env.example
+*.log
+indexer/cache/
+indexer/out/
+.DS_Store
+geo/*.mmdb
+web/shots/
+web/.cards/
+**/test-results/
+*.tsbuildinfo

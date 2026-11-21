@@ -1,0 +1,80 @@
+<!--meta {"slug":"retention-evidence","nav":"Retention evidence","title":"Retention evidence","description":"The pre-registered cohort method Tropa Club uses to measure whether club members hold longer than comparable buyers who joined no club. Descriptive, not causal.","updated":"Nov 22 2026"}-->
+<p class="lede">The question is simple: do people who buy stock tokens inside a Tropa Club keep their first purchase longer than comparable people who bought on their own? We wrote the method down first, so that nobody, including us, can choose the measure after seeing the numbers.</p>
+
+<callout kind="note" title="Descriptive, not causal">
+<p>Every figure from this method carries the label <strong>descriptive, not causal; joiners self-select</strong>. People who join a club may already be more committed than people who do not. The numbers describe a difference. They do not prove that a club caused it.</p>
+</callout>
+
+<callout kind="soon" title="Status">
+<p>No results exist yet. The method is pre-registered and frozen on Nov 23 2026, before any club data exists, by publishing it on <a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz</a>. This page summarises the method as it is implemented. First results come once GW0 joiners reach day 7 (Dec 1 to Dec 4), and day 30 results follow from Dec 24.</p>
+</callout>
+
+<h2 id="groups">The groups</h2>
+<h3 id="treated">Treated: GW0 Playing joiners</h3>
+<p>Wallets whose first qualifying Tropa Club buy happened between the launch of clubs on Tue Nov 24 and the close on Fri Nov 27 at 1:00 pm ET, which is the whole of GW0. Bench members, and wallets on the public exclusion list, are left out. Using only the first week keeps later seeding and promotion from diluting the group.</p>
+<h3 id="organic">Baseline (a): organic first-time buyers</h3>
+<p>People who bought stock tokens on their own that same week, with no club and no incentive in the way:</p>
+<ul>
+  <li>their first DEX buy of the token and their first stock-token buy of any token both fall in the same window;</li>
+  <li>wallets only: no contracts, and no farmer-only wallets (see <a href="the-ground.html#farmers">the farmer heuristic</a>);</li>
+  <li>a first buy of $10 to $50.</li>
+</ul>
+<h3 id="cashback">Baseline (b): cashback recipients</h3>
+<p>People who first bought that week and received an incentive payout for trading stock tokens, identified from public claims on the Merkl reward distributor. This second baseline answers the objection that a hold-conditioned reward distorts behaviour. The distributor address, the event signature and the list of campaigns that target stock tokens are confirmed on Nov 23, before the method freezes.</p>
+
+<h2 id="outcome">The outcome</h2>
+<p>Each person is scored as <strong>held at day 7</strong> (D+7) or not. Let the first buy be at time t0. The person held if the net change in their position between just before t0 and t0 plus 7 days is at least <strong>50% of that first buy</strong>, counted in the token&rsquo;s raw units. If more than half of the first purchase leaves the position in the first week, the person did not hold. Adding to the position helps and moving tokens out hurts, because it is the net change that counts.</p>
+<p>A person is scored only once their own day 7 has passed. Day 30 is defined the same way and reported when it is available.</p>
+
+<h2 id="matching">Matching</h2>
+<p>Each treated wallet is matched to up to <strong>three</strong> controls from baseline (a):</p>
+<ul>
+  <li>the same token;</li>
+  <li>the first-buy size nearest in ratio, and no further than a factor of 1.5 either way;</li>
+  <li>ties go to the control whose first buy was closest in time, then to the lower address, so the result is the same on every run;</li>
+  <li>no control is used twice, and no treated wallet is ever used as a control.</li>
+</ul>
+<p>Treated wallets without a match are reported as unmatched. They are not dropped silently.</p>
+
+<h2 id="statistic">The statistic</h2>
+<p>The headline number is the <strong>D+7 hold-rate ratio</strong>: the share of treated wallets that held divided by the share of controls that held. A ratio above 1.0 means club members held more often.</p>
+<ul>
+  <li>The interval is a <strong>95% percentile bootstrap</strong>: 10,000 resamples with a fixed seed, with the treated group and the control group resampled independently.</li>
+  <li>Every report prints N for each group, both hold rates, the ratio and the interval.</li>
+  <li>Baseline (b) is reported next to baseline (a), computed the same way.</li>
+</ul>
+
+<h3 id="alongside">Reported alongside</h3>
+<ul>
+  <li>Hold rates at D+1, D+3 and D+7 in a table.</li>
+  <li><strong>W+1 repeat-buy rate:</strong> the share of buyers with two or more buys in the window. This is separate from holding.</li>
+  <li>Bench seats and Playing members are always counted separately, and the exclusion list is public.</li>
+  <li>Only transactions a member signed count. Tropa Club&rsquo;s own attestations never count as usage.</li>
+</ul>
+
+<h2 id="positive">What would count as a positive result</h2>
+<p>We hold ourselves to a stricter bar than a headline ratio. A positive result needs the <strong>lower end of the 95% interval above 1.0&times;</strong> against the organic baseline, with at least <strong>100 GW0 Playing joiners</strong> in the treated group. A ratio with a lower bound at or below 1.0, or from a smaller group, is reported as inconclusive, whatever the central estimate is.</p>
+
+<h2 id="threats">Threats to the reading</h2>
+<table class="wide">
+  <thead><tr><th>Threat</th><th>What we do about it</th></tr></thead>
+  <tbody>
+    <tr><td>Joiners self-select. People who start a club are not a random sample.</td><td>Say so on every figure. Compare against two baselines. Never use the word &ldquo;caused&rdquo;.</td></tr>
+    <tr><td>Controls differ from joiners in ways we cannot see: experience, wallet age, income.</td><td>Match on token and first-buy size only, and say that is all the matching does.</td></tr>
+    <tr><td>Cashback recipients are a different population, often farmers.</td><td>Keep them as a separate baseline, not mixed into the organic one.</td></tr>
+    <tr><td>Seeded users who never meant to buy dilute the treated group.</td><td>Use GW0 Playing joiners only, with Bench and exclusion-list wallets removed.</td></tr>
+    <tr><td>A small sample gives a wide interval.</td><td>Print N and the interval, and apply the 100-joiner bar before calling a result positive.</td></tr>
+    <tr><td>Choosing the measure after seeing the data.</td><td>Publish and freeze the method before any club data exists.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="results">Results</h2>
+<table>
+  <thead><tr><th>Measure</th><th>Treated</th><th>Organic baseline</th><th>Ratio (95% interval)</th><th>Available</th></tr></thead>
+  <tbody>
+    <tr><td>D+7 hold rate</td><td>Coming soon</td><td>Coming soon</td><td>Coming soon</td><td>From Dec 1 to Dec 4</td></tr>
+    <tr><td>W+1 repeat-buy rate</td><td>Coming soon</td><td>Coming soon</td><td>Coming soon</td><td>After GW1</td></tr>
+    <tr><td>D+30 hold rate</td><td>Coming soon</td><td>Coming soon</td><td>Coming soon</td><td>From Dec 24 to Dec 27</td></tr>
+  </tbody>
+</table>
+<p>This table is filled in as each measure matures. Results are added with their date and are never edited afterwards. If the method has to change, a new numbered version is published and the old one stays up.</p>

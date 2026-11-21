@@ -1,0 +1,20 @@
+{
+  "name": "tropa-indexer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tropa Club indexer: replays Coinbase tokenized-stock (B20) Transfer logs on Base and writes the public data files.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "7.14.0",
+    "tsx": "4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.10",
+    "typescript": "5.7.2"
+  }
+}

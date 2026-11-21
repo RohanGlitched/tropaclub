@@ -1,0 +1,105 @@
+<!--meta {"slug":"buying-and-safety","nav":"Buying and safety","title":"Buying and safety","description":"How a Tropa Club buy works: non-custodial routing through an aggregator to Aerodrome, the 1.5% price guard, pauses on corporate actions, Builder Code attribution, and what can go wrong.","updated":"Nov 22 2026"}-->
+<p class="lede">A Tropa Club buy is an ordinary swap from your own wallet, with three additions: a route to the deepest pool, a price guard that cancels a bad fill, and a small tag that lets Base count the purchase. No Tropa Club contract is in the path of your money.</p>
+
+<callout kind="soon" title="Opens Tue Nov 24 2026">
+<p>The buy flow goes live with clubs on Tuesday Nov 24. Everything on this page describes the engine that ships then. It has been tested against Base mainnet with simulated transactions, in which nothing is spent.</p>
+</callout>
+
+<h2 id="non-custodial">Non-custodial, 0% fee</h2>
+<ul>
+  <li><strong>Your wallet signs, your wallet receives.</strong> The swap sends the stock token straight to your address. Tropa Club builds the transaction and never sees a key.</li>
+  <li><strong>No Tropa Club contract holds funds.</strong> There is no vault, no escrow and no pooled club wallet. A club is a list of members, not an account.</li>
+  <li><strong>0% fee.</strong> Tropa Club takes nothing from a buy. You pay the swap&rsquo;s own pool fee, which is built into the quoted price, and Base network gas.</li>
+  <li><strong>No cashback from third parties.</strong> Buys made here do not earn venue or aggregator cashback unless the buy screen says that a specific campaign qualifies. The screen tells you before you sign.</li>
+</ul>
+
+<h2 id="routing">How a buy is routed</h2>
+<ol class="steps">
+  <li><strong>Check the token is buyable.</strong>Before any quote, the engine asks whether the token is paused or in a corporate action. If so, buying is held. See <a href="#pauses">pauses</a>.</li>
+  <li><strong>Get a quote.</strong>The engine asks the KyberSwap aggregator (no key needed) for a route. It asks for Aerodrome pools first, the Slipstream concentrated-liquidity pools where most stock-token trading on Base happens, and falls back to the best route from any venue if Aerodrome cannot fill the order. LI.FI is the fallback quote provider.</li>
+  <li><strong>Apply the guard.</strong>The quote is compared with a fair price, and the swap is built so that it reverts if you would receive less than the guard minimum. See <a href="#guard">the 1.5% guard</a>.</li>
+  <li><strong>Build the calls.</strong>An approval for the router, if your allowance is too low, and the swap itself. Every call ends with the Builder Code tag.</li>
+  <li><strong>Send.</strong>Wallets that support batched calls (<code>wallet_sendCalls</code>) get one request with the tag declared as a capability. Other wallets get the calls one after another as ordinary transactions, each with the tag already appended.</li>
+  <li><strong>Verify.</strong>After the transaction confirms, the server checks the receipt and the tag, then counts the buy.</li>
+</ol>
+<p>You pay in USDC, ETH or another token the router accepts. In pre-launch simulations of a $10 USDC buy of NVDAc, the approval used about 56,000 gas and the swap about 451,000. Later buys skip the approval.</p>
+
+<h2 id="guard">The 1.5% guard</h2>
+<p>A swap is only as safe as its minimum output. The guard sets that minimum, in the token&rsquo;s raw units, to a fair price less <strong>1.5%</strong>. If the pool would give you less than that when the transaction runs, the swap reverts and your USDC stays where it is. A reverted transaction can still cost network gas.</p>
+
+<h3 id="mark">How the fair price (the mark) is chosen</h3>
+<p>The engine takes the first of these that is available.</p>
+<ol>
+  <li><strong>A fresh Chainlink feed.</strong> The 24/5 session is open and the feed&rsquo;s last update is no more than 24 hours and 15 minutes old.</li>
+  <li><strong>Coinbase&rsquo;s <code>nav_price</code>,</strong> if it is fresh.</li>
+  <li><strong>A 30-minute time-weighted average price</strong> from the deepest Aerodrome Slipstream USDC pool. When this fallback is used the buy screen says that a reopen gap is possible, because the price can sit a little off the stock after the market has been shut.</li>
+</ol>
+<p>Chainlink holds the last close on weekends and holidays and freezes during corporate actions, so a feed is used only while its session is open and its last update is fresh. When the market is shut and the pool&rsquo;s average is more than 7.5% away from the last close, buying is held instead.</p>
+
+<h3 id="units">The units check</h3>
+<p>Stock tokens carry a multiplier (ERC-8056) that records splits and stock dividends. Feed values are total-return values, the underlying price times the multiplier. The guard converts the mark to a price per share, then to shares, then to raw token units, which reduces to <code>dollars in / mark</code>. A second check compares the mark with the live pool price and rejects a mark that is off by about the multiplier. That catches a guard that would be several times too loose, or several times too tight.</p>
+<p>Worked example from the pre-launch test of SNDKc, a token with a multiplier of 8: $10 at a mark of $649.44 buys 0.1232 shares. That is 0.0154 raw tokens, or 1,539,788 units at 8 decimals. The guard then subtracts 1.5% from that raw amount to set the minimum.</p>
+
+<h2 id="pauses">Pauses on corporate actions and issuer flags</h2>
+<p>Buying a token is <strong>held</strong> whenever any of these is true:</p>
+<ul>
+  <li>the issuer&rsquo;s registry has a pause flag set for the token;</li>
+  <li>the token&rsquo;s transfer feature is paused;</li>
+  <li>the token&rsquo;s multiplier and the registry&rsquo;s multiplier disagree;</li>
+  <li>a corporate action is open: an announcement with no matching end, a pre-announcement without its final notice, an API status of announced, or a scheduled multiplier change that has not yet taken effect;</li>
+  <li>there is no usable mark;</li>
+  <li>the market is shut and the pool price has drifted more than 7.5% from the last close.</li>
+</ul>
+<p>A hold shows a plain reason on the buy screen. It lifts when the condition clears.</p>
+
+<h2 id="attribution">Builder Code attribution (ERC-8021)</h2>
+<p>Base counts onchain activity by app through <strong>Builder Codes</strong>. Tropa Club&rsquo;s code is <code>bc_vdp89s9b</code>. It is attached to every transaction you sign through the app, so that Base, and anyone reading the chain, can see which swaps came from Tropa Club.</p>
+<p>The tag is an ERC-8021 data suffix appended after the normal call data. Contracts ignore it, and it adds 29 bytes to a transaction. This is the format (schema 0):</p>
+<pre data-lang="text" data-title="ERC-8021 suffix, schema 0">txData || codes || codesLength || schemaId || marker
+
+codes        ASCII, comma-separated      "bc_vdp89s9b"   (11 bytes)
+codesLength  1 byte                      0x0b
+schemaId     1 byte                      0x00
+marker       16 bytes                    0x80218021802180218021802180218021</pre>
+<p>For <code>bc_vdp89s9b</code> the suffix is these 29 bytes:</p>
+<pre data-lang="text">0x62635f76647038397339620b0080218021802180218021802180218021</pre>
+<p>Smart wallets that send through an ERC-4337 entry point carry the same suffix at the end of the user operation&rsquo;s call data, and the verifier follows it there (entry point versions 0.6, 0.7 and 0.8).</p>
+<h3 id="verification">How a buy is counted</h3>
+<ol>
+  <li>The app records the transaction hash when you sign. It is only a claim.</li>
+  <li>The server reads the confirmed receipt and checks for the suffix in the transaction input, or in the user operation&rsquo;s call data.</li>
+  <li>A nightly sweep re-reads member token transfers and their transaction inputs to catch any buy the app missed.</li>
+  <li>The stats page reports the share of buys that carried the tag. Only transactions you signed count. Tropa Club never counts its own attestations as usage.</li>
+</ol>
+
+<h2 id="errors">What can go wrong, in plain sentences</h2>
+<p>When a swap fails, the app turns the error into one sentence. These are the ones you can meet.</p>
+<table class="wide">
+  <thead><tr><th>Situation</th><th>What you see</th></tr></thead>
+  <tbody>
+    <tr><td>Price moved past the guard</td><td>The price moved and you would get fewer shares than the 1.5% guard allows, so the buy was stopped before any money moved.</td></tr>
+    <tr><td>Token paused by the issuer</td><td>The issuer has paused transfers on this stock token, so buys are on hold.</td></tr>
+    <tr><td>Compliance policy blocks an address</td><td>The stock token&rsquo;s compliance policy blocked this transfer: the sender, the receiving wallet, or the contract moving the tokens is not allowed.</td></tr>
+    <tr><td>Router not approved</td><td>The swap router is not approved to spend enough of your token yet; approve first, then buy.</td></tr>
+    <tr><td>Not enough of the payment token</td><td>Your wallet does not hold enough of the token you are paying with.</td></tr>
+    <tr><td>USDC blocked an address</td><td>USDC has blocked one of the addresses in this swap, so it cannot go through.</td></tr>
+    <tr><td>Quote too old</td><td>The quote expired before the transaction ran; get a fresh quote and try again.</td></tr>
+    <tr><td>Receiver cannot hold the token</td><td>The swap tried to send tokens to an address B20 tokens cannot receive.</td></tr>
+    <tr><td>Anything else</td><td>The swap failed on-chain, with the error the network returned.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="what-you-hold">What you hold: stock tokens, not shares</h2>
+<p>Coinbase&rsquo;s tokenized stocks are issued on Base by Coinbase Onchain SPV, which holds the underlying shares one for one with a custodian. A token follows the share price and is described as an onchain certificate that provides economic exposure. It is not the share.</p>
+<ul>
+  <li>No vote and no direct claim on the company.</li>
+  <li>Dividends arrive as more shares, through increases of the multiplier. There are no cash dividends.</li>
+  <li>Tokens trade around the clock on DEXs while the underlying market is open only on weekdays. See <a href="compliance.html#token-risks">risks of stock tokens</a>.</li>
+  <li>Holding and trading after issue is open to any wallet, subject to compliance policies that can block sanctioned addresses. Only minting and redeeming with the issuer needs verification, and Tropa Club does neither.</li>
+</ul>
+
+<h2 id="availability">Not available to US persons</h2>
+<callout kind="warn" title="US persons cannot use the buy flow">
+<p>The buy flow, club call-to-action buttons and call-ups are hidden in the United States and its territories (US, PR, GU, VI, AS, MP, UM). The check uses the country your connection reports and also asks you to confirm that you are not a US person. Read-only pages such as The Ground and The Attendance stay open everywhere.</p>
+</callout>
+<p>Local rules about stock tokens differ from country to country, and we cannot list every one. If you are unsure whether you may buy, do not. See <a href="compliance.html">Compliance and limits</a>.</p>

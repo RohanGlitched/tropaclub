@@ -1,0 +1,337 @@
+{
+  "at": "2026-11-21T19:16:17.516Z",
+  "phase": "closed",
+  "NVDAc_$10": {
+    "ok": true,
+    "venues": [
+      "aero-cl"
+    ],
+    "quotedOut": "7650616",
+    "amountOut": "7649244",
+    "amountOutMin": "7538641",
+    "routerMin": "7538916",
+    "headroomBps": 146,
+    "quoteVsMarkBps": -3,
+    "mark": {
+      "source": "twap",
+      "usd": 130.66013165,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 129.82480034
+    },
+    "multiplier": 1.0005379395763696,
+    "uiShares": "7657561",
+    "gas": {
+      "approve": "55895",
+      "swap": "450691",
+      "total": "506586"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "NVDAc_$25": {
+    "ok": true,
+    "venues": [
+      "aero-cl"
+    ],
+    "quotedOut": "19123328",
+    "amountOut": "19123109",
+    "amountOutMin": "18846580",
+    "routerMin": "18847951",
+    "headroomBps": 146,
+    "quoteVsMarkBps": -5,
+    "mark": {
+      "source": "twap",
+      "usd": 130.66030585,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 129.82480034
+    },
+    "multiplier": 1.0005379395763696,
+    "uiShares": "19143877",
+    "gas": {
+      "approve": "55907",
+      "swap": "450823",
+      "total": "506730"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "SNDKc_$10": {
+    "ok": true,
+    "venues": [
+      "aerodrome-cl-3"
+    ],
+    "quotedOut": "1548377",
+    "amountOut": "1548359",
+    "amountOutMin": "1525757",
+    "routerMin": "1525769",
+    "headroomBps": 148,
+    "quoteVsMarkBps": -3,
+    "mark": {
+      "source": "twap",
+      "usd": 645.5807323,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 649.44
+    },
+    "multiplier": 8,
+    "uiShares": "12391943",
+    "gas": {
+      "approve": "55895",
+      "swap": "296088",
+      "total": "351983"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "SNDKc_$25": {
+    "ok": true,
+    "venues": [
+      "aero-cl"
+    ],
+    "quotedOut": "3871620",
+    "amountOut": "3871570",
+    "amountOutMin": "3814390",
+    "routerMin": "3814706",
+    "headroomBps": 149,
+    "quoteVsMarkBps": -2,
+    "mark": {
+      "source": "twap",
+      "usd": 645.58137785,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 649.44
+    },
+    "multiplier": 8,
+    "uiShares": "30979827",
+    "gas": {
+      "approve": "55907",
+      "swap": "498940",
+      "total": "554847"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "TSLAc_$10": {
+    "ok": true,
+    "venues": [
+      "aerodrome-cl-3"
+    ],
+    "quotedOut": "2823084",
+    "amountOut": "2823049",
+    "amountOutMin": "2784434",
+    "routerMin": "2784689",
+    "headroomBps": 138,
+    "quoteVsMarkBps": -13,
+    "mark": {
+      "source": "twap",
+      "usd": 353.75222473,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 350.45
+    },
+    "multiplier": 1,
+    "uiShares": "2826837",
+    "gas": {
+      "approve": "55895",
+      "swap": "295997",
+      "total": "351892"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "TSLAc_$25": {
+    "ok": true,
+    "venues": [
+      "aero-cl"
+    ],
+    "quotedOut": "7058742",
+    "amountOut": "7058661",
+    "amountOutMin": "6961055",
+    "routerMin": "6961330",
+    "headroomBps": 140,
+    "quoteVsMarkBps": -11,
+    "mark": {
+      "source": "twap",
+      "usd": 353.75379689,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 350.45
+    },
+    "multiplier": 1,
+    "uiShares": "7067061",
+    "gas": {
+      "approve": "55907",
+      "swap": "444137",
+      "total": "500044"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "TSLAc_$10_best": {
+    "ok": true,
+    "venues": [
+      "uniswap-v4-fee"
+    ],
+    "quotedOut": "2824822",
+    "amountOut": "2824783",
+    "amountOutMin": "2784412",
+    "routerMin": "2784426",
+    "headroomBps": 144,
+    "quoteVsMarkBps": -7,
+    "mark": {
+      "source": "twap",
+      "usd": 353.75497601,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 350.45
+    },
+    "multiplier": 1,
+    "uiShares": "2826815",
+    "gas": {
+      "approve": "55895",
+      "swap": "587513",
+      "total": "643408"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "NVDAc_ETH_0.004": {
+    "ok": true,
+    "venues": [
+      "aero-cl"
+    ],
+    "quotedOut": "5146001",
+    "amountOut": "5145807",
+    "amountOutMin": "5075654",
+    "routerMin": "5076014",
+    "headroomBps": 138,
+    "quoteVsMarkBps": -13,
+    "mark": {
+      "source": "twap",
+      "usd": 130.66113333,
+      "reopenGapRisk": true,
+      "lastCloseUsd": 129.82480034
+    },
+    "multiplier": 1.0005379395763696,
+    "uiShares": "5155721",
+    "gas": {
+      "approve": "0",
+      "swap": "439358",
+      "total": "439358"
+    },
+    "policy": true,
+    "policyChecks": [
+      "transfer.from:TRANSFER_SENDER_POLICY:true",
+      "transfer.from (msg.sender):TRANSFER_EXECUTOR_POLICY:true",
+      "kyber executor:TRANSFER_RECEIVER_POLICY:true",
+      "kyber executor:TRANSFER_SENDER_POLICY:true",
+      "kyber executor:TRANSFER_EXECUTOR_POLICY:true",
+      "buyer:TRANSFER_RECEIVER_POLICY:true"
+    ],
+    "suffixOnEveryCall": true
+  },
+  "weekendPath": {
+    "nowPhase": "closed",
+    "liveSource": "twap",
+    "liveReopenGapRisk": true,
+    "twapUsd": 645.58474906,
+    "frozenCloseUsd": 649.44,
+    "driftBps": -59
+  },
+  "isBuyable": {
+    "NVDAc": {
+      "buyable": true,
+      "mark": "twap",
+      "reopenGapRisk": true,
+      "actions": []
+    },
+    "SNDKc": {
+      "buyable": true,
+      "mark": "twap",
+      "reopenGapRisk": true,
+      "actions": [
+        "8-for-1 Stock Split:CORPORATE_ACTION_STATUS_APPLIED"
+      ]
+    },
+    "TSLAc": {
+      "buyable": true,
+      "mark": "twap",
+      "reopenGapRisk": true,
+      "actions": []
+    },
+    "SNDKc_preNoticeOnly": "Corporate action \"Stock Split\" has a pre-notice but no final announcement yet."
+  },
+  "revert_noApprove": {
+    "kind": "allowance",
+    "sentence": "The router could not take your payment token: it is not approved yet (or the balance is short), so approve first, then buy.",
+    "errorName": "Error",
+    "raw": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000245472616e7366657248656c7065723a205452414e534645525f46524f4d5f4641494c454400000000000000000000000000000000000000000000000000000000",
+    "detail": "TransferHelper: TRANSFER_FROM_FAILED"
+  },
+  "revert_minOut": {
+    "kind": "slippage",
+    "sentence": "The price moved and you would get fewer shares than the 1.5% guard allows, so the buy was stopped before any money moved.",
+    "errorName": "Error",
+    "raw": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001b52657475726e20616d6f756e74206973206e6f7420656e6f7567680000000000",
+    "detail": "Return amount is not enough"
+  },
+  "liveAttribution": {
+    "tx": "0x882079cbb040cabd24aecc642030c98f7db19ab9850f0dbc16f24f02737fb4de",
+    "codes": [
+      "bc_tyhmcm97",
+      "cdp_facil1"
+    ],
+    "via": "tx"
+  }
+}

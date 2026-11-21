@@ -1,0 +1,75 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "callups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clubId", "order": "ASCENDING" },
+        { "fieldPath": "gw", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clubId", "order": "ASCENDING" },
+        { "fieldPath": "joinedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "buys",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "wallet", "order": "ASCENDING" },
+        { "fieldPath": "blockTime", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "buys",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "gw", "order": "ASCENDING" },
+        { "fieldPath": "blockTime", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transfers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "wallet", "order": "ASCENDING" },
+        { "fieldPath": "blockTime", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "token", "order": "ASCENDING" },
+        { "fieldPath": "t", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "fixtures",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "gw", "order": "ASCENDING" },
+        { "fieldPath": "band", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clubs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kind", "order": "ASCENDING" },
+        { "fieldPath": "memberCount", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "gwResults", "fieldPath": "lineup", "indexes": [] },
+    { "collectionGroup": "tables", "fieldPath": "rows", "indexes": [] },
+    { "collectionGroup": "attestations", "fieldPath": "calldata", "indexes": [] },
+    { "collectionGroup": "attestations", "fieldPath": "data", "indexes": [] },
+    { "collectionGroup": "buys", "fieldPath": "notes", "indexes": [] }
+  ]
+}

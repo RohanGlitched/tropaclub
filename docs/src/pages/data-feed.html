@@ -1,0 +1,238 @@
+<!--meta {"slug":"data-feed","nav":"Public data feed","title":"Public data feed","description":"The free JSON files behind The Ground and The Attendance: URLs, full schema with field descriptions, caching, an example fetch and the licence.","updated":"Nov 22 2026"}-->
+<p class="lede">Everything on The Ground and The Attendance is read from four kinds of static JSON file. They are public, need no key and are refreshed every six hours.</p>
+
+<callout kind="soon" title="Status">
+<p>The first files appear after the first scheduled run following launch. Until a run has finished, a URL below can return <code>404</code>. Once published, <code>index.json</code> carries the time of the last snapshot in <code>asOf</code>.</p>
+</callout>
+
+<h2 id="urls">Base URL and files</h2>
+<p>All files live under one public Google Cloud Storage prefix:</p>
+<pre data-lang="text">https://storage.googleapis.com/tropaclub-data/public/</pre>
+<table>
+  <thead><tr><th>File</th><th>What it holds</th><th>Typical size</th></tr></thead>
+  <tbody>
+    <tr><td><code>index.json</code></td><td>The league table: one summary per stock token, sorted by real fans.</td><td>Small</td></tr>
+    <tr><td><code>tokens/&lt;symbol&gt;.json</code></td><td>Every seat of one token, real fans first in rank order, then ghosts. Symbols keep their case, for example <code>tokens/NVDAc.json</code>.</td><td>Up to a few MB for the largest grounds</td></tr>
+    <tr><td><code>wallets/&lt;2hex&gt;.json</code></td><td>A shard of the wallet lookup. The two hex digits are the first two after <code>0x</code> in the lowercase address, so there are 256 shards.</td><td>Small</td></tr>
+    <tr><td><code>stats.json</code></td><td>Global numbers: unique holders, real wallets, weekly buyers by week.</td><td>Small</td></tr>
+  </tbody>
+</table>
+
+<h2 id="example">Example fetch</h2>
+<p>Read the table, then look up one wallet. A wallet lookup has two steps: take the first two hex digits after <code>0x</code> of the lowercase address, fetch that shard, then index it by the full address.</p>
+<pre data-lang="bash" data-title="curl">curl -s --compressed https://storage.googleapis.com/tropaclub-data/public/index.json \
+  | jq '.tokens[0] | {symbol, holdersTotal, realFans, attendancePct}'</pre>
+<pre data-lang="ts" data-title="fetch (Node 18+ or a browser)">const BASE = 'https://storage.googleapis.com/tropaclub-data/public';
+
+async function lookup(address: string) {
+  const a = address.toLowerCase();
+  const shard = a.slice(2, 4);                       // "0xab12..." -> "ab"
+  const res = await fetch(`${BASE}/wallets/${shard}.json`);
+  if (!res.ok) throw new Error(`shard ${shard}: ${res.status}`);
+  const wallets = await res.json();                  // Record<address, WalletSummary>
+  return wallets[a] ?? null;                         // null: no stock token held
+}</pre>
+<p>Files are gzip-compressed on the wire. Browsers and <code>fetch</code> decompress them for you, and <code>curl</code> needs <code>--compressed</code>.</p>
+
+<h2 id="caching">Caching and freshness</h2>
+<ul>
+  <li>Files are served with <code>Cache-Control: public, max-age=300</code>, so any cache may hold a file for up to five minutes.</li>
+  <li>The indexer replaces the files every six hours (see <a href="the-ground.html#cadence">update cadence</a>). Poll no more often than that. Compare <code>asOf</code> and <code>block</code> in <code>index.json</code> to see whether anything changed.</li>
+  <li>All four kinds of file in one run share the same <code>asOf</code>, except <code>wallets/</code> shards, which carry no timestamp of their own. Read <code>index.json</code> first if you need to know which snapshot a shard belongs to.</li>
+  <li>Browser requests from other origins depend on the storage service&rsquo;s cross-origin headers. If a browser blocks a request, fetch from a server instead. Cross-origin behaviour is not part of the feed&rsquo;s contract yet.</li>
+</ul>
+
+<h2 id="schema">Schema</h2>
+<p>The files are written by the indexer and read by the website using one shared set of TypeScript types. This is the whole contract. Fields marked optional can be missing, and new optional fields can be added at any time, so ignore keys you do not know.</p>
+<pre data-lang="ts" data-title="shared/types.ts">export type SeatKind = 'real' | 'dust' | 'farmer' | 'contract' | 'pool';
+
+export interface TokenSummary {
+  address: `0x${string}`;
+  symbol: string;            // e.g. "NVDAc"
+  name: string;              // e.g. "NVIDIA"
+  logo?: string;
+  priceUsd: number | null;   // DEX price used for $ values
+  navUsd: number | null;     // Coinbase API nav_price if present
+  multiplier: number;        // ERC-8056 uiMultiplier
+  holdersTotal: number;      // nonzero balances ("tickets sold")
+  realFans: number;          // >= $10, EOA/smart wallet, not farmer-only ("fans in the ground")
+  ghosts: { dust: number; farmerOnly: number; contracts: number };
+  attendancePct: number;     // realFans / holdersTotal * 100
+  top10SharePct: number;
+  top10ShareExPoolsPct: number;
+  weeklyBuyers: number;      // last 7d distinct buyer wallets (bots >50 swaps excluded)
+  newBuyers7d: number;
+  medianWeeklyBuyUsd: number | null;
+  hasReferenceMark: boolean; // Chainlink feed or nav_price exists
+  priceSource?: 'dex' | 'reference' | null;
+}
+
+export interface IndexFile {
+  asOf: string;              // ISO time of the snapshot
+  block: number;             // last indexed Base block
+  tokens: TokenSummary[];    // sorted by realFans desc
+}
+
+export interface Seat {
+  a: string;                 // lowercase address
+  k: SeatKind;
+  usd: number;               // current value at priceUsd
+  firstBuy: number | null;   // unix seconds of first inbound transfer
+  holdDays: number;          // days of current unbroken nonzero holding
+  streakWeeks: number;       // consecutive ISO weeks with a net buy (0 if none)
+  entryVsMedianPct: number | null; // avg entry price vs median real-fan entry, % (negative = cheaper)
+  heldThroughGap: boolean;   // held across at least one weekend reopen gap
+}
+
+export interface TokenSeatsFile {
+  asOf: string;
+  symbol: string;
+  seats: Seat[];             // real fans first in rank order (rank = index+1), then ghosts
+}
+
+export type BestStatKey = 'earliest' | 'longestHold' | 'entryVsMedian' | 'heldThroughGap' | 'streak';
+
+export interface WalletTokenEntry {
+  symbol: string;
+  usd: number;
+  kind: SeatKind;
+  rank: number | null;       // rank among real fans (null if ghost)
+  of: number;                // realFans for that token
+  bestStat: { key: BestStatKey; label: string; pct: number } | null; // "top pct%" among real fans
+}
+
+export interface WalletSummary {
+  tokens: WalletTokenEntry[];
+  totalUsd: number;
+  firstSeen: number | null;
+}
+
+// wallets/<first two hex chars after 0x>.json
+export type WalletShard = Record<string, WalletSummary>;
+
+export interface StatsFile {
+  asOf: string;
+  holdersTotal: number;      // unique nonzero wallets across all tokens
+  realWallets: number;       // unique real wallets >= $10 across tokens
+  realWallets100: number;
+  weeklyBuyers: { weekStart: string; buyers: number; newBuyers: number; medianBuyUsd: number }[];
+  tokensMinted: number;
+  totalValueUsd: number;
+}</pre>
+
+<h3 id="index-fields"><code>index.json</code> fields</h3>
+<table class="x">
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>asOf</code></td><td>ISO 8601 time of the snapshot.</td></tr>
+    <tr><td><code>block</code></td><td>The last Base block the indexer applied. Runs stay about 150 blocks behind the head.</td></tr>
+    <tr><td><code>tokens[]</code></td><td>One <code>TokenSummary</code> per minted stock token that has any holder, sorted by <code>realFans</code> descending, then by <code>holdersTotal</code>.</td></tr>
+    <tr><td><code>address</code>, <code>symbol</code>, <code>name</code>, <code>logo</code></td><td>The token&rsquo;s B20 address, its ticker with the <code>c</code> suffix, the company name and an optional logo URL.</td></tr>
+    <tr><td><code>priceUsd</code></td><td>The price used to value every seat, in USD per token. <code>null</code> when the token is unpriced. It already includes the multiplier.</td></tr>
+    <tr><td><code>priceSource</code></td><td><code>"dex"</code>: the deepest DEX pair with at least $1,000 of liquidity. <code>"reference"</code>: no such pair, so the underlying stock&rsquo;s last price times the multiplier (else Coinbase&rsquo;s <code>nav_price</code>). <code>null</code>: unpriced, all seats show <code>usd: 0</code>.</td></tr>
+    <tr><td><code>navUsd</code></td><td>Coinbase&rsquo;s <code>nav_price</code> where the API publishes one (only a minority of tokens do).</td></tr>
+    <tr><td><code>multiplier</code></td><td>The ERC-8056 <code>uiMultiplier</code>. Dividends are paid as shares through increases of this number. Above 1 means the token has had a split or stock dividend.</td></tr>
+    <tr><td><code>holdersTotal</code></td><td>Wallets with a nonzero balance: &ldquo;tickets sold&rdquo;. It includes pools and contracts.</td></tr>
+    <tr><td><code>realFans</code></td><td>Real fans as defined in <a href="the-ground.html#thresholds">thresholds</a>: &ldquo;fans in the ground&rdquo;.</td></tr>
+    <tr><td><code>ghosts</code></td><td><code>dust</code>: people&rsquo;s wallets under $10. <code>farmerOnly</code>: wallets that only ever received giveaways. <code>contracts</code>: pools plus other contracts. With <code>realFans</code> these add up to <code>holdersTotal</code>.</td></tr>
+    <tr><td><code>attendancePct</code></td><td><code>realFans / holdersTotal * 100</code>, one decimal.</td></tr>
+    <tr><td><code>top10SharePct</code>, <code>top10ShareExPoolsPct</code></td><td>The share of supply held by the ten largest balances, with and without liquidity pools.</td></tr>
+    <tr><td><code>weeklyBuyers</code>, <code>newBuyers7d</code></td><td>Distinct person wallets that received the token from a DEX purchase in the last seven days, and the subset making their first DEX buy of it. Wallets with more than 50 swaps that week are excluded as bots.</td></tr>
+    <tr><td><code>medianWeeklyBuyUsd</code></td><td>The median of each weekly buyer&rsquo;s total bought that week, in USD. <code>null</code> with no buyers.</td></tr>
+    <tr><td><code>hasReferenceMark</code></td><td>Whether a Chainlink feed or a Coinbase <code>nav_price</code> exists for the token.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="seat-fields"><code>tokens/&lt;symbol&gt;.json</code> fields</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>asOf</code>, <code>symbol</code></td><td>Snapshot time and the token this file is about.</td></tr>
+    <tr><td><code>seats[]</code></td><td>Real fans first, in rank order, so rank is the array index plus one. Ghosts follow in this order: dust, farmer, contract, pool, with larger balances first inside each kind.</td></tr>
+    <tr><td><code>a</code></td><td>The wallet address, lowercase.</td></tr>
+    <tr><td><code>k</code></td><td>The seat kind: <code>real</code>, <code>dust</code>, <code>farmer</code>, <code>contract</code> or <code>pool</code>.</td></tr>
+    <tr><td><code>usd</code></td><td>Current value at <code>priceUsd</code>, rounded to cents.</td></tr>
+    <tr><td><code>firstBuy</code></td><td>Unix seconds of the wallet&rsquo;s first inbound transfer of this token, or <code>null</code>.</td></tr>
+    <tr><td><code>holdDays</code></td><td>Days of the current unbroken nonzero holding. The main ranking key.</td></tr>
+    <tr><td><code>streakWeeks</code></td><td>Consecutive ISO weeks, ending with the latest buy, in which the wallet made a net buy. <code>0</code> if none.</td></tr>
+    <tr><td><code>entryVsMedianPct</code></td><td>The wallet&rsquo;s average entry price against the median real fan&rsquo;s, in percent. Negative means a cheaper entry. <code>null</code> when there are no priced buys.</td></tr>
+    <tr><td><code>heldThroughGap</code></td><td><code>true</code> if the wallet held across at least one weekend reopen gap.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="wallet-fields"><code>wallets/&lt;2hex&gt;.json</code> fields</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>(object keys)</td><td>Lowercase wallet addresses. A shard holds every wallet whose address starts with those two hex digits and that holds any stock token, ghosts included. An address that is not in its shard holds none.</td></tr>
+    <tr><td><code>tokens[]</code></td><td>One entry per token held, largest value first. Each has <code>symbol</code>, <code>usd</code>, <code>kind</code>, and for real fans <code>rank</code> out of <code>of</code> (the token&rsquo;s <code>realFans</code>). <code>rank</code> is <code>null</code> for ghosts.</td></tr>
+    <tr><td><code>bestStat</code></td><td>The wallet&rsquo;s strongest claim on that token: <code>key</code> is one of <code>earliest</code>, <code>longestHold</code>, <code>entryVsMedian</code>, <code>heldThroughGap</code> or <code>streak</code>, <code>label</code> is display text, and <code>pct</code> reads as &ldquo;top pct%&rdquo; among real fans. <code>null</code> for ghosts.</td></tr>
+    <tr><td><code>totalUsd</code></td><td>Value of all stock tokens the wallet holds at the snapshot prices.</td></tr>
+    <tr><td><code>firstSeen</code></td><td>Unix seconds of the wallet&rsquo;s earliest first inbound transfer across tokens.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="stats-fields"><code>stats.json</code> fields</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>holdersTotal</code></td><td>Unique wallets with a nonzero balance of any stock token.</td></tr>
+    <tr><td><code>realWallets</code>, <code>realWallets100</code></td><td>Unique person wallets, not farmer-only, whose combined stock-token value across all tokens is at least $10, and at least $100.</td></tr>
+    <tr><td><code>weeklyBuyers[]</code></td><td>One row per ISO week: <code>weekStart</code> (a Monday, <code>YYYY-MM-DD</code>), distinct <code>buyers</code>, how many of them were <code>newBuyers</code> making their first stock-token buy that week, and the <code>medianBuyUsd</code>.</td></tr>
+    <tr><td><code>tokensMinted</code></td><td>The number of tokens in <code>index.json</code>.</td></tr>
+    <tr><td><code>totalValueUsd</code></td><td>Value of all supply at the snapshot prices, rounded to whole dollars.</td></tr>
+  </tbody>
+</table>
+<p>Note one difference on purpose: <code>realFans</code> in <code>index.json</code> tests the $10 line per token, while <code>realWallets</code> in <code>stats.json</code> tests it on a wallet&rsquo;s total across tokens.</p>
+
+<h3 id="sample">Sample shapes</h3>
+<p>Abridged examples. Field names and types are exact. The values are samples from the Nov 21 2026 count where we know them, and illustrative where we do not.</p>
+<pre data-lang="json" data-title="index.json (abridged)">{
+  "asOf": "2026-11-21T16:25:00.000Z",
+  "block": 60439800,
+  "tokens": [
+    {
+      "address": "0x…",
+      "symbol": "NVDAc",
+      "name": "NVIDIA",
+      "priceUsd": 130.22,
+      "navUsd": null,
+      "multiplier": 1.0005,
+      "holdersTotal": 17685,
+      "realFans": 1613,
+      "ghosts": { "dust": 8432, "farmerOnly": 6288, "contracts": 1352 },
+      "attendancePct": 9.1,
+      "top10SharePct": 76.6,
+      "top10ShareExPoolsPct": 57.7,
+      "hasReferenceMark": true,
+      "priceSource": "dex"
+    }
+  ]
+}</pre>
+<pre data-lang="json" data-title="wallets/ab.json (abridged)">{
+  "0xab…": {
+    "tokens": [
+      {
+        "symbol": "NVDAc",
+        "usd": 42.18,
+        "kind": "real",
+        "rank": 212,
+        "of": 1613,
+        "bestStat": { "key": "longestHold", "label": "Longest holders", "pct": 13.2 }
+      }
+    ],
+    "totalUsd": 42.18,
+    "firstSeen": 1786509300
+  }
+}</pre>
+
+<h2 id="stability">Versioning and stability</h2>
+<ul>
+  <li>The schema above is the current and only version. Changes are additive: new optional fields can appear, and existing fields keep their names and meanings.</li>
+  <li>If a field must change meaning, it is announced in the <a href="changelog.html">changelog</a> first.</li>
+  <li>Rankings are not stable across snapshots: hold time and balances change, so ranks move.</li>
+</ul>
+
+<h2 id="licence">Licence</h2>
+<p>The feed is <strong>free for non-commercial use</strong>: research, journalism, dashboards, bots and personal tools. When you publish a number from it, name Tropa Club and the <code>asOf</code> time it came from. For commercial use, including a product, a paid dashboard or resale, <a href="partners.html#data-feed">contact us for a commercial tier</a>. The underlying facts are public chain data. What the feed adds is the classification and the ranking.</p>
+<p>The feed carries no personal data beyond wallet addresses, which are already public on Base. It is provided as is, with no warranty, and it is not investment advice.</p>

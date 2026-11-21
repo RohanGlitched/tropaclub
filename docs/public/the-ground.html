@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ground and the Real Holders method · Tropa Club Docs</title>
+<meta name="description" content="How Tropa Club counts real fans against ghost wallets for every Coinbase stock token on Base: thresholds, contract detection, the farmer-distributor heuristic, ranking rules and update cadence.">
+<meta name="theme-color" content="#121037">
+<link rel="canonical" href="https://docs.tropaclub.xyz/the-ground">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:site_name" content="Tropa Club Docs">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Ground and the Real Holders method · Tropa Club Docs">
+<meta property="og:description" content="How Tropa Club counts real fans against ghost wallets for every Coinbase stock token on Base: thresholds, contract detection, the farmer-distributor heuristic, ranking rules and update cadence.">
+<meta property="og:url" content="https://docs.tropaclub.xyz/the-ground">
+<meta property="og:image" content="https://docs.tropaclub.xyz/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tropa Club Docs">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@tropaclubxyz">
+<meta name="twitter:title" content="The Ground and the Real Holders method · Tropa Club Docs">
+<meta name="twitter:description" content="How Tropa Club counts real fans against ghost wallets for every Coinbase stock token on Base: thresholds, contract detection, the farmer-distributor heuristic, ranking rules and update cadence.">
+<meta name="twitter:image" content="https://docs.tropaclub.xyz/assets/og.png">
+<script>try{var t=localStorage.getItem('tropa-docs-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="preload" href="assets/fonts/bsc-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="site-header-in">
+    <button class="icon-btn menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar"><svg class="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <a class="brand" href="index.html" aria-label="Tropa Club Docs, home"><svg class="logo-lockup" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 345.7 96" aria-hidden="true" focusable="false" aria-label="Tropa Club">
+  
+  <g fill="currentColor">
+    <path d="M9 9H87V27H9Z"/>
+    <path d="M27 34H69V87L48 69.4L27 87Z"/>
+    <path transform="translate(106 67.5) scale(0.5493)" d="M15.4 0V-54.02H28.37V0ZM-1.5 -58.51V-71H45.27V-58.51ZM43.65 0V-50.68H57.28V0ZM70.8 -37.28Q69.99 -37.92 68.77 -38.26Q67.56 -38.6 65.97 -38.6Q61.85 -38.6 59.56 -36Q57.28 -33.39 57.28 -28.82L56.26 -41.85Q58.37 -46.34 61.74 -48.9Q65.11 -51.46 69.17 -51.46Q71.32 -51.46 73.07 -50.78Q74.81 -50.1 76.11 -48.77ZM99.86 0.73Q90.47 0.73 85.3 -4.36Q80.12 -9.46 80.12 -18.7V-32.28Q80.12 -41.43 85.3 -46.45Q90.47 -51.46 99.86 -51.46Q109.25 -51.46 114.42 -46.45Q119.59 -41.43 119.59 -32.28V-18.55Q119.59 -9.36 114.42 -4.31Q109.25 0.73 99.86 0.73ZM99.84 -11.52Q103.08 -11.52 104.87 -13.45Q106.66 -15.38 106.66 -18.88V-31.98Q106.66 -35.42 104.87 -37.32Q103.08 -39.23 99.84 -39.23Q96.64 -39.23 94.84 -37.32Q93.04 -35.42 93.04 -31.98V-18.88Q93.04 -15.38 94.84 -13.45Q96.64 -11.52 99.84 -11.52ZM129.83 20.61V-50.68H142.8V20.61ZM153.74 0.73Q149.61 0.73 146.6 -1.55Q143.59 -3.82 142.12 -7.96L142.8 -18.11Q142.8 -15.91 143.55 -14.37Q144.31 -12.83 145.73 -12.02Q147.16 -11.2 149.18 -11.2Q152.32 -11.2 154.04 -13.33Q155.75 -15.45 155.75 -19.3V-31.34Q155.75 -35.23 154.04 -37.38Q152.32 -39.53 149.18 -39.53Q147.16 -39.53 145.73 -38.73Q144.31 -37.92 143.55 -36.36Q142.8 -34.8 142.8 -32.53L141.78 -42.19Q143.73 -46.61 146.85 -49.04Q149.98 -51.46 153.8 -51.46Q160.91 -51.46 164.78 -46.37Q168.64 -41.28 168.64 -31.95V-18.74Q168.64 -9.46 164.75 -4.36Q160.86 0.73 153.74 0.73ZM203.72 0V-33.49Q203.72 -36.52 201.79 -38.16Q199.85 -39.8 196.29 -39.8Q193.8 -39.8 191.61 -38.83Q189.42 -37.87 187.96 -36.06L178.61 -41.61Q180.68 -46.29 185.34 -48.88Q190 -51.46 196.46 -51.46Q205.59 -51.46 210.63 -46.84Q215.66 -42.22 215.66 -33.79V0ZM191.33 0.73Q184.01 0.73 180.3 -3.08Q176.59 -6.89 176.59 -14.57Q176.59 -22.32 181.04 -26.23Q185.5 -30.14 194.23 -30.14H204.07L204.75 -20.12H194.47Q191.49 -20.12 189.97 -18.73Q188.45 -17.35 188.45 -14.57Q188.45 -12.19 190.05 -11.01Q191.65 -9.82 194.83 -9.82Q199.22 -9.82 201.47 -11.1Q203.72 -12.37 203.72 -14.98L204.69 -8.61Q204.47 -5.49 202.54 -3.41Q200.62 -1.32 197.67 -0.3Q194.72 0.73 191.33 0.73ZM268.25 0.73Q260.99 0.73 255.86 -2.06Q250.73 -4.84 248.02 -10.17Q245.32 -15.5 245.32 -23.04V-47.91Q245.32 -55.5 248.02 -60.81Q250.73 -66.12 255.86 -68.93Q260.99 -71.73 268.25 -71.73Q274.93 -71.73 279.73 -69Q284.52 -66.28 287.36 -60.88Q290.2 -55.48 290.99 -47.43H277.63Q277.16 -51.19 275.93 -53.68Q274.69 -56.16 272.76 -57.43Q270.83 -58.7 268.25 -58.7Q263.72 -58.7 261.21 -55.87Q258.69 -53.05 258.69 -47.91V-23.04Q258.69 -17.92 261.21 -15.11Q263.72 -12.29 268.25 -12.29Q272.17 -12.29 274.56 -15.12Q276.96 -17.95 277.63 -23.56H290.99Q290.17 -15.55 287.33 -10.13Q284.5 -4.72 279.71 -1.99Q274.93 0.73 268.25 0.73ZM313 -71V-16.31Q313 -14.55 314 -13.56Q315 -12.58 316.79 -12.58H318.8V0H312.73Q306.7 0 303.37 -3.52Q300.03 -7.03 300.03 -13.43V-71ZM352.23 0V-50.68H365.12V0ZM339.25 -50.68V-17.65Q339.25 -14.54 340.95 -12.86Q342.64 -11.19 345.79 -11.19Q348.91 -11.19 350.57 -12.93Q352.23 -14.67 352.23 -17.92L352.91 -8.8Q351.66 -4.81 348.76 -2.04Q345.87 0.73 341.35 0.73Q334.07 0.73 330.2 -3.94Q326.33 -8.61 326.33 -17.32V-50.68ZM400.25 0.73Q396.14 0.73 393.13 -1.55Q390.12 -3.82 388.65 -7.96L389.33 -18.11Q389.33 -15.91 390.08 -14.37Q390.83 -12.83 392.25 -12.02Q393.67 -11.2 395.69 -11.2Q398.84 -11.2 400.56 -13.33Q402.28 -15.45 402.28 -19.3V-31.34Q402.28 -35.23 400.56 -37.38Q398.84 -39.53 395.69 -39.53Q393.67 -39.53 392.25 -38.73Q390.83 -37.92 390.08 -36.36Q389.33 -34.8 389.33 -32.53L388.31 -42.19Q390.25 -46.61 393.37 -49.04Q396.49 -51.46 400.32 -51.46Q407.42 -51.46 411.3 -46.37Q415.17 -41.28 415.17 -31.95V-18.74Q415.17 -9.46 411.27 -4.36Q407.38 0.73 400.25 0.73ZM376.36 0V-71H389.33V0Z"/>
+  </g>
+</svg>
+<svg class="logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" aria-hidden="true" focusable="false" aria-label="Tropa Club">
+  
+  <g fill="currentColor">
+    <path d="M9 9H87V27H9Z"/>
+    <path d="M27 34H69V87L48 69.4L27 87Z"/>
+  </g>
+</svg>
+<span class="brand-tag">Docs</span></a>
+    <div class="header-spacer"></div>
+    <div class="search" id="hs" role="search"><label class="search-field"><span class="sr-only" style="position:absolute;left:-9999px">Search the docs</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="hs-list" aria-autocomplete="list"><kbd aria-hidden="true">/</kbd></label><ul class="search-results" id="hs-list" role="listbox" aria-label="Search results" hidden></ul></div>
+    <button class="icon-btn theme-btn" type="button" aria-label="Switch theme"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation">
+    <div class="search" id="ms" role="search"><label class="search-field"><span class="sr-only" style="position:absolute;left:-9999px">Search the docs</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search the docs" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="ms-list" aria-autocomplete="list"><kbd aria-hidden="true">/</kbd></label><ul class="search-results" id="ms-list" role="listbox" aria-label="Search results" hidden></ul></div>
+    <div class="nav-group"><h2>Get started</h2><ul><li><a href="index.html">Overview</a></li></ul></div><div class="nav-group"><h2>Data</h2><ul><li><a href="the-ground.html" aria-current="page">The Ground and Real Holders</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div><div class="nav-group"><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li></ul></div><div class="nav-group"><h2>Evidence and partners</h2><ul><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="partners.html">For partners</a></li></ul></div><div class="nav-group"><h2>Policy and history</h2><ul><li><a href="compliance.html">Compliance and limits</a></li><li><a href="changelog.html">Changelog</a></li></ul></div><div class="nav-extra"><a href="https://tropaclub.xyz">tropaclub.xyz</a><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a><a href="https://storage.googleapis.com/tropaclub-data/public/index.json" rel="noopener">index.json (live feed)</a></div>
+  </nav>
+  <main class="doc" id="main">
+    <article class="article">
+      <h1>The Ground and the Real Holders method</h1>
+      <p class="lede">A holder count is not a crowd. Stock tokens on Base report tens of thousands of holders, and most of those wallets hold cents. The Ground counts the wallets that are really there and gives each one a seat.</p>
+      <p class="page-meta">Updated Nov 22 2026</p>
+      <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Find your seat</a></li></ol></nav>
+      
+<h2 id="idea">The Ground<a class="anchor" href="#idea" aria-label="Link to The Ground">#</a></h2>
+<p>Every stock token is treated as a club, and every club plays in a ground. Each wallet that holds the token is one seat. <strong>Real fans</strong> are lit in the club&rsquo;s colours. <strong>Ghosts</strong> are faint: dust balances, farmer-only wallets and contracts. The whole table of grounds is <strong>The Attendance</strong>, a league table of real attendance for all minted tokens.</p>
+<p>The picture makes one point with numbers behind it. At the Nov 21 2026 count, NVIDIA&rsquo;s token had 17,685 holders and 1,613 real fans. The Ground draws that as 17,685 tickets sold and 1,613 fans showing up.</p>
+
+<h2 id="example">Worked example: 17,685 against 1,613<a class="anchor" href="#example" aria-label="Link to Worked example: 17,685 against 1,613">#</a></h2>
+<p>This is the count for NVDAc (NVIDIA) from the full replay on Nov 21 2026, Base block 60,439,800. The numbers move every six hours, but the shape of the funnel does not.</p>
+<div class="figures">
+  <div class="figure"><b>17,685</b><span>wallets with a nonzero balance (&ldquo;tickets sold&rdquo;)</span></div>
+  <div class="figure"><b>1,934</b><span>of them hold $10 or more</span></div>
+  <div class="figure"><b>1,613</b><span>are real fans (&ldquo;showed up&rdquo;)</span></div>
+  <div class="figure"><b>9.1%</b><span>attendance: real fans divided by holders</span></div>
+</div>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
+  <thead><tr><th>Step</th><th class="num">Wallets</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr><td>Nonzero balance</td><td class="num">17,685</td><td>Every address holding any amount of the token.</td></tr>
+    <tr><td>Below $10</td><td class="num">&minus;15,751</td><td>Too small to count as a fan, whatever kind of address. 13,606 of these hold less than $1.</td></tr>
+    <tr><td>Hold $10 or more</td><td class="num">1,934</td><td>The starting point for real fans.</td></tr>
+    <tr><td>Liquidity pools</td><td class="num">&minus;12</td><td>Contracts that make the market, not fans.</td></tr>
+    <tr><td>Other contracts</td><td class="num">&minus;219</td><td>Vaults, routers, multisigs and the like, found by checking for contract code.</td></tr>
+    <tr><td>Farmer-only wallets</td><td class="num">&minus;90</td><td>Every incoming transfer came from a giveaway distributor and the wallet never bought.</td></tr>
+    <tr><td><strong>Real fans</strong></td><td class="num"><strong>1,613</strong></td><td>$10 or more, a person&rsquo;s wallet, not farmer-only.</td></tr>
+  </tbody>
+</table></div>
+<p>Across all 90 minted tokens at that count, 39,746 wallets held something. 4,968 of them were real fans of at least one token, and 2,117 of those held $100 or more.</p>
+
+<h2 id="method">The method, step by step<a class="anchor" href="#method" aria-label="Link to The method, step by step">#</a></h2>
+<ol class="steps">
+  <li><strong>Replay every transfer.</strong>The indexer reads all <code>Transfer</code> logs of every minted Coinbase stock token on Base, from the first mint on Aug 12 2026 (block 49,860,000), and replays them into balances. The first full run replayed 21.8 million transfers across 90 tokens. After the first run it continues from the last block it applied, staying about 150 blocks behind the chain head so that it never records a block that could still be reorganised.</li>
+  <li><strong>Check the totals.</strong>Replayed balances are compared with the total supply each token reports. In the Nov 21 run they matched within 0.6% for every token, with no negative balances.</li>
+  <li><strong>Price each balance.</strong>A balance is valued at the DEX price of the token&rsquo;s deepest pool with at least $1,000 of liquidity. That price already contains the token&rsquo;s split and dividend multiplier. If there is no such pool, the underlying stock&rsquo;s last price times the multiplier is used and the token is marked <code>priceSource: "reference"</code>. If neither exists the token is unpriced and every seat shows $0.</li>
+  <li><strong>Tell people from code.</strong>Each address is checked for contract code. Plain wallets, EIP-7702 delegated wallets and smart wallets (Coinbase Smart Wallet and Safe style proxies, the kind wallet apps create) count as people. Liquidity pools and every other contract are ghosts.</li>
+  <li><strong>Set giveaways aside.</strong>Some contracts send small amounts to thousands of wallets. A wallet is <em>farmer-only</em> if every incoming transfer came from one of those distributors, with no DEX purchase, no router delivery and no mint of its own.</li>
+  <li><strong>Count the fans.</strong>A wallet that clears all the tests is a real fan. Attendance is real fans divided by holders.</li>
+</ol>
+
+<h2 id="thresholds">Thresholds and classification order<a class="anchor" href="#thresholds" aria-label="Link to Thresholds and classification order">#</a></h2>
+<p>Every seat gets exactly one kind. The tests run in this order, and the first one that matches wins.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
+  <thead><tr><th>Order</th><th>Kind in the feed</th><th>Rule</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><code>pool</code></td><td>A labelled liquidity pool or venue address.</td></tr>
+    <tr><td>2</td><td><code>contract</code></td><td>The address has contract code and is not a smart wallet or a delegated wallet.</td></tr>
+    <tr><td>3</td><td><code>farmer</code></td><td>The farmer-only test below, whatever the balance.</td></tr>
+    <tr><td>4</td><td><code>real</code></td><td>Balance worth <strong>$10 or more</strong> at the token&rsquo;s current price.</td></tr>
+    <tr><td>5</td><td><code>dust</code></td><td>Everything else: a person&rsquo;s wallet holding under $10.</td></tr>
+  </tbody>
+</table></div>
+<p>In the feed&rsquo;s per-token summary, <code>ghosts.contracts</code> adds pools and contracts together, and <code>ghosts.farmerOnly</code> and <code>ghosts.dust</code> are counted separately. The three ghost counts plus <code>realFans</code> always add up to <code>holdersTotal</code>.</p>
+
+<h3 id="contracts">Contract detection<a class="anchor" href="#contracts" aria-label="Link to Contract detection">#</a></h3>
+<p>The indexer calls <code>eth_getCode</code> for every address that ever held a stock token (54,389 of them in the first run) and sorts the result into four kinds: a plain wallet, an EIP-7702 delegated wallet, a smart wallet, and a contract. Delegated and smart wallets count as people because most active buyers use them: wallet apps delegate ordinary accounts to a shared implementation, and Coinbase Smart Wallets are proxy contracts. Known liquidity pools are labelled separately before this check.</p>
+
+<h3 id="farmers">The farmer-distributor heuristic<a class="anchor" href="#farmers" aria-label="Link to The farmer-distributor heuristic">#</a></h3>
+<p>A <strong>distributor</strong> is a contract that fans out small token amounts to many wallets: giveaways, reward boxes, campaign payouts. We label one when it looks like this:</p>
+<ul>
+  <li>it sends to at least 193 distinct recipients outside of swaps;</li>
+  <li>its pass-through ratio is below 0.4, meaning it is not simply relaying what it receives, as an aggregator router does;</li>
+  <li>it sends out at least twice what it takes in;</li>
+  <li>its median transfer is under $15.</li>
+</ul>
+<p>Contracts with a pass-through ratio of 0.4 or more are treated as <strong>routers</strong>, which deliver purchases, and a delivery from a router counts as the wallet&rsquo;s own buy. Two named gift-box contracts are added to the distributor list by hand. A wallet is farmer-only when all of its incoming transfers across every token came from distributors. In the Nov 21 count 11,597 wallets met that test for at least one token.</p>
+<div class="callout note" role="note"><p class="callout-title">Why a heuristic</p>
+<p>A giveaway recipient is a real person, and some of them later buy for themselves. That is why the rule is about <em>every</em> incoming transfer: one purchase of their own makes a wallet a normal wallet, and it can become a real fan.</p>
+</div>
+
+<h3 id="dust">Dust<a class="anchor" href="#dust" aria-label="Link to Dust">#</a></h3>
+<p>The research behind the method called dust anything under $1, which was 66% of all holders. The feed uses the simpler line that matters for fans: a person&rsquo;s wallet under $10 and not otherwise classified is <code>dust</code>. If you want the under-$1 slice, read each seat&rsquo;s <code>usd</code> field.</p>
+
+<h2 id="ranking">Ranking rules<a class="anchor" href="#ranking" aria-label="Link to Ranking rules">#</a></h2>
+<p>Real fans are ranked. The seat on a ticket, the fan number and the &ldquo;best stat&rdquo; all come from this ranking.</p>
+<ol>
+  <li><strong>Unbroken hold time</strong> in days, longest first. A hold is unbroken while the balance stays above zero.</li>
+  <li><strong>Earliest first buy</strong>, earliest first, breaking ties between equal hold times.</li>
+  <li>Last-resort ties are broken by when the current hold started and then by address, so the order is the same on every run.</li>
+</ol>
+<div class="callout note" role="note"><p class="callout-title">Size never counts</p>
+<p>How much a wallet holds never affects its rank or its seat. The top ten wallets own 72% to 90% of every token (35% to 76% once pools are removed), so ranking by dollars would show the same few names for ever. Rank one sits pitchside at halfway.</p>
+</div>
+<p>A wallet&rsquo;s <strong>best stat</strong> is the one where it sits highest among real fans of that token, shown as &ldquo;top N%&rdquo;. The candidates are earliest buyer, longest unbroken hold, entry price against the median real fan&rsquo;s entry, held through a weekend reopen gap, and weekly buy streak.</p>
+
+<h3 id="weekly">Buyer counts<a class="anchor" href="#weekly" aria-label="Link to Buyer counts">#</a></h3>
+<p>A <strong>weekly buyer</strong> is a person&rsquo;s wallet that ends up with a token from a DEX purchase in the last seven days. Wallets with more than 50 swap events across all stock tokens in that week are treated as bots and left out. A <strong>new buyer</strong> made their first DEX buy of that token inside the window. The median weekly buy in the first full count was about $5 to $10.</p>
+
+<h2 id="cadence">Update cadence<a class="anchor" href="#cadence" aria-label="Link to Update cadence">#</a></h2>
+<p>The indexer runs <strong>every six hours</strong>, at 17 minutes past 00:00, 06:00, 12:00 and 18:00 UTC. Each run publishes the files described in the <a href="data-feed.html">data feed</a> and stamps them with <code>asOf</code> (the time of the snapshot) and <code>block</code> (the last Base block applied). The files are cached for five minutes, so a page can be up to six hours and five minutes behind the chain.</p>
+
+<h2 id="limits">Known approximations<a class="anchor" href="#limits" aria-label="Link to Known approximations">#</a></h2>
+<p>The count is public chain data run through rules we publish. It is accurate about what the chain shows and honest about what it cannot see.</p>
+<ul>
+  <li><strong>A wallet is not a person.</strong> One person with several wallets is several seats, and a shared wallet is one. We do not cluster wallets by owner.</li>
+  <li><strong>Prices are spot prices.</strong> A seat&rsquo;s <code>usd</code> value is the balance at the current DEX price, not what the wallet paid. A wallet at $9.80 today is dust and may be a fan tomorrow. DEX prices trade around the clock and can sit a little off the underlying stock when the market is closed.</li>
+  <li><strong>Unpriced tokens have no fans.</strong> A token with no liquid pool and no reference price has no dollar line. At the Nov 21 count, 38 of the 90 minted tokens were unpriced.</li>
+  <li><strong>The farmer rule is a label, not a verdict.</strong> It is built from observed behaviour. A wallet that received only giveaways and never bought is set aside. A wallet that hides a purchase inside a transfer from a friend is counted as a normal wallet.</li>
+  <li><strong>Hold time resets when a wallet empties or moves.</strong> Moving tokens to a fresh wallet starts a new hold in that wallet and ends the old one.</li>
+  <li><strong>Entry price is estimated.</strong> Entry is the daily average DEX price on the day of each buy, weighted by size. Transfers in and giveaways have no entry price.</li>
+  <li><strong>Counts lag by design.</strong> The six-hour cadence and the 150-block lag mean a purchase made a minute ago will not be visible yet.</li>
+</ul>
+
+<h2 id="find-seat">Find your seat<a class="anchor" href="#find-seat" aria-label="Link to Find your seat">#</a></h2>
+<p>Paste a wallet at <a href="https://tropaclub.xyz">tropaclub.xyz</a> and the camera flies to your seat. Your holder card is a matchday ticket: club, block, row and seat from your rank, your best true stat, and a barcode drawn from the address bytes. A ticket never prints a dollar amount. Everything on it is also in the <a href="data-feed.html">public data feed</a>.</p>
+
+      <nav class="pager" aria-label="Previous and next page"><a class="prev" href="index.html" rel="prev"><small>Previous</small><strong>Overview</strong></a><a class="next" href="data-feed.html" rel="next"><small>Next</small><strong>Public data feed</strong></a></nav>
+    </article>
+    <aside class="toc-side" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Find your seat</a></li></ol></aside>
+  </main>
+</div>
+<footer class="site-footer">
+  <div class="footer-in">
+    <div class="footer-brand">
+      <svg class="logo-lockup-foot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 345.7 96" aria-hidden="true" focusable="false" aria-label="Tropa Club">
+  
+  <g fill="currentColor">
+    <path d="M9 9H87V27H9Z"/>
+    <path d="M27 34H69V87L48 69.4L27 87Z"/>
+    <path transform="translate(106 67.5) scale(0.5493)" d="M15.4 0V-54.02H28.37V0ZM-1.5 -58.51V-71H45.27V-58.51ZM43.65 0V-50.68H57.28V0ZM70.8 -37.28Q69.99 -37.92 68.77 -38.26Q67.56 -38.6 65.97 -38.6Q61.85 -38.6 59.56 -36Q57.28 -33.39 57.28 -28.82L56.26 -41.85Q58.37 -46.34 61.74 -48.9Q65.11 -51.46 69.17 -51.46Q71.32 -51.46 73.07 -50.78Q74.81 -50.1 76.11 -48.77ZM99.86 0.73Q90.47 0.73 85.3 -4.36Q80.12 -9.46 80.12 -18.7V-32.28Q80.12 -41.43 85.3 -46.45Q90.47 -51.46 99.86 -51.46Q109.25 -51.46 114.42 -46.45Q119.59 -41.43 119.59 -32.28V-18.55Q119.59 -9.36 114.42 -4.31Q109.25 0.73 99.86 0.73ZM99.84 -11.52Q103.08 -11.52 104.87 -13.45Q106.66 -15.38 106.66 -18.88V-31.98Q106.66 -35.42 104.87 -37.32Q103.08 -39.23 99.84 -39.23Q96.64 -39.23 94.84 -37.32Q93.04 -35.42 93.04 -31.98V-18.88Q93.04 -15.38 94.84 -13.45Q96.64 -11.52 99.84 -11.52ZM129.83 20.61V-50.68H142.8V20.61ZM153.74 0.73Q149.61 0.73 146.6 -1.55Q143.59 -3.82 142.12 -7.96L142.8 -18.11Q142.8 -15.91 143.55 -14.37Q144.31 -12.83 145.73 -12.02Q147.16 -11.2 149.18 -11.2Q152.32 -11.2 154.04 -13.33Q155.75 -15.45 155.75 -19.3V-31.34Q155.75 -35.23 154.04 -37.38Q152.32 -39.53 149.18 -39.53Q147.16 -39.53 145.73 -38.73Q144.31 -37.92 143.55 -36.36Q142.8 -34.8 142.8 -32.53L141.78 -42.19Q143.73 -46.61 146.85 -49.04Q149.98 -51.46 153.8 -51.46Q160.91 -51.46 164.78 -46.37Q168.64 -41.28 168.64 -31.95V-18.74Q168.64 -9.46 164.75 -4.36Q160.86 0.73 153.74 0.73ZM203.72 0V-33.49Q203.72 -36.52 201.79 -38.16Q199.85 -39.8 196.29 -39.8Q193.8 -39.8 191.61 -38.83Q189.42 -37.87 187.96 -36.06L178.61 -41.61Q180.68 -46.29 185.34 -48.88Q190 -51.46 196.46 -51.46Q205.59 -51.46 210.63 -46.84Q215.66 -42.22 215.66 -33.79V0ZM191.33 0.73Q184.01 0.73 180.3 -3.08Q176.59 -6.89 176.59 -14.57Q176.59 -22.32 181.04 -26.23Q185.5 -30.14 194.23 -30.14H204.07L204.75 -20.12H194.47Q191.49 -20.12 189.97 -18.73Q188.45 -17.35 188.45 -14.57Q188.45 -12.19 190.05 -11.01Q191.65 -9.82 194.83 -9.82Q199.22 -9.82 201.47 -11.1Q203.72 -12.37 203.72 -14.98L204.69 -8.61Q204.47 -5.49 202.54 -3.41Q200.62 -1.32 197.67 -0.3Q194.72 0.73 191.33 0.73ZM268.25 0.73Q260.99 0.73 255.86 -2.06Q250.73 -4.84 248.02 -10.17Q245.32 -15.5 245.32 -23.04V-47.91Q245.32 -55.5 248.02 -60.81Q250.73 -66.12 255.86 -68.93Q260.99 -71.73 268.25 -71.73Q274.93 -71.73 279.73 -69Q284.52 -66.28 287.36 -60.88Q290.2 -55.48 290.99 -47.43H277.63Q277.16 -51.19 275.93 -53.68Q274.69 -56.16 272.76 -57.43Q270.83 -58.7 268.25 -58.7Q263.72 -58.7 261.21 -55.87Q258.69 -53.05 258.69 -47.91V-23.04Q258.69 -17.92 261.21 -15.11Q263.72 -12.29 268.25 -12.29Q272.17 -12.29 274.56 -15.12Q276.96 -17.95 277.63 -23.56H290.99Q290.17 -15.55 287.33 -10.13Q284.5 -4.72 279.71 -1.99Q274.93 0.73 268.25 0.73ZM313 -71V-16.31Q313 -14.55 314 -13.56Q315 -12.58 316.79 -12.58H318.8V0H312.73Q306.7 0 303.37 -3.52Q300.03 -7.03 300.03 -13.43V-71ZM352.23 0V-50.68H365.12V0ZM339.25 -50.68V-17.65Q339.25 -14.54 340.95 -12.86Q342.64 -11.19 345.79 -11.19Q348.91 -11.19 350.57 -12.93Q352.23 -14.67 352.23 -17.92L352.91 -8.8Q351.66 -4.81 348.76 -2.04Q345.87 0.73 341.35 0.73Q334.07 0.73 330.2 -3.94Q326.33 -8.61 326.33 -17.32V-50.68ZM400.25 0.73Q396.14 0.73 393.13 -1.55Q390.12 -3.82 388.65 -7.96L389.33 -18.11Q389.33 -15.91 390.08 -14.37Q390.83 -12.83 392.25 -12.02Q393.67 -11.2 395.69 -11.2Q398.84 -11.2 400.56 -13.33Q402.28 -15.45 402.28 -19.3V-31.34Q402.28 -35.23 400.56 -37.38Q398.84 -39.53 395.69 -39.53Q393.67 -39.53 392.25 -38.73Q390.83 -37.92 390.08 -36.36Q389.33 -34.8 389.33 -32.53L388.31 -42.19Q390.25 -46.61 393.37 -49.04Q396.49 -51.46 400.32 -51.46Q407.42 -51.46 411.3 -46.37Q415.17 -41.28 415.17 -31.95V-18.74Q415.17 -9.46 411.27 -4.36Q407.38 0.73 400.25 0.73ZM376.36 0V-71H389.33V0Z"/>
+  </g>
+</svg>
+
+      <p>Tropa Club: $10 a week in stocks with your group chat. A free investing club on Coinbase&rsquo;s stock tokens on Base.</p>
+    </div>
+    <div class="footer-cols">
+      <div><h2>Tropa Club</h2><ul><li><a href="https://tropaclub.xyz">tropaclub.xyz</a></li><li><a href="https://tropaclub.xyz/attendance">The Attendance</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
+      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">The Ground</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
+      <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
+      <div><h2>Work with us</h2><ul><li><a href="partners.html">For partners</a></li><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">DM @tropaclubxyz</a></li></ul></div>
+    </div>
+    <div class="footer-fine">
+      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. Club names such as &ldquo;NVIDIA FC&rdquo; are nicknames for a token&rsquo;s holders and are not affiliated with the companies.</p>
+      <p>The buy flow is not available to US persons. &copy; 2026 Tropa Club.</p>
+    </div>
+  </div>
+</footer>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

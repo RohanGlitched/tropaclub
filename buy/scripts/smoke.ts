@@ -1,0 +1,10 @@
+import { simulateBuy, TOKENS, isBuyable, createBaseClient } from '../src';
+const j = (x: unknown) => JSON.stringify(x, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 1);
+const sym = (process.argv[2] ?? 'SNDKc') as keyof typeof TOKENS;
+const amt = BigInt(process.argv[3] ?? '10000000');
+const client = createBaseClient();
+const b = await isBuyable(TOKENS[sym], { client });
+console.log('buyable', b.buyable, b.reasons, b.mark && { ...b.mark, usd: Number(b.mark.usdPerToken8) / 1e8 });
+const r = await simulateBuy({ sellToken: 'USDC', buyToken: TOKENS[sym], sellAmount: amt });
+const { quote, guard, calls, results, ...rest } = r;
+console.log(j({ ...rest, guard: { amountOutMin: guard.amountOutMin, fairRaw: guard.fairRaw, uiShares: guard.uiShares, quoteVsMarkBps: guard.quoteVsMarkBps, unitCheck: guard.unitCheck, mark: guard.mark.source }, quoteOut: quote.amountOut, results: results.map(x => ({ label: x.label, status: x.status, gas: x.gasUsed, revert: x.revert, nlogs: x.logs.length })) }));

@@ -1,0 +1,10 @@
+{
+  "name": "tropaclub-docs",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Static documentation site for Tropa Club (served from public/ on Firebase Hosting).",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

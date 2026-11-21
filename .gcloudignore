@@ -1,0 +1,10 @@
+**/node_modules/
+**/.next/
+web/shots/
+web/.cards/
+indexer/cache/
+indexer/out/
+**/*.log
+.git/
+buy/test/
+clubs/test/
