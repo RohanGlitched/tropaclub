@@ -2,13 +2,16 @@ import { fail, guarded, ok, rateLimited, readJson } from '@/lib/server/api';
 import { PRESETS, quoteBuy, type Pay } from '@/lib/server/buy';
 import { regionOf } from '@/lib/server/geo';
 import { isAddress } from '@/lib/format';
+import { buyIsOpen, buyOpenAt } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
 export const POST = (req: Request) =>
   guarded(async () => {
     if ((await regionOf(req.headers)).us) return fail(403, 'Not available to US persons.');
-    const body = await readJson<{ token?: string; pay?: string; usd?: number; taker?: string }>(req);
+    if (!buyIsOpen()) return ok({ ok: false, message: `Buying opens ${new Date(buyOpenAt()).toUTCString().replace(':00 GMT', ' UTC')}.`, retry: false });
+    const body = await readJson<{ token?: string; pay?: string; usd?: number; taker?: string; notUsPerson?: boolean }>(req);
+    if (body?.notUsPerson !== true) return fail(400, 'Confirm that you are not a US person to see a quote.');
     const token = String(body?.token ?? '');
     const taker = String(body?.taker ?? '');
     const usd = Number(body?.usd);

@@ -1,16 +1,20 @@
 // Region gate, server side. Buying and call-ups are hidden for the United States and its
 // territories (contest rules). Every read-only page is open everywhere.
 //
-// Cloud Run behind Firebase Hosting receives no country header, so the country comes from the
-// visitor's IP (first entry of x-forwarded-for) looked up in the DB-IP Country Lite database
-// (CC BY 4.0, credited in the footer). A country header, if one ever arrives, wins.
+// Which headers are believed depends on how the request arrived (see lib/hosts.ts):
+//   through Firebase Hosting (our own host): its x-country-code if present, else the visitor IP
+//     it reports (fastly-client-ip, or the first x-forwarded-for entry). Hosting overwrites all
+//     three, so a visitor cannot forge them on that path.
+//   any other way (the bare Cloud Run URL): no header is believed. The country comes from the last
+//     x-forwarded-for entry, which Google's front end appends itself and the client cannot choose.
+// IPs are looked up in the DB-IP Country Lite database (CC BY 4.0, credited in the footer).
 import 'server-only';
 import path from 'node:path';
 import { headers } from 'next/headers';
 import type { CountryResponse, Reader } from 'maxmind';
+import { allowedHost } from '@/lib/hosts';
 
 export const US_AND_TERRITORIES = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM']);
-const COUNTRY_HEADERS = ['x-country-code', 'x-appengine-country', 'x-client-geo-country', 'cf-ipcountry', 'x-vercel-ip-country'];
 type HeaderBag = { get(name: string): string | null };
 
 let readerP: Promise<Reader<CountryResponse> | null> | null = null;
@@ -27,15 +31,18 @@ function reader() {
   })());
 }
 
+const xff = (h: HeaderBag) => (h.get('x-forwarded-for') || '').split(',').map((s) => s.trim()).filter(Boolean);
+
 export function clientIp(h: HeaderBag): string | null {
-  const ip = (h.get('fastly-client-ip') || h.get('x-forwarded-for')?.split(',')[0] || '').trim();
-  return ip || null;
+  const chain = xff(h);
+  if (allowedHost(h)) return (h.get('fastly-client-ip') || chain[0] || '').trim() || null;
+  return chain[chain.length - 1] || null;
 }
 
 /** ISO country of the request, or null when it cannot be told. */
 export async function countryOf(h: HeaderBag): Promise<string | null> {
-  for (const name of COUNTRY_HEADERS) {
-    const c = h.get(name)?.trim().toUpperCase();
+  if (allowedHost(h)) {
+    const c = h.get('x-country-code')?.trim().toUpperCase();
     if (c && /^[A-Z]{2}$/.test(c) && c !== 'ZZ' && c !== 'XX' && c !== 'T1') return c;
   }
   const ip = clientIp(h);
@@ -55,7 +62,7 @@ export interface Region {
   country: string | null;
   /** Buying and call-ups are hidden. */
   us: boolean;
-  /** Country unknown: buying is allowed after the visitor ticks "I am not a US person". */
+  /** Country unknown. (Every buyer ticks "I am not a US person" in any case.) */
   unknown: boolean;
 }
 

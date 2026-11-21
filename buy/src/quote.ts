@@ -9,7 +9,7 @@
  * 1inch and 0x both return 401 without an API key, so they are not used.
  */
 import { type Address, type Hex, decodeFunctionData, getAddress, isAddress } from 'viem';
-import { KYBER_API, KYBER_CLIENT_ID, LIFI_API, NATIVE_ETH, USDC, WETH, kyberRouterAbi } from './constants';
+import { KYBER_API, KYBER_CLIENT_ID, KYBER_ROUTER, LIFI_API, NATIVE_ETH, USDC, WETH, kyberRouterAbi } from './constants';
 
 export type Provider = 'kyberswap' | 'lifi';
 
@@ -137,7 +137,9 @@ export async function getQuote(p: QuoteParams): Promise<Quote> {
   const buyToken = resolveToken(p.buyToken);
   const f = p.fetchImpl ?? fetch;
   const errors: string[] = [];
-  for (const prov of p.providers ?? ['kyberswap', 'lifi']) {
+  // KyberSwap only by default: its router is pinned and its calldata is decoded and checked.
+  // LI.FI can still be asked for a quote for comparison, but buildSwap will not build from it.
+  for (const prov of p.providers ?? ['kyberswap']) {
     try {
       if (prov === 'kyberswap') {
         const pref = p.sources ?? 'aerodrome';
@@ -198,22 +200,30 @@ export async function buildSwap(
     const j = (await res.json().catch(() => ({}))) as any;
     if (!res.ok || j.code !== 0 || !j.data?.data) throw new Error(`KyberSwap build ${res.status}: ${j.message ?? 'failed'}`);
     const data = j.data.data as Hex;
-    const dec = decodeKyberSwap(data);
-    if (dec && dec.minReturnAmount < p.amountOutMin) throw new Error(`KyberSwap min ${dec.minReturnAmount} below guard ${p.amountOutMin}`);
-    if (dec && dec.dstReceiver.toLowerCase() !== recipient.toLowerCase()) throw new Error('KyberSwap calldata pays a different receiver');
-    return {
-      to: getAddress(j.data.routerAddress),
-      data,
-      value: BigInt(j.data.transactionValue ?? 0),
-      amountOut: BigInt(j.data.amountOut),
-      minReturnAmount: dec?.minReturnAmount ?? null,
-      dstReceiver: dec?.dstReceiver ?? null,
-      provider: 'kyberswap',
-    };
+    const value = BigInt(j.data.transactionValue ?? 0);
+    assertKyberSwap({ router: String(j.data.routerAddress ?? ''), data, value, quote, recipient, amountOutMin: p.amountOutMin });
+    const dec = decodeKyberSwap(data)!;
+    return { to: KYBER_ROUTER, data, value, amountOut: BigInt(j.data.amountOut), minReturnAmount: dec.minReturnAmount, dstReceiver: dec.dstReceiver, provider: 'kyberswap' };
   }
-  // LI.FI: re-quote with the slippage that maps onto the guard (min enforced is toAmountMin).
-  const slippage = Math.max(bps, 1) / 10_000;
-  const q = await lifiQuote(quote.sellToken, quote.buyToken, quote.sellAmount, quote.taker, f, slippage);
-  if (q.toAmountMin < p.amountOutMin) throw new Error(`LI.FI min ${q.toAmountMin} below guard ${p.amountOutMin}`);
-  return { to: q.lifiTx.to, data: q.lifiTx.data, value: q.lifiTx.value, amountOut: q.amountOut, minReturnAmount: q.toAmountMin, dstReceiver: recipient, provider: 'lifi' };
+  // Fail closed: only KyberSwap calldata is decoded and checked, so nothing else is ever built.
+  throw new Error(`swaps are only built through KyberSwap (got a ${quote.provider} quote)`);
+}
+
+/**
+ * Every field of the router call is checked before it reaches a wallet. Throws unless the call goes to
+ * the pinned KyberSwap router, decodes, spends exactly the quoted token and amount, buys the quoted
+ * token, pays the recipient and enforces at least the guard minimum.
+ */
+export function assertKyberSwap(c: { router: string; data: Hex; value: bigint; quote: Pick<Quote, 'sellToken' | 'buyToken' | 'sellAmount'>; recipient: Address; amountOutMin: bigint }): void {
+  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  if (!same(c.router, KYBER_ROUTER)) throw new Error(`KyberSwap returned an unexpected router ${c.router}`);
+  const dec = decodeKyberSwap(c.data);
+  if (!dec) throw new Error('KyberSwap calldata could not be decoded, so it cannot be checked');
+  if (!same(dec.srcToken, c.quote.sellToken)) throw new Error('KyberSwap calldata spends a different token');
+  if (!same(dec.dstToken, c.quote.buyToken)) throw new Error('KyberSwap calldata buys a different token');
+  if (dec.amount !== c.quote.sellAmount) throw new Error('KyberSwap calldata spends a different amount');
+  if (!same(dec.dstReceiver, c.recipient)) throw new Error('KyberSwap calldata pays a different receiver');
+  if (dec.minReturnAmount < c.amountOutMin) throw new Error(`KyberSwap min ${dec.minReturnAmount} below guard ${c.amountOutMin}`);
+  const native = isNative(c.quote.sellToken as Address);
+  if (c.value !== (native ? c.quote.sellAmount : 0n)) throw new Error('KyberSwap transaction value does not match the amount paid');
 }

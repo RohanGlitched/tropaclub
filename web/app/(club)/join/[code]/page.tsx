@@ -45,7 +45,6 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
         </div>
         <ul className="ticks">
           <li>Connecting shares only your wallet address. One free signature proves it is yours.</li>
-          <li>Stock tokens track the share price. They are not shares. Nothing here is advice.</li>
           <li>Buying is not offered to US persons.</li>
         </ul>
       </section>

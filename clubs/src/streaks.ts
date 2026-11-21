@@ -1,5 +1,5 @@
 /**
- * Payday streak (badge only, never a prize): one >= $10 qualifying buy in any rolling 14 days keeps it.
+ * Payday streak (badge only, never a prize): one >= $5 qualifying buy in any rolling 14 days keeps it.
  * One free skip per calendar month (UTC): a gap of up to 28 days survives if the month in which the
  * missed 14-day deadline fell has not used its skip yet.
  */

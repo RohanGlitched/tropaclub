@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import BuyCta from '@/components/buy/BuyCta';
+import { buyOpenAt } from '@/lib/site';
 import { notFound } from 'next/navigation';
 import GroundStage from '@/components/GroundStage';
 import GateReport from '@/components/GateReport';
@@ -57,13 +59,23 @@ export default async function GroundPage({ params }: Params) {
             </div>
           </div>
           <p className="asof">
-            Home ground of {token.symbol} holders on Base. {token.symbol} is a stock token that tracks the share price of {token.name}. Counted {fmtDate(data.asOf, true)}.
+            Home ground of {token.symbol} holders on Base. {token.symbol} is a stock token that tracks the share price of {token.name}. Counted {fmtDate(data.asOf, true)}, and again every 6 hours.
           </p>
         </section>
 
         <section className="wrap section-tight" aria-label={`Seating plan of ${club}`}>
           <GroundStage mode="ground" clubs={clubs} initial={token.symbol} />
         </section>
+
+        {priced && (
+          <section className="wrap section-tight take-seat" aria-label="Take a seat">
+            <div>
+              <h2 className="h3">Take seat {fmtInt(token.realFans + 1)} at {club}</h2>
+              <p>A seat needs $10 or more of {token.symbol} held in your own wallet. Buy it here and you also play this gameweek. No club needed.</p>
+            </div>
+            <BuyCta token={token.address} symbol={token.symbol} openAt={buyOpenAt()} standalone />
+          </section>
+        )}
 
         <section className="band">
           <div className="wrap split">
@@ -76,9 +88,9 @@ export default async function GroundPage({ params }: Params) {
               </p>
               <dl className="figures figures-2">
                 <div><dt>Buyers, last 7 days</dt><dd className="num">{fmtInt(token.weeklyBuyers)}</dd><p>{fmtInt(token.newBuyers7d)} bought for the first time.</p></div>
-                <div><dt>Median weekly buy</dt><dd className="num">{token.medianWeeklyBuyUsd != null ? fmtUsd(token.medianWeeklyBuyUsd) : '—'}</dd><p>Per wallet, bots removed.</p></div>
+                <div><dt>Median weekly buy</dt><dd className="num">{token.medianWeeklyBuyUsd != null ? fmtUsd(token.medianWeeklyBuyUsd) : '—'}</dd><p>The middle buyer&rsquo;s total for the week, bots removed.</p></div>
                 <div><dt>Held by the top 10</dt><dd className="num">{fmtPct(token.top10SharePct, 0)}</dd><p>{fmtPct(token.top10ShareExPoolsPct, 0)} once pools are left out.</p></div>
-                <div><dt>Token price</dt><dd className="num">{priced ? fmtUsd(token.priceUsd) : '—'}</dd><p>{priced ? `DEX price used for the $10 line${token.multiplier !== 1 ? `, multiplier ×${+token.multiplier.toFixed(4)}` : ''}.` : 'No liquid pool found.'}</p></div>
+                <div><dt>Token price</dt><dd className="num">{priced ? fmtUsd(token.priceUsd) : '—'}</dd><p>{!priced ? 'No liquid pool found.' : token.priceSource === 'reference' ? `Reference price: no liquid DEX pool, so the share’s last price times the multiplier${token.multiplier !== 1 ? ` (×${+token.multiplier.toFixed(4)})` : ''} draws the $10 line.` : `DEX price used for the $10 line${token.multiplier !== 1 ? `, multiplier ×${+token.multiplier.toFixed(4)}` : ''}.`}</p></div>
               </dl>
             </div>
             <GateReport token={token} />
@@ -129,7 +141,7 @@ export default async function GroundPage({ params }: Params) {
             <Link href="/attendance" className="ground-card ground-card-all"><span><b>All {data.tokens.length} clubs</b><small>The Attendance</small></span></Link>
           </div>
           <p className="muted small fine">
-            &ldquo;{club}&rdquo; is a nickname for the holders of {token.symbol}. Tropa Club is not affiliated with {token.name}. Holding {token.symbol} is not owning the share. Past performance · not advice.
+            &ldquo;{club}&rdquo; is a nickname for the holders of {token.symbol}. Tropa Club is not affiliated with {token.name}. Holding {token.symbol} is not owning the share.
           </p>
         </section>
       </main>

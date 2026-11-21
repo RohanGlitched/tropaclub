@@ -216,3 +216,15 @@ An inline script in `<head>` reads the `tc_region` cookie before first paint and
 ### Motion, as implemented
 
 Arrival, find-your-seat fly-in, ticket print-in, stub tear on share, flip digits on any Scoreboard change, pennant raise when a club is founded, when you join (crest and your row), and in the Matchday preview. Pinch, ctrl+wheel and double-tap zoom on the stadium. All respect `prefers-reduced-motion`.
+
+
+## Round 1 changes (judges and red team)
+
+- **Buying without a club.** `components/buy/BuyCta.tsx` is the one buy button. Before `BUY_OPEN_AT` it shows the opening time in the visitor's time zone, "Remind me" (`/remind.ics`) and the X follow link. On pages outside the clubs section it loads the wallet code only when tapped (`BuyStandalone`).
+- **Rules.** Playing line is $5 a gameweek (`minBuyUsd` in `clubs/src/context.ts`, `PLAY_USD` in `lib/site.ts`). A real-fan seat in the index still needs $10 held.
+- **Buy sheet.** Sign-in and the "I am not a US person" tick both come before any quote. The tick is sent with the quote and stored on the buy record. The success state offers Share your seat, Invite your group chat and Call up a teammate.
+- **Tickets.** `og:image` is the wallet's own stored JPEG, drawn in the background on first view (`lib/server/cardmake.ts`). A wallet with no seat gets a conversion page with a ghost-style preview ticket.
+- **Statement.** Loaded in the browser with progress from `/api/statement/[address]`. The server scans only the tokens the wallet holds, from the block it was first seen, in parallel chunks of 50,000 blocks and at most 10 addresses. No specimen is ever shown under a real address.
+- **Empty rooms.** `/stats`, `/league` and `/clubs` each have a pre-season state and show tables only when there is something in them.
+- **Trust boundary.** `lib/hosts.ts` and `middleware.ts`: the API answers only on our own hosts; forwarding headers are believed only on the Firebase Hosting path; the SIWE domain is fixed to `SITE_URL`; sign-in nonces work once.
+- **Seat files** are fetched by the browser straight from the public bucket (gzip, any origin) through a redirect from `/api/seats/[symbol]`.

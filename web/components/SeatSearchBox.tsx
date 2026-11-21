@@ -28,7 +28,7 @@ export default function SeatSearchBox({ label = 'Find your seat', button = 'Find
     >
       <label htmlFor={id}>{label}</label>
       <div className="find-row">
-        <input id={id} name="wallet" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0x… or yourname.base.eth" autoComplete="off" autoCapitalize="none" spellCheck={false} aria-describedby={`${id}-s`} />
+        <input id={id} name="wallet" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0x… or yourname.base.eth" autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={msg ? true : undefined} aria-describedby={`${id}-s`} />
         <button className="btn btn-accent" type="submit" disabled={busy}>{busy ? 'Looking…' : button}</button>
       </div>
       <p id={`${id}-s`} className="find-status tone-warn" role="status" aria-live="polite">{msg}</p>

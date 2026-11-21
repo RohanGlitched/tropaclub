@@ -3,7 +3,6 @@
 import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
-import BuySheet from '@/components/buy/BuySheet';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useSession } from '@/components/wallet/WalletProvider';
 import TeamSheet, { type Member } from '@/components/ds/TeamSheet';
@@ -209,17 +208,6 @@ export function PickupButton() {
       </button>
       {msg && <p className="act-msg" role="status">{msg}</p>}
     </div>
-  );
-}
-
-export function BuyButton({ clubId, token, us, askUs, label = 'Buy and play this week' }: { clubId?: string | null; token?: string | null; us: boolean; askUs: boolean; label?: string }) {
-  const [open, setOpen] = useState(false);
-  if (us) return <p className="notice us-note"><b>Not available to US persons.</b> Buying is not offered in the United States. Everything else here stays open.</p>;
-  return (
-    <>
-      <button type="button" className="btn btn-accent" onClick={() => setOpen(true)}>{label}</button>
-      <BuySheet open={open} onClose={() => setOpen(false)} clubId={clubId} token={token} us={us} askUs={askUs} />
-    </>
   );
 }
 

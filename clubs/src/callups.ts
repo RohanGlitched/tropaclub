@@ -45,7 +45,7 @@ export async function sendCallup(ctx: ClubsContext, input: { clubId: string; fro
   if (!mf || !mt) throw new ClubsError('not_member', 'Both players must be in this club.', 403);
   const token = club.kind === 'stock' ? club.stockToken : null;
   const [lf, lt] = await Promise.all([loadLedger(ctx, from), loadLedger(ctx, to)]);
-  if (!playedIn(lf, gw, now, token).length) throw new ClubsError('not_playing', 'Play this gameweek (buy $10 or more) to call up a teammate.', 403);
+  if (!playedIn(lf, gw, now, token).length) throw new ClubsError('not_playing', 'Play this gameweek (buy $5 or more) to call up a teammate.', 403);
   if (playedIn(lt, gw, now, token).length) throw new ClubsError('already_playing', 'They are already playing this gameweek.');
 
   const id = `${gw.id}__${club.id}__${from}__${to}`;
@@ -59,7 +59,7 @@ export async function sendCallup(ctx: ClubsContext, input: { clubId: string; fro
   const nextClose = gw.tradingDays.find((d) => d.closeAt > now) ?? gw.tradingDays[gw.tradingDays.length - 1]!;
   const caller = mf.nickname ?? shortAddr(from);
   const url = `${ctx.config.siteUrl}/club/${encodeURIComponent(club.id)}?callup=${gw.id}${secret ? `&join=${secret.inviteCode}` : ''}`;
-  const text = `${caller} called you up for ${club.name} this week. We need you for the 80% bonus: put in $10 before ${gw.id} closes ${closeCopy(gw.cutAt)}${nextClose.date === etDate(gw.cutAt) ? '' : ` (next close ${closeCopy(nextClose.closeAt)})`}.`;
+  const text = `${caller} called you up for ${club.name} this week. We need you for the 80% bonus: buy $5 or more before ${gw.id} closes ${closeCopy(gw.cutAt)}${nextClose.date === etDate(gw.cutAt) ? '' : ` (next close ${closeCopy(nextClose.closeAt)})`}.`;
   return {
     id,
     text,

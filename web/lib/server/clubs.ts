@@ -28,6 +28,8 @@ import { SITE_URL } from '@/lib/site';
 import { clubName, kitFor, type Kit } from '@/lib/clubs';
 
 export type { ClubsService };
+/** Server-only collection of attributed approval transactions (counted apart from swaps on /stats). */
+export const APPROVALS = 'approvals';
 export { ClubsError };
 
 const useFirestore = process.env.CLUBS_STORE ? process.env.CLUBS_STORE === 'firestore' : !!(process.env.K_SERVICE || process.env.FIRESTORE_EMULATOR_HOST);
@@ -57,7 +59,8 @@ export async function ensureStockClubs(svc: ClubsService): Promise<void> {
   if (Date.now() - stockEnsuredAt < 10 * 60_000) return;
   stockEnsuredAt = Date.now();
   const { data } = await getIndex();
-  const tokens = data.tokens.filter((t) => t.priceUsd != null && /^0x[0-9a-fA-F]{40}$/.test(t.address)).slice(0, 24);
+  // every stock has a club, all of them
+  const tokens = data.tokens.filter((t) => /^0x[0-9a-fA-F]{40}$/.test(t.address));
   await Promise.all(
     tokens.map(async (t) => {
       try {
@@ -123,6 +126,14 @@ async function demo(): Promise<ClubsService> {
   });
 
   for (const t of priced) await svc.ensureStockClub({ symbol: t.symbol, token: t.address, name: t.name });
+
+  // CLUBS_DEMO=empty: the launch-day state. Stock clubs only, no members, the real clock.
+  if (process.env.CLUBS_DEMO === 'empty') {
+    clock = Math.floor(Date.now() / 1000);
+    const tick = setInterval(() => (clock = Math.floor(Date.now() / 1000)), 1000);
+    tick.unref?.();
+    return svc;
+  }
 
   let n = 0;
   const buy = async (wallet: string, tokenIdx: number, usd: number, at: number, clubId: string | null) => {

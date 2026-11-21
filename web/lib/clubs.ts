@@ -53,7 +53,7 @@ export function kitFor(symbol: string): Kit {
 const SHORT: Record<string, string> = {
   GOOGLc: 'Alphabet', SPCXc: 'SpaceX', ANTc: 'Anthropic', METAc: 'Meta', AAPLc: 'Apple', AMZNc: 'Amazon', TSLAc: 'Tesla',
   MSFTc: 'Microsoft', MSTRc: 'Strategy', SNDKc: 'SanDisk', NVDAc: 'NVIDIA', TTWOc: 'Take-Two', CRCLc: 'Circle', LULUc: 'Lululemon',
-  AMDc: 'AMD', BUDc: 'AB InBev', DJTc: 'Trump Media', KOc: 'Coca-Cola', 'BRK.Bc': 'Berkshire Hathaway', BMNRc: 'BitMine', ASTSc: 'AST SpaceMobile',
+  AMDc: 'AMD', BUDc: 'AB InBev', DJTc: 'Trump Media', KOc: 'Coca-Cola', 'BRK.Bc': 'Berkshire Hathaway', BMNRc: 'BitMine', ASTSc: 'AST SpaceMobile', HIMSc: 'Hims & Hers',
 };
 const SUFFIX = /(?:,?\s+(?:the|corporation|corp|incorporated|inc|holdings|holding|group|plc|ltd|limited|llc|pbc|company|co|n\.?v|s\.?a|sa\/nv|a\/s|se|ag|class\s+[a-c]|common\s+stock|ordinary\s+shares|adr)\.?|\s*&\s*co\.?|[\s.,;:&-]+)$/i;
 

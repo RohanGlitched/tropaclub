@@ -48,6 +48,26 @@ function cached<T>(k: string, ttlMs: number, make: () => Promise<T>): Promise<T>
 const checkBuyable = (token: string): Promise<BuyableResult> =>
   cached(`ok:${token.toLowerCase()}`, 60_000, () => within(isBuyable(token as Address, { client: baseClient() }), 20_000, 'token check'));
 
+/** The buy sheet's list, plus one more token if the visitor came from that token's ground or ticket. */
+export async function listBuyTokensWith(extra?: string | null): Promise<BuyToken[]> {
+  const list = await listBuyTokens();
+  const want = extra?.toLowerCase();
+  if (!want || !/^0x[0-9a-f]{40}$/.test(want) || list.some((t) => t.address === want)) return list;
+  const { data } = await getIndex();
+  const t = data.tokens.find((x) => x.address.toLowerCase() === want);
+  if (!t || t.priceUsd == null) return list;
+  const one = await cached(`one:${want}`, 5 * 60_000, async (): Promise<BuyToken> => {
+    const base = { address: want, symbol: t.symbol, name: t.name, referencePrice: want in STOCK_FEEDS };
+    try {
+      const r = await checkBuyable(want);
+      return { ...base, buyable: r.buyable, reason: r.buyable ? null : r.reason ?? 'Buys are on hold for this stock.', reopenGapRisk: r.reopenGapRisk };
+    } catch {
+      return { ...base, buyable: false, reason: 'This stock could not be checked just now. Try again in a minute.', reopenGapRisk: false };
+    }
+  });
+  return [one, ...list];
+}
+
 /** The stocks offered in the buy sheet: only tokens that pass isBuyable, checked a few at a time. */
 export function listBuyTokens(): Promise<BuyToken[]> {
   return cached('tokens', 5 * 60_000, async () => {

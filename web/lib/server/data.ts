@@ -19,7 +19,7 @@ export const dataBaseUrl = BASE;
 // so a missing or slow file costs one round trip a minute, not one per request.
 const memo = new Map<string, { at: number; ttl: number; p: Promise<unknown | null> }>();
 
-function fetchJson(path: string, revalidate = 300, timeoutMs = 4000, big = false): Promise<unknown | null> {
+function fetchJson(path: string, revalidate = 300, timeoutMs = 4000): Promise<unknown | null> {
   if (MODE === 'mock') return Promise.resolve(null);
   const now = Date.now();
   const hit = memo.get(path);
@@ -27,8 +27,7 @@ function fetchJson(path: string, revalidate = 300, timeoutMs = 4000, big = false
   const entry = { at: now, ttl: revalidate * 1000, p: Promise.resolve<unknown | null>(null) };
   entry.p = (async () => {
     try {
-      // files over 2 MB cannot go in Next's data cache; the memo above is their only cache
-      const res = await fetch(`${BASE}/${path}`, { ...(big ? { cache: 'no-store' as const } : { next: { revalidate } }), signal: AbortSignal.timeout(timeoutMs) });
+      const res = await fetch(`${BASE}/${path}`, { next: { revalidate }, signal: AbortSignal.timeout(timeoutMs) });
       if (res.ok) return await res.json();
     } catch {
       /* fall through */
@@ -70,6 +69,7 @@ function cleanToken(raw: unknown): TokenSummary | null {
     newBuyers7d: Math.max(0, num(r.newBuyers7d)),
     medianWeeklyBuyUsd: numOrNull(r.medianWeeklyBuyUsd),
     hasReferenceMark: r.hasReferenceMark === true,
+    priceSource: r.priceSource === 'dex' || r.priceSource === 'reference' ? r.priceSource : null,
   };
 }
 
@@ -159,18 +159,51 @@ export async function getSeatsResponse(symbol: string): Promise<{ body: BodyInit
   return file ? { body: JSON.stringify(file), source: 'mock' } : null;
 }
 
+// Real fans of one club, in rank order (rank = index + 1), as bare addresses. The seat file can be
+// several megabytes, so only this compact list is kept, for 15 minutes.
+const realMemo = new Map<string, { at: number; p: Promise<string[] | null> }>();
+export function getRealSeats(symbol: string): Promise<string[] | null> {
+  const hit = realMemo.get(symbol);
+  if (hit && Date.now() - hit.at < 15 * 60_000) return hit.p;
+  const p = (async () => {
+    if (MODE === 'mock') return null;
+    try {
+      const res = await fetch(`${BASE}/tokens/${encodeURIComponent(symbol)}.json`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+      if (!res.ok) return null;
+      const file = (await res.json()) as { seats?: { a?: string; k?: string }[] };
+      const out: string[] = [];
+      for (const x of file.seats ?? []) {
+        if (x.k !== 'real') break; // real fans come first
+        out.push(typeof x.a === 'string' ? x.a : '');
+      }
+      return out;
+    } catch {
+      return null;
+    }
+  })();
+  p.then((v) => v == null && realMemo.delete(symbol));
+  if (realMemo.size > 120) realMemo.clear();
+  realMemo.set(symbol, { at: Date.now(), p });
+  return p;
+}
+
+/** The fans sitting either side of a rank, or null if the seat list is slow or missing. */
+export async function getNeighbours(symbol: string, rank: number, ms = 2500): Promise<{ rank: number; address: string }[] | null> {
+  const list = await Promise.race([getRealSeats(symbol), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+  if (!list) return null;
+  return [rank - 2, rank - 1, rank + 1, rank + 2]
+    .filter((r) => r >= 1 && r <= list.length && /^0x[0-9a-f]{40}$/.test(list[r - 1]))
+    .map((r) => ({ rank: r, address: list[r - 1] }));
+}
+
 /** A few real fans for the "try a fan" chips: taken from the busiest club's seat list when data is live. */
 export async function getExamples(): Promise<string[]> {
   const index = await getIndex();
   if (index.source === 'mock') return mockExamples();
-  const top = index.data.tokens[0];
-  const file = (await fetchJson(`tokens/${encodeURIComponent(top.symbol)}.json`, 900, 12000, true)) as { seats?: { a?: string; k?: string; usd?: number; holdDays?: number }[] } | null;
-  const real = (file?.seats ?? []).filter(
-    (x) => x.k === 'real' && typeof x.a === 'string' && /^0x[0-9a-f]{40}$/.test(x.a) && !/^0x0{20}|dead$/i.test(x.a) && (x.usd ?? 0) >= 10 && (x.usd ?? 0) <= 5000,
-  );
+  const real = ((await getRealSeats(index.data.tokens[0].symbol)) ?? []).filter((a) => /^0x[0-9a-f]{40}$/.test(a) && !/^0x0{20}|dead$/i.test(a));
   if (real.length < 3) return [];
   // one early fan, one from the middle, one recent: spread across the ground
-  return [real[Math.floor(real.length * 0.04)], real[Math.floor(real.length * 0.45)], real[Math.floor(real.length * 0.85)]].map((x) => x.a!);
+  return [real[Math.floor(real.length * 0.04)], real[Math.floor(real.length * 0.45)], real[Math.floor(real.length * 0.85)]];
 }
 
 export { mockShard };

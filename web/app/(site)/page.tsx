@@ -10,7 +10,7 @@ import ClubPreview from '@/components/ClubPreview';
 import { Pennant } from '@/components/ds/Pennant';
 import { getExamples, getIndex, getStats } from '@/lib/server/data';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
-import { fmtDate, fmtInt, fmtPct } from '@/lib/format';
+import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { OPENS } from '@/lib/site';
 
 export const revalidate = 300;
@@ -23,11 +23,13 @@ export default async function Home() {
   const top = tokens[0];
   const tabs = tokens.filter((t) => t.realFans > 0).slice(0, 7).map((t) => t.symbol);
   const clubs = tokens.map(({ symbol, name, holdersTotal, realFans, ghosts, attendancePct }) => ({ symbol, name, holdersTotal, realFans, ghosts, attendancePct }));
+  // The specimen's rank and its line agree: seats go by time held, so rank 131 of 1,617 has held longer than 92%.
   const specimenRank = Math.max(1, Math.round(top.realFans * 0.081));
-  const specimen: WalletTokenEntry = { symbol: top.symbol, usd: 0, kind: 'real', rank: specimenRank, of: top.realFans, bestStat: { key: 'longestHold', label: 'Longest hold', pct: 19 } };
+  const specimen: WalletTokenEntry = { symbol: top.symbol, usd: 0, kind: 'real', rank: specimenRank, of: top.realFans, bestStat: { key: 'longestHold', label: 'Longest hold', pct: Math.max(1, Math.round((specimenRank / Math.max(1, top.realFans)) * 100)) } };
+  const seats = tokens.reduce((a, t) => a + t.realFans, 0);
   const sumSold = tokens.reduce((a, t) => a + t.holdersTotal, 0);
   const lastWeek = stats.weeklyBuyers[stats.weeklyBuyers.length - 1];
-  const medians = stats.weeklyBuyers.map((w) => w.medianBuyUsd).filter((n) => n > 0);
+  const median = lastWeek && lastWeek.medianBuyUsd > 0 ? lastWeek.medianBuyUsd : null;
   const top10 = tokens.slice(0, 7).map((t) => t.top10SharePct).filter((n) => isFinite(n));
   const rail = tokens.filter((t) => t.realFans > 0).slice(0, 12);
 
@@ -35,18 +37,29 @@ export default async function Home() {
     <>
       <main id="main">
         <section className="hero wrap" aria-label="The Ground">
-          <GroundStage mode="hero" clubs={clubs} tabs={tabs} initial={top.symbol} examples={examples} />
+          <GroundStage
+            mode="hero"
+            clubs={clubs}
+            tabs={tabs}
+            initial={top.symbol}
+            examples={examples}
+            lede={
+              <>
+                <strong className="num">{fmtInt(stats.realWallets)}</strong> real fans hold a seat across {tokens.length} clubs on Base{lastWeek ? <>, and <span className="num">{fmtInt(lastWeek.newBuyers)}</span> wallets bought for the first time last week</> : ''}. Every wallet holding a stock token is a seat in that stock&rsquo;s ground. The lit seats are the fans who are really there.
+              </>
+            }
+          />
         </section>
 
         <section className="band" id="truth">
           <div className="wrap split">
             <div className="split-text">
-              <h2>A sold ticket is not a fan in the ground</h2>
+              <h2>Who is in the ground</h2>
               <p>
-                Explorers count every wallet with a balance above zero. For {top.symbol} that is {fmtInt(top.holdersTotal)} holders. Walk through the turnstiles one kind at a time and the crowd thins quickly.
+                {fmtInt(top.realFans)} wallets hold at least $10 of {top.symbol}, bought it themselves and belong to a person. Those are the seats lit in the plan above, and {fmtInt(top.newBuyers7d)} more wallets bought it for the first time in the last week.
               </p>
               <p>
-                {fmtInt(top.realFans)} wallets hold at least $10 of it, bought it themselves and belong to a person. That is an attendance of <strong className="num">{fmtPct(top.attendancePct)}</strong>. Those are the seats lit in the plan above.
+                An explorer counts every wallet with a balance above zero: {fmtInt(top.holdersTotal)} for {top.symbol}. Most of the difference is leftovers worth cents, giveaway recipients and contracts. Counting the fans apart gives an attendance of <strong className="num">{fmtPct(top.attendancePct)}</strong>, and a number that can grow for the right reason.
               </p>
               <p><Link href="/about#method">How each kind is told apart</Link></p>
             </div>
@@ -99,7 +112,7 @@ export default async function Home() {
               <li>
                 <div className="step-art" aria-hidden="true"><span className="tenner"><b>$10</b><small>a week</small></span></div>
                 <h3>Put in $10 a week</h3>
-                <p>Each member buys from their own wallet. Tropa Club never holds the money and takes no fee.</p>
+                <p>Each member buys from their own wallet. $5 or more in a gameweek and you play it. Tropa Club never holds the money and takes no fee.</p>
               </li>
               <li>
                 <div className="step-art" aria-hidden="true">
@@ -126,7 +139,7 @@ export default async function Home() {
               <Link className="btn" href="/clubs#join">Join with an invite</Link>
               <Link className="btn" href="/league">See the league</Link>
             </p>
-            <p className="muted small">Buying is not available to US persons. The ground, the tickets and The Attendance are open everywhere.</p>
+            <p className="muted small">The ground, the tickets and The Attendance are open everywhere.</p>
           </div>
         </section>
 
@@ -134,7 +147,7 @@ export default async function Home() {
           <div className="section-head">
             <h2>The Attendance</h2>
             <p>
-              The league table of real holders for all {tokens.length} stock tokens on Base, counted again every day. Here is the top of it.
+              The league table of real holders for all {tokens.length} stock tokens on Base, counted again every 6 hours. Here is the top of it.
             </p>
           </div>
           <AttendanceTable rows={tokens.slice(0, 7)} controls={false} />
@@ -154,14 +167,14 @@ export default async function Home() {
                 <p>{fmtInt(sumSold)} tickets across {tokens.length} grounds, since many wallets hold more than one.</p>
               </div>
               <div>
-                <dt>Real fans, $10 or more</dt>
+                <dt>Wallets with a real-fan seat</dt>
                 <dd className="num">{fmtInt(stats.realWallets)}</dd>
-                <p>{fmtPct((stats.realWallets / Math.max(1, stats.holdersTotal)) * 100)} of all holders. {fmtInt(stats.realWallets100)} of them hold $100 or more.</p>
+                <p>{fmtInt(seats)} real-fan seats held by {fmtInt(stats.realWallets)} wallets, since a wallet can sit in several grounds. {fmtInt(stats.realWallets100)} hold $100 or more.</p>
               </div>
               <div>
                 <dt>Median weekly buy</dt>
-                <dd className="num">{medians.length ? `$${Math.min(...medians).toFixed(0)} to $${Math.max(...medians).toFixed(0)}` : '—'}</dd>
-                <p>The typical buyer spends about a tenner a week. That is where &ldquo;$10 a week&rdquo; comes from.</p>
+                <dd className="num">{median != null ? fmtUsd(median, median < 100 ? 2 : 0) : '—'}</dd>
+                <p>{median != null ? <>The middle buyer&rsquo;s total for the week of {fmtDate(lastWeek!.weekStart)}, bots removed. {median <= 25 ? 'Small and regular is the norm, which is where “$10 a week” comes from.' : 'Half of all buyers spent less than this.'}</> : 'Published with the next count.'}</p>
               </div>
               <div>
                 <dt>Share held by the top 10 wallets</dt>
@@ -191,7 +204,7 @@ export default async function Home() {
             <li><h3>A wallet is not a person</h3><p>One person can hold several wallets. &ldquo;Real fan&rdquo; means a wallet that passes the tests, nothing more.</p></li>
             <li><h3>The $10 line moves with price</h3><p>Dollar values use the DEX price at the time of the count. A wallet near the line can gain or lose its seat between counts.</p></li>
             <li><h3>Farmer-only is a judgement</h3><p>Giveaway contracts are labelled by how they behave. The labels and the excluded wallets are published so anyone can check them.</p></li>
-            <li><h3>Nothing here is advice</h3><p>Attendance describes who holds a token today. It says nothing about what the price will do. Past performance · not advice.</p></li>
+            <li><h3>Nothing here is advice</h3><p>Attendance describes who holds a token today. It says nothing about what the price will do.</p></li>
             <li><h3>Seats can change</h3><p>The plan is redrawn at every count. A ticket is a record of one count, with its date printed on it.</p></li>
           </ul>
         </section>
@@ -205,7 +218,7 @@ export default async function Home() {
             </div>
             <div className="closing-in">
               <h2>Were you there?</h2>
-              <p>{fmtInt(stats.realWallets)} wallets have a real seat somewhere. Paste yours and see where it sits.</p>
+              <p>{fmtInt(stats.realWallets)} wallets hold {fmtInt(seats)} real-fan seats. Paste yours and see where it sits.</p>
               <SeatSearchBox label="Wallet address or name" button="Find seat" />
               <p className="closing-links">
                 <Link href="/attendance">The Attendance</Link>

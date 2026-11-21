@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LAUNCH_AT } from '@tropaclub/clubs';
 import { InviteCodeForm, PickupButton, StartClub } from '@/components/club/Actions';
 import { Crest, Pennant } from '@/components/ds/Pennant';
 import ClubPreview from '@/components/ClubPreview';
+import StockClubList from '@/components/club/StockClubList';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
+import { getIndex } from '@/lib/server/data';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, OPENS } from '@/lib/site';
+import { DOCS_URL, OPENS, PLAY_USD, buyIsOpen } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: $10 a week in stocks with your group chat',
@@ -15,13 +16,16 @@ export const metadata: Metadata = {
 };
 
 export default async function ClubsPage() {
-  const wallet = await sessionWallet();
+  const [wallet, { data: index }] = await Promise.all([sessionWallet(), getIndex()]);
   const data = await tryClubs(async (svc) => {
     await ensureStockClubs(svc);
     const [stock, priv, pick, mine] = await Promise.all([svc.listClubs('stock'), svc.listClubs('private'), svc.listClubs('pickup'), wallet ? svc.walletClubs(wallet) : Promise.resolve([])]);
     return { stock, priv, pick, mine, now: svc.ctx.now() };
   });
-  const preLaunch = data ? data.now < LAUNCH_AT : true;
+  const preLaunch = !buyIsOpen();
+  const stock = new Map((data?.stock ?? []).map((c) => [c.stockSymbol, c]));
+  const stockRows = index.tokens.map((t) => ({ symbol: t.symbol, name: t.name, realFans: t.realFans, supporters: stock.get(t.symbol)?.memberCount ?? 0, playing: stock.get(t.symbol)?.playingCount ?? 0 }));
+  const founded = data ? data.priv.length + data.pick.length : 0;
 
   return (
     <main id="main">
@@ -33,7 +37,7 @@ export default async function ClubsPage() {
         {preLaunch && <p className="opens"><span className="tag">Buying opens {OPENS}</span> Found your club and fill the Bench now.</p>}
         {data && (
           <p className="asof">
-            {fmtInt(data.priv.length + data.pick.length)} clubs in the league, {fmtInt(data.stock.length)} stock clubs in the Supporters table.
+            {founded > 0 ? `${fmtInt(founded)} ${founded === 1 ? 'club' : 'clubs'} founded so far.` : 'No club founded yet: yours can be founding club No. 1.'} Every one of the {index.tokens.length} stocks also has a supporters’ club.
           </p>
         )}
       </section>
@@ -68,7 +72,7 @@ export default async function ClubsPage() {
             <p>Name it and Tropa Club cuts its crest. You get an invite link for the group chat. Everyone who opens it takes a free seat on the Bench.</p>
             <ul className="ticks">
               <li>Up to 50 members. A wallet can found five clubs and sit in twelve.</li>
-              <li>A seat on the Bench needs no buy. Buy $10 or more in a gameweek and you play it.</li>
+              <li>A seat on the Bench needs no buy. Buy ${PLAY_USD} or more in a gameweek and you play it.</li>
               <li>Clubs of three or more play fixtures against clubs their size.</li>
             </ul>
           </div>
@@ -92,28 +96,16 @@ export default async function ClubsPage() {
         </div>
       </section>
 
-      {data && data.stock.length > 0 && (
-        <section className="band" id="supporters">
-          <div className="wrap">
-            <div className="section-head">
-              <h2>Support a stock club</h2>
-              <p>Every stock has a public club, the same one whose ground you can walk. Stock clubs do not play fixtures. They sit in the Supporters table, ranked on turnout and streaks, never on returns.</p>
-            </div>
-            <div className="club-grid">
-              {data.stock.map((c) => (
-                <Link key={c.id} href={`/club/${c.id}`} className="club-card" prefetch={false}>
-                  <Pennant kit={crestOf(c)} width={30} />
-                  <span>
-                    <b>{c.name}</b>
-                    <small>{fmtInt(c.memberCount)} {c.memberCount === 1 ? 'supporter' : 'supporters'}, {fmtInt(c.playingCount)} playing</small>
-                  </span>
-                </Link>
-              ))}
-            </div>
-            <p className="after-table"><Link className="btn" href="/league#supporters">See the Supporters table</Link></p>
+      <section className="band" id="supporters">
+        <div className="wrap">
+          <div className="section-head">
+            <h2>Support a stock club</h2>
+            <p>Every one of the {index.tokens.length} stocks has a public club, the same one whose ground you can walk. The biggest crowds are listed first. Stock clubs do not play fixtures. They sit in the Supporters table, ranked on turnout and streaks, never on returns.</p>
           </div>
-        </section>
-      )}
+          <StockClubList rows={stockRows} />
+          <p className="after-table"><Link className="btn" href="/league#supporters">See the Supporters table</Link></p>
+        </div>
+      </section>
 
       <section className="wrap section">
         <div className="section-head">
@@ -129,7 +121,7 @@ export default async function ClubsPage() {
             <h2>How a club is scored</h2>
           </div>
           <ul className="limits">
-            <li><h3>You play by buying</h3><p>A member plays a gameweek by buying $10 or more of any stock token through Tropa Club before the last close of the week.</p></li>
+            <li><h3>You play by buying</h3><p>A member plays a gameweek by buying ${PLAY_USD} or more of any stock token through Tropa Club before the last close of the week. $10 a week is the habit; ${PLAY_USD} is the line.</p></li>
             <li><h3>Turnout comes first</h3><p>When 80% or more of a club plays, it earns a bonus point. That is what call-ups are for.</p></li>
             <li><h3>Fixtures are bragging rights</h3><p>A fixture goes to the club whose playing members had the higher median return for the week, in percent. No prize ever depends on it.</p></li>
             <li><h3>Size never counts</h3><p>Scores use percentages and head counts. Ten dollars counts the same as ten thousand.</p></li>

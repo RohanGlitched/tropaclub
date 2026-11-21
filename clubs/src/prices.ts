@@ -63,7 +63,8 @@ export class StoreMarkSource implements PriceSource {
     const k = token.toLowerCase();
     let c = this.cache.get(k);
     if (!c || Date.now() - c.at > this.cacheMs) {
-      const rows = await this.store.query<MarkDoc>(COL.marks, { where: [['token', '==', k]] });
+      // marks written from single buys (older versions did this) are never trusted
+      const rows = (await this.store.query<MarkDoc>(COL.marks, { where: [['token', '==', k]] })).filter((r) => r.source !== 'buy');
       rows.sort((a, b) => a.t - b.t);
       c = { at: Date.now(), rows };
       this.cache.set(k, c);

@@ -1,6 +1,6 @@
 import { fail, guarded } from '@/lib/server/api';
-import { within } from '@/lib/server/chain';
-import { getClubs } from '@/lib/server/clubs';
+import { statementCsv } from '@tropaclub/clubs';
+import { statementStatus } from '@/lib/server/statement';
 import { sessionWallet } from '@/lib/server/session';
 import { isAddress } from '@/lib/format';
 
@@ -13,7 +13,9 @@ export const GET = (_req: Request, ctx: { params: Promise<{ address: string }> }
     if (!isAddress(address)) return fail(400, 'Not a wallet address');
     const wallet = await sessionWallet();
     if (wallet !== address.toLowerCase()) return fail(403, 'Sign in with this wallet to download its statement.');
-    const csv = await within((await getClubs()).getStatementCsv(address), 60_000, 'statement');
+    const job = await statementStatus(address, 50_000);
+    if (job.state !== 'ready' || !job.value) return fail(job.state === 'empty' ? 404 : 503, job.state === 'empty' ? 'This wallet holds no stock tokens, so there is nothing to download.' : 'The statement is still being read from the chain. Try again in a minute.');
+    const csv = statementCsv(job.value);
     return new Response(csv, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',

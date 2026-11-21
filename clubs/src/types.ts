@@ -105,7 +105,7 @@ export interface BuyDoc {
   attributed: boolean;
   codes: string[];
   via: 'tx' | 'userop' | 'none';
-  /** Counts for lineup / seat / streak: attributed, >= $10, not wash, wallet not excluded. */
+  /** Counts for lineup / seat / streak: attributed, >= $5, not wash, wallet not excluded. */
   qualifies: boolean;
   wash: boolean;
   excluded: boolean;
@@ -115,6 +115,8 @@ export interface BuyDoc {
   recordedAt: number;
   source: 'client' | 'sweep';
   notes: string[];
+  /** The buyer's own "I am not a US person" tick, when the buy came through the buy sheet. */
+  notUsCertified?: boolean;
 }
 
 export type BuyRejectReason =
@@ -202,7 +204,7 @@ export interface LineupEntry {
   who: string;
   nickname: string | null;
   seat: SeatKind;
-  /** Bought >= $10 inside this gameweek's buy window (up to the cut). */
+  /** Bought >= $5 inside this gameweek's buy window (up to the cut). */
   played: boolean;
   /** GW-to-date time-weighted return of Tropa lots in percent (playing members only; status, never a prize). */
   returnPct: number | null;

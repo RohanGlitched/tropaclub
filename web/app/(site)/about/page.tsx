@@ -5,7 +5,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { getIndex, getStats } from '@/lib/server/data';
 import { groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt } from '@/lib/format';
-import { BUILDER_CODE, CHANGELOG, OPENS, UPCOMING, X_URL } from '@/lib/site';
+import { BUILDER_CODE, CHANGELOG, OPENS, UPCOMING, X_URL, DOCS_URL } from '@/lib/site';
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -34,6 +34,7 @@ export default async function AboutPage() {
             <a href="#clubs" className="clubs-only">Clubs</a>
             <a href="#rules">Rules we keep</a>
             <a href="#privacy">Privacy</a>
+            <a href="#contact">Contact</a>
             <a href="#log">Changelog</a>
           </nav>
           <div className="prose">
@@ -74,7 +75,7 @@ export default async function AboutPage() {
             <div className="clubs-only">
               <h2 id="clubs">Clubs, from {OPENS}</h2>
               <p>
-                A club is a group of friends who each put $10 a week into stock tokens from their own wallets. A member who buys in a gameweek has played that Matchday. Members who have not are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs sit in a separate Supporters table that ignores returns and ranks on turnout and streaks.
+                A club is a group of friends who each put $10 a week into stock tokens from their own wallets. A member who buys $5 or more in a gameweek has played that Matchday. Members who have not are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs sit in a separate Supporters table that ignores returns and ranks on turnout and streaks.
               </p>
               <p>Tropa Club holds no funds, takes no fee, and has no contract of its own in the path of your money.</p>
             </div>
@@ -94,6 +95,11 @@ export default async function AboutPage() {
             <h2 id="privacy">Privacy</h2>
             <p>
               Looking is anonymous: no account, no sign-in, and wallet lookups are not stored against you. If you join a club, the link between your wallet and that club is kept on our server so the team sheet works; other members see your nickname or a shortened address. Signing in sets one cookie that proves the wallet is yours. Your IP address is used once per visit to tell whether you are in the United States, where buying is not offered. If you ask for a pick-up club, a scrambled form of your country is kept only until you are seated; your country itself is never stored with your wallet. IP geolocation by <a href="https://db-ip.com" rel="noopener">DB-IP</a>.
+            </p>
+
+            <h2 id="contact">Contact</h2>
+            <p>
+              Partners, researchers and press: the <a href={`${DOCS_URL}/for-partners`} rel="noopener">partners page in the docs</a> says what Tropa Club can share and how the data feed works. For anything else, send a direct message to <a href={X_URL} rel="noopener">@tropaclubxyz on X</a>. Tropa Club will never message you first to ask for a signature or a payment.
             </p>
 
             <h2 id="log">Changelog</h2>

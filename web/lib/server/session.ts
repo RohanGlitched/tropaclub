@@ -7,7 +7,9 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { getAddress } from 'viem';
 import { createSiweMessage } from 'viem/siwe';
+import { AlreadyExistsError } from '@tropaclub/clubs';
 import { baseClient, within } from './chain';
+import { getClubs } from './clubs';
 import { isAddress } from '@/lib/format';
 import { SITE_URL } from '@/lib/site';
 
@@ -26,46 +28,51 @@ function key(): string {
 const sign = (value: string) => createHmac('sha256', key()).update(value).digest('base64url');
 const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
-/** The host the visitor sees. Behind Firebase Hosting that is x-forwarded-host. */
-export function requestDomain(h: { get(name: string): string | null }): string {
-  return (h.get('x-forwarded-host') || h.get('host') || new URL(SITE_URL).host).split(',')[0].trim();
-}
+// The SIWE domain and URI are fixed to the site's own address. They are never read from request headers.
+const SITE = new URL(SITE_URL);
+const NONCES = 'siweNonces';
 
 /** A short-lived, stateless challenge: the token carries the nonce and is signed by the server. */
-export function newChallenge(address: string, domain: string) {
+export function newChallenge(address: string) {
   const nonce = randomBytes(12).toString('hex');
   const issuedAt = new Date();
   const exp = Math.floor(issuedAt.getTime() / 1000) + 600;
-  const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(domain);
   const message = createSiweMessage({
     address: getAddress(address),
     chainId: 8453,
-    domain,
+    domain: SITE.host,
     nonce,
-    uri: `${local ? 'http' : 'https'}://${domain}`,
+    uri: SITE.origin,
     version: '1',
     statement: 'Sign in to Tropa Club. This only proves the wallet is yours. It is free and moves no funds.',
     issuedAt,
     expirationTime: new Date(exp * 1000),
   });
-  const body = `${address.toLowerCase()}|${nonce}|${domain}|${exp}`;
+  const body = `${address.toLowerCase()}|${nonce}|${exp}`;
   return { message, token: `${Buffer.from(body).toString('base64url')}.${sign(body)}` };
 }
 
-export async function verifyChallenge(p: { address: string; token: string; message: string; signature: string; domain: string }): Promise<boolean> {
+export async function verifyChallenge(p: { address: string; token: string; message: string; signature: string }): Promise<boolean> {
   const [b64, mac] = p.token.split('.');
   if (!b64 || !mac) return false;
   const body = Buffer.from(b64, 'base64url').toString();
   if (!same(sign(body), mac)) return false;
-  const [addr, nonce, domain, exp] = body.split('|');
-  if (!addr || addr !== p.address.toLowerCase() || domain !== p.domain || Number(exp) < Date.now() / 1000) return false;
+  const [addr, nonce, exp] = body.split('|');
+  if (!addr || !nonce || addr !== p.address.toLowerCase() || Number(exp) < Date.now() / 1000) return false;
   try {
-    return await within(
-      baseClient().verifySiweMessage({ message: p.message, signature: p.signature as `0x${string}`, address: getAddress(addr), domain, nonce }),
+    const good = await within(
+      baseClient().verifySiweMessage({ message: p.message, signature: p.signature as `0x${string}`, address: getAddress(addr), domain: SITE.host, nonce }),
       15000,
       'signature check',
     );
-  } catch {
+    if (!good) return false;
+    // Each nonce works once. The first verify writes it; a replay finds it already there.
+    // (Firestore: a TTL policy on `expiresAt` clears old ones.) If the store cannot be reached, sign-in fails closed.
+    const svc = await getClubs();
+    await svc.ctx.store.create(NONCES, nonce, { nonce, wallet: addr, usedAt: Math.floor(Date.now() / 1000), expiresAt: new Date((Number(exp) + 3600) * 1000) });
+    return true;
+  } catch (e) {
+    if (!(e instanceof AlreadyExistsError)) console.warn('[session] sign-in not completed:', (e as Error).message?.slice(0, 120));
     return false;
   }
 }

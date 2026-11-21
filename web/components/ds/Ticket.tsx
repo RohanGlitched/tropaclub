@@ -46,19 +46,21 @@ interface Props {
   headingLevel?: 2 | 3;
   /** Print the ticket in on load. One per page. */
   printIn?: boolean;
+  /** A seat not taken yet: drawn in ghost style, marked Preview. */
+  preview?: boolean;
 }
 
-export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn }: Props) {
+export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn, preview }: Props) {
   const kit = kitFor(token.symbol);
   const seat = ticketSeat(address, entry, token);
   const H = `h${headingLevel}` as 'h2' | 'h3';
   return (
-    <article className={printIn ? 'ticket print-in' : 'ticket'} aria-label={`Matchday ticket, ${clubName(token.name)}`}>
+    <article className={`ticket${printIn ? ' print-in' : ''}${preview ? ' ticket-preview' : ''}`} aria-label={`${preview ? 'Preview of a matchday ticket' : 'Matchday ticket'}, ${clubName(token.name)}`}>
       <div className="ticket-main">
         <header className="ticket-top">
           <span className="ticket-brand"><Mark size={16} /> Tropa Club</span>
           <span>Matchday ticket</span>
-          <span className="ticket-asof">{specimen ? 'Specimen' : `As of ${fmtDate(asOf)}`}</span>
+          <span className="ticket-asof">{preview ? 'Preview' : specimen ? 'Specimen' : `As of ${fmtDate(asOf)}`}</span>
         </header>
         <div className="ticket-club">
           <Pennant kit={kit} width={34} />
@@ -76,9 +78,9 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
             <dd className="num">{entry.rank != null ? fmtInt(entry.rank) : '—'}<small> of {fmtInt(entry.of || token.realFans)}</small></dd>
           </div>
         </dl>
-        <p className="ticket-stat">{statSentence(entry.bestStat)}</p>
+        <p className="ticket-stat">{preview ? 'Yours after one $10 buy' : statSentence(entry.bestStat)}</p>
         <p className="ticket-fine">
-          {seat?.stand ?? 'The Ground'}. {token.symbol} is a stock token that tracks the share price; it is not the share. Seats go by time held, never by size. Past performance · not advice.
+          {seat?.stand ?? 'The Ground'}. {token.symbol} is a stock token that tracks the share price; it is not the share. Seats go by time held, never by size. Not advice.
         </p>
       </div>
       <div className="ticket-stub">

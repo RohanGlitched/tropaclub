@@ -1,6 +1,8 @@
 import { guarded, ok } from '@/lib/server/api';
-import { listBuyTokens } from '@/lib/server/buy';
+import { listBuyTokensWith } from '@/lib/server/buy';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = () => guarded(async () => ok({ tokens: await listBuyTokens() }, 'public, max-age=60, s-maxage=120'));
+// The stocks that can be bought right now. ?token=0x… makes sure that one is in the list.
+export const GET = (req: Request) =>
+  guarded(async () => ok({ tokens: await listBuyTokensWith(new URL(req.url).searchParams.get('token')) }, 'public, max-age=60, s-maxage=120'));

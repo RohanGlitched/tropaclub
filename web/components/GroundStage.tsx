@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { TokenSummary, WalletSummary } from '@shared/types';
 import Ground, { type Emphasis, type GroundHandle } from './Ground';
 import { Pennant } from './ds/Pennant';
@@ -19,12 +19,14 @@ interface Props {
   tabs?: string[]; // symbols offered as tabs (hero)
   initial: string;
   examples?: string[];
+  /** Hero only: the paragraph under the headline. */
+  lede?: ReactNode;
 }
 
 type Focus = { index: number; address?: string; mine: boolean; rank?: number | null; of?: number; kind?: string };
 type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: string; links?: { href: string; label: string }[] };
 
-export default function GroundStage({ mode, clubs, tabs, initial, examples = [] }: Props) {
+export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede }: Props) {
   const [symbol, setSymbol] = useState(initial);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [emphasis, setEmphasis] = useState<Emphasis>('all');
@@ -50,6 +52,30 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [] 
     const t = setTimeout(() => ground.current?.flyTo(i), 60);
     return () => clearTimeout(t);
   }, [focus]);
+
+  // Hero: once, shortly after load, the camera flies to the front row to show the plan is a place
+  // you can walk. Skipped for reduced motion and as soon as the visitor does anything.
+  const touched = useRef(false);
+  useEffect(() => {
+    if (mode !== 'hero') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const stop = () => {
+      touched.current = true;
+    };
+    const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as const;
+    evs.forEach((e) => window.addEventListener(e, stop, { once: true, passive: true }));
+    const t = setTimeout(() => {
+      if (touched.current || document.visibilityState !== 'visible') return;
+      setArrivalKey(false);
+      pendingFly.current = 0;
+      setFocus({ index: 0, mine: false, rank: 1, of: clubs.find((c) => c.symbol === initial)?.realFans, kind: 'real' });
+    }, 1500);
+    return () => {
+      clearTimeout(t);
+      evs.forEach((e) => window.removeEventListener(e, stop));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pickClub = (s: string) => {
     if (s === symbol) return;
@@ -187,6 +213,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [] 
           spellCheck={false}
           inputMode="text"
           aria-describedby={`${inputId}-s`}
+          aria-invalid={status.tone === 'warn' ? true : undefined}
         />
         <button className="btn btn-accent" type="submit" disabled={status.tone === 'busy'}>
           {status.tone === 'busy' ? 'Looking…' : 'Find seat'}
@@ -194,9 +221,9 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [] 
       </div>
       {examples.length > 0 && (
         <p className="find-eg">
-          No wallet to hand? Try a fan:{' '}
+          <span>No wallet to hand? Try a fan:</span>
           {examples.map((a) => (
-            <button key={a} type="button" className="linklike" onClick={() => { setValue(a); void onSubmit(a); }}>
+            <button key={a} type="button" className="chip chip-eg num" onClick={() => { setValue(a); void onSubmit(a); }}>
               {shortAddr(a)}
             </button>
           ))}
@@ -254,7 +281,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [] 
             <span className="h1-fans"><span className="num">{fmtInt(club.realFans)}</span> fans showed up.</span>
           </h1>
           <p className="lede">
-            Every wallet holding a stock token on Base is a seat in that stock&rsquo;s ground. Most seats are dust, airdrop leftovers or contracts. Tropa Club counts the fans who are really there, across all {clubs.length} tokens.
+            {lede ?? <>Every wallet holding a stock token on Base is a seat in that stock&rsquo;s ground. Tropa Club counts the fans who are really there, across all {clubs.length} tokens.</>}
           </p>
         </div>
         <div className="hero-stage">
@@ -271,7 +298,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [] 
             <p className="hero-key">
               <span><i className="sw" style={{ background: kit.primary }} /><i className="sw" style={{ background: kit.secondary }} />Real fans, {fmtPct(club.attendancePct)} attendance</span>
               <span><i className="sw sw-ghost" />Ghost seats</span>
-              <Link href={groundPath(club.symbol)}>Walk the ground</Link>
+              <Link className="tap" href={groundPath(club.symbol)}>Walk the ground</Link>
             </p>
           </div>
         </div>

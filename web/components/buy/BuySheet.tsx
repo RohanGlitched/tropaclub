@@ -6,6 +6,7 @@ import { useAccount, usePublicClient, useSwitchChain } from 'wagmi';
 import { planSend, type Call } from '@buy/calls';
 import { decodeRevert } from '@buy/revert';
 import ConnectButton from '@/components/wallet/ConnectButton';
+import { useSession } from '@/components/wallet/WalletProvider';
 import { shortAddr } from '@/lib/format';
 
 interface BuyToken { address: string; symbol: string; name: string; buyable: boolean; reason: string | null; referencePrice: boolean; reopenGapRisk: boolean }
@@ -45,16 +46,17 @@ interface Props {
   token?: string | null;
   /** United States: the sheet explains and offers no buy button. */
   us: boolean;
-  /** Country unknown: the visitor must tick "I am not a US person". */
-  askUs: boolean;
 }
+const NOT_US_KEY = 'tropa-not-us';
 
-export default function BuySheet({ open, onClose, clubId = null, token = null, us, askUs }: Props) {
+export default function BuySheet({ open, onClose, clubId = null, token = null, us }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const { address, isConnected, connector, chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const publicClient = usePublicClient({ chainId: 8453 });
+  const session = useSession();
+  const ready = isConnected && session.signedIn;
 
   const [tokens, setTokens] = useState<BuyToken[] | null>(null);
   const [tokensErr, setTokensErr] = useState(false);
@@ -70,6 +72,24 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
   const [record, setRecord] = useState<{ recorded: boolean; attributed: boolean | null; message: string | null; promoted: boolean } | null>(null);
   const seq = useRef(0);
 
+  // Everyone confirms "I am not a US person" before their first buy. The tick is remembered on this device.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(NOT_US_KEY) === '1') setNotUs(true);
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const tickNotUs = (v: boolean) => {
+    setNotUs(v);
+    try {
+      if (v) localStorage.setItem(NOT_US_KEY, '1');
+      else localStorage.removeItem(NOT_US_KEY);
+    } catch {
+      /* private mode */
+    }
+  };
+
   // open / close the native dialog (focus trap and Escape come with it)
   useEffect(() => {
     const d = ref.current;
@@ -83,7 +103,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
     if (!open || us || tokens) return;
     let live = true;
     setTokensErr(false);
-    fetch('/api/buy/tokens')
+    fetch(token ? `/api/buy/tokens?token=${token.toLowerCase()}` : '/api/buy/tokens')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((j: { tokens: BuyToken[] }) => {
         if (!live) return;
@@ -94,23 +114,23 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
     return () => {
       live = false;
     };
-  }, [open, us, tokens]);
+  }, [open, us, tokens, token]);
 
   const fetchQuote = useCallback(async (): Promise<QuoteState> => {
-    if (!address || !sel) return { status: 'idle' };
+    if (!address || !sel || !notUs) return { status: 'idle' };
     try {
-      const res = await fetch('/api/buy/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: sel, pay, usd, taker: address }), signal: AbortSignal.timeout(35000) });
+      const res = await fetch('/api/buy/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: sel, pay, usd, taker: address, notUsPerson: notUs }), signal: AbortSignal.timeout(35000) });
       const j = await res.json();
       if (!res.ok) return { status: 'hold', message: j.error || 'The quote could not be made just now.', retry: res.status !== 403 };
       return j.ok ? { status: 'ready', q: j as Quote } : { status: 'hold', message: j.message, retry: !!j.retry };
     } catch {
       return { status: 'hold', message: 'The quote did not arrive. Check your connection and try again.', retry: true };
     }
-  }, [address, sel, pay, usd]);
+  }, [address, sel, pay, usd, notUs]);
 
   // live quote: on every change, and refreshed while the form is open
   useEffect(() => {
-    if (!open || us || phase !== 'form' || !isConnected || !address || !sel) return;
+    if (!open || us || phase !== 'form' || !ready || !address || !sel || !notUs) return;
     let live = true;
     const run = async (quiet: boolean) => {
       const id = ++seq.current;
@@ -124,7 +144,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
       live = false;
       clearInterval(t);
     };
-  }, [open, us, phase, isConnected, address, sel, pay, usd, fetchQuote]);
+  }, [open, us, phase, ready, address, sel, pay, usd, notUs, fetchQuote]);
 
   const picked = tokens?.find((t) => t.address === sel) ?? null;
   const onHold = tokens?.filter((t) => !t.buyable) ?? [];
@@ -184,6 +204,8 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
           const rc = await publicClient!.waitForTransactionReceipt({ hash: h, timeout: 120_000 });
           if (rc.status !== 'success') throw new Error('execution reverted');
           mark(i, 'done');
+          // an approval sent on its own also carries the Builder Code: report it so it is counted apart from swaps
+          if (i < plan.requests.length - 1) void fetch('/api/buy/approval', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash: h, wallet: address }) }).catch(() => {});
           hash = h;
         }
         mark(last, 'chain');
@@ -221,15 +243,17 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
   const q = quote.status === 'ready' ? quote.q : null;
   const why = !isConnected
     ? 'Connect a wallet to see a live quote.'
-    : !sel
+    : !session.signedIn
+      ? 'Sign in with one free signature, so the buy is recorded for your wallet.'
+      : !notUs
+        ? 'Tick “I am not a US person” to see a live quote.'
+        : !sel
       ? 'Pick a stock.'
       : quote.status === 'loading' || quote.status === 'idle'
         ? 'Getting a live quote…'
         : quote.status === 'hold'
           ? ''
-          : askUs && !notUs
-            ? 'Tick the box above to continue.'
-            : '';
+          : '';
   const canBuy = !!q && !why && phase === 'form';
 
   return (
@@ -250,16 +274,33 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
             <p className="buy-ok"><b>Bought.</b> {q ? `About ${q.shares} shares’ worth of ${q.symbol} is in your wallet.` : 'The tokens are in your wallet.'}</p>
             {txHash && <p><a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noopener noreferrer">See the transaction on BaseScan</a></p>}
             <ul className="buy-facts">
-              <li>{record?.recorded ? (record.promoted ? 'Recorded. You are in the Playing lineup this gameweek.' : 'Recorded for your club.') : record?.message ?? 'Recording…'}</li>
+              <li>{record?.recorded ? (record.promoted ? 'Recorded. You are in the Playing lineup this gameweek.' : clubId ? 'Recorded for your club.' : 'Recorded. It counts toward the season.') : record?.message ?? 'Recording…'}</li>
               {record?.attributed != null && <li>{record.attributed ? 'Counted as a Tropa Club buy on Base.' : 'This wallet did not carry our Builder Code on the transaction, so it is not counted in our stats.'}</li>}
             </ul>
-            <button type="button" className="btn btn-accent" onClick={close}>Done</button>
+            <div className="buy-next">
+              <h3>What next</h3>
+              <a className="buy-next-row" href={address ? `/ticket/${address.toLowerCase()}` : '/'}>
+                <b>Share your seat</b>
+                <small>Your matchday ticket, ready to post. A new seat shows at the next count, every 6 hours.</small>
+              </a>
+              <a className="buy-next-row" href={clubId ? `/club/${encodeURIComponent(clubId)}#invite` : '/clubs#start'}>
+                <b>{clubId ? 'Invite your group chat' : 'Found a club for your group chat'}</b>
+                <small>{clubId ? 'Send the invite link. Everyone who opens it takes a free seat on the Bench.' : 'Free, takes a minute. This buy already counts for you.'}</small>
+              </a>
+              {clubId && (
+                <a className="buy-next-row" href={`/club/${encodeURIComponent(clubId)}#team`}>
+                  <b>Call up a teammate</b>
+                  <small>You played, so you can nudge anyone still on the Bench. 80% turnout earns the bonus point.</small>
+                </a>
+              )}
+            </div>
+            <button type="button" className="btn" onClick={close}>Done</button>
           </div>
         ) : (
           <div className="buy-body">
-            {!isConnected && (
+            {!ready && (
               <div className="buy-connect">
-                <p>Buying happens from your own wallet. Tropa Club never holds your money.</p>
+                <p>{isConnected ? 'One free signature proves the wallet is yours, so this buy is recorded for it. It moves no funds.' : 'Buying happens from your own wallet. Tropa Club never holds your money.'}</p>
                 <ConnectButton />
               </div>
             )}
@@ -279,6 +320,9 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
                   <span className="skeleton-line" aria-busy="true" />
                 )}
               </label>
+              {tokens && token && !tokens.some((t) => t.address === token.toLowerCase() && t.buyable) && (
+                <p className="buy-hold">{tokens.find((t) => t.address === token.toLowerCase())?.reason ?? 'The stock you came from cannot be bought here right now.'} You can pick another above.</p>
+              )}
               {picked && !picked.referencePrice && <p className="buy-note">No reference price: this stock has no live price feed, so the guard uses the 30-minute pool average.</p>}
 
               <div className="buy-field" role="radiogroup" aria-label="Amount">
@@ -299,9 +343,14 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
               </div>
             </fieldset>
 
+            <label className="buy-check">
+              <input type="checkbox" checked={notUs} onChange={(e) => tickNotUs(e.target.checked)} disabled={phase !== 'form'} />
+              <span>I am not a US person.</span>
+            </label>
+
             <div className="buy-quote" aria-live="polite">
-              {!isConnected ? (
-                <p className="muted">A live quote appears here once a wallet is connected.</p>
+              {!ready || !notUs ? (
+                <p className="muted">{why}</p>
               ) : quote.status === 'hold' ? (
                 <p className="buy-hold">{quote.message} {quote.retry && <button type="button" className="linklike" onClick={() => { setQuote({ status: 'loading' }); void fetchQuote().then(setQuote); }}>Get a new quote</button>}</p>
               ) : q ? (
@@ -314,15 +363,16 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
               ) : (
                 <div className="buy-skel" aria-busy="true"><span /><span /><span /><span /></div>
               )}
-              {q?.reopenGapRisk && <p className="buy-note">The stock market is closed. The token trades on, and its price can jump when the market reopens.</p>}
+              {q?.reopenGapRisk && (
+                <p className="buy-gap" role="note">
+                  <b>The stock market is closed.</b>{' '}
+                  {q.markSource === 'twap'
+                    ? 'There is no official price to check against right now, so the 1.5% guard is measured against this token’s own average price on the exchange over the last 30 minutes. That is not a fair-value check, and the price can jump when the market reopens.'
+                    : 'The reference price is the last official one. The token trades on, and its price can jump when the market reopens.'}
+                </p>
+              )}
             </div>
 
-            {askUs && (
-              <label className="buy-check">
-                <input type="checkbox" checked={notUs} onChange={(e) => setNotUs(e.target.checked)} disabled={phase !== 'form'} />
-                <span>I am not a US person.</span>
-              </label>
-            )}
 
             {steps.length > 0 && (
               <ol className="buy-steps" aria-label="Progress">
@@ -346,7 +396,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
                   {phase === 'sending' ? 'Buying…' : phase === 'recording' ? 'Recording…' : `Buy $${usd} of ${picked?.symbol ?? 'stock'}`}
                 </button>
               )}
-              {why && phase === 'form' && <span className="buy-why">{why}</span>}
+              {why && phase === 'form' && ready && notUs && <span className="buy-why">{why}</span>}
             </div>
 
             <ul className="buy-fine">

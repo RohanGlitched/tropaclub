@@ -100,9 +100,9 @@ describe.each(stores)('clubs engine on $name store', ({ make }) => {
     expect(await svc.recordBuy({ txHash: hash(n + 51), wallet: B, clubId: lagos.id, country: 'PR' })).toMatchObject({ ok: false, reason: 'region_blocked' });
     expect(await svc.recordBuy({ txHash: hash(n + 52), wallet: X, clubId: lagos.id })).toMatchObject({ ok: false, reason: 'not_member' });
 
-    const tx4 = buy(B, TOK.NVDAc, 3_825_308n, 5, '2026-11-24T15:30:00Z');
+    const tx4 = buy(B, TOK.NVDAc, 3_060_246n, 4, '2026-11-24T15:30:00Z');
     const r4 = await svc.recordBuy({ txHash: tx4, wallet: B, clubId: lagos.id });
-    expect(r4).toMatchObject({ ok: true, promoted: false, buy: { qualifies: false, usdIn: 5 } });
+    expect(r4).toMatchObject({ ok: true, promoted: false, buy: { qualifies: false, usdIn: 4 } });
 
     const tx5 = buy(C, TOK.TSLAc, 4_500_000n, 20, '2026-11-24T16:00:00Z', { via: 'userop', splitLegs: true });
     const r5 = await svc.recordBuy({ txHash: tx5, wallet: C, clubId: lagos.id });
@@ -244,7 +244,7 @@ describe.each(stores)('clubs engine on $name store', ({ make }) => {
     await svc.addExclusion({ wallet: F, label: 'test', reason: 'founder test wallet' });
     clock.set(at('2026-12-05T00:00:00Z'));
     const st = await svc.getStats();
-    expect(st).toMatchObject({ uniqueSigners: 5, attributedTx: 8, submittedTx: 9, usdRouted: 109, qualifyingBuys: 5, belowMinBuys: 1, washBuys: 2 });
+    expect(st).toMatchObject({ uniqueSigners: 5, attributedTx: 8, submittedTx: 9, usdRouted: 108, qualifyingBuys: 5, belowMinBuys: 1, washBuys: 2 });
     expect(st.pctAttributed).toBeCloseTo(88.89, 2);
     expect(st.retention).toEqual([
       { day: 1, eligible: 4, held: 4, rate: 1 },

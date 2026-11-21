@@ -1,5 +1,5 @@
 import { fail, guarded, ok, rateLimited, readJson } from '@/lib/server/api';
-import { newChallenge, requestDomain } from '@/lib/server/session';
+import { newChallenge } from '@/lib/server/session';
 import { isAddress } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -10,5 +10,5 @@ export const POST = (req: Request) =>
     const address = String(body?.address ?? '');
     if (!isAddress(address)) return fail(400, 'Not a wallet address');
     if (rateLimited('auth', req, 30)) return fail(429, 'Too many sign-in attempts. Wait a minute.');
-    return ok(newChallenge(address, requestDomain(req.headers)));
+    return ok(newChallenge(address));
   });

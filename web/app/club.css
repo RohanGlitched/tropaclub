@@ -782,3 +782,418 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* statement loading states */
+.statement-state {
+  display: grid;
+  gap: 14px;
+  max-width: 980px;
+}
+.progress {
+  height: 10px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--marigold);
+  transition: width 0.4s ease;
+}
+.programme-skel .programme {
+  gap: 18px;
+}
+.sk {
+  display: block;
+  height: 22px;
+  background: #e2ddcd;
+}
+.sk-title {
+  height: 44px;
+  width: 60%;
+}
+.sk-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.sk-row .sk {
+  height: 56px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress span {
+    transition: none;
+  }
+}
+
+/* buy call-to-action outside a club */
+.buy-cta {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.buy-cta .clubs-only {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.buy-cta-btn {
+  min-height: 52px;
+  padding-inline: 28px;
+}
+.buy-cta-note {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  max-width: 46ch;
+}
+.buy-opens {
+  font: 600 1.125rem/1.3 var(--display);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.buy-remind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.take-seat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px 48px;
+  align-items: center;
+  border-top: 5px solid var(--marigold);
+  padding-top: 24px;
+}
+.take-seat p {
+  margin-top: 6px;
+  color: var(--ink-2);
+  max-width: 56ch;
+}
+@media (max-width: 760px) {
+  .take-seat {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.buy-next {
+  display: grid;
+  gap: 8px;
+  border-top: 2px solid var(--ink);
+  padding-top: 12px;
+}
+.buy-next h3 {
+  font: 600 0.75rem var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.buy-next-row {
+  display: block;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.buy-next-row:hover {
+  border-color: var(--ink);
+}
+.buy-next-row b {
+  display: block;
+  font: 600 1.0625rem/1.2 var(--display);
+}
+.buy-next-row small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+/* ticket: a seat not taken yet */
+.ticket-preview {
+  opacity: 0.92;
+  outline: 2px dashed var(--label, #a9abd9);
+  outline-offset: 6px;
+}
+.ticket-preview .ticket-main,
+.ticket-preview .ticket-stub {
+  filter: grayscale(0.85);
+}
+.ticket-preview .ticket-seat dd,
+.ticket-preview .ticket-club {
+  opacity: 0.6;
+}
+.convert {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+}
+.convert-text {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.convert-text h1 {
+  font-size: clamp(2.25rem, 1.4rem + 3.4vw, 4rem);
+}
+.convert-ticket {
+  background: var(--stage);
+  border-radius: 14px;
+  padding: clamp(18px, 3vw, 36px);
+}
+.convert-ticket .caption {
+  color: #a9abd9;
+  margin-top: 16px;
+}
+.next-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px clamp(24px, 4vw, 48px);
+}
+.next-steps li {
+  border-top: 5px solid var(--ink);
+  padding-top: 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+}
+.next-steps p {
+  color: var(--ink-2);
+}
+.neighbours {
+  margin-top: 12px;
+}
+@media (max-width: 900px) {
+  .convert,
+  .next-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* empty-room states */
+.season-opens {
+  border-top: 5px solid var(--marigold);
+  padding-top: 20px;
+  display: grid;
+  gap: 12px;
+  max-width: 70ch;
+}
+.crowd-title {
+  margin-top: 40px;
+}
+.founding {
+  margin-top: 12px;
+}
+.founding li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 52px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line-2);
+}
+.founding-no {
+  font: 600 0.75rem var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  min-width: 56px;
+}
+.founding a {
+  font: 600 1.125rem var(--display);
+}
+.founding-n {
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+.preview-frame {
+  position: relative;
+  border: 1.5px dashed var(--line-2);
+  padding: 44px 16px 16px;
+  margin-top: 12px;
+}
+.preview-frame > .tag {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+}
+.preview-frame .club-preview {
+  grid-template-columns: minmax(0, 1fr);
+}
+.more-clubs {
+  margin-top: 8px;
+  border-top: 1px solid var(--line-2);
+}
+.more-clubs summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  font: 600 1.0625rem var(--display);
+  cursor: pointer;
+}
+.more-clubs summary:hover {
+  text-decoration: underline;
+}
+
+/* phone menu */
+.menu-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 1rem var(--display);
+  cursor: pointer;
+}
+.menu-sheet {
+  border: 0;
+  padding: 0;
+  margin: 0 0 0 auto;
+  width: min(360px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  border-left: 6px solid var(--marigold);
+}
+.menu-sheet::backdrop {
+  background: rgba(12, 10, 42, 0.72);
+}
+.menu-in {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 10px 20px;
+  border-bottom: 1px solid var(--line-2);
+  font: 600 0.75rem var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.menu-sheet nav {
+  display: grid;
+  padding: 4px 20px 24px;
+}
+.menu-sheet nav a {
+  display: grid;
+  align-content: center;
+  min-height: 60px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.menu-sheet nav a b {
+  font: 600 1.25rem/1.2 var(--display);
+}
+.menu-sheet nav a small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+@media (max-width: 767px) {
+  .menu-btn {
+    display: inline-flex;
+  }
+  .site-header .site-header-in > nav {
+    display: none;
+  }
+  .site-header .site-header-in {
+    flex-wrap: nowrap;
+    padding-top: 0;
+  }
+  .site-header .brand-lockup {
+    display: block;
+  }
+  .site-header .brand-mark {
+    display: none;
+  }
+  .site-header .header-cta {
+    display: none;
+  }
+  /* the seat input and sample chips come before the stadium on a phone */
+  .hero-grid {
+    grid-template-areas: 'head' 'find' 'stage';
+  }
+}
+@media (max-width: 380px) {
+  .site-header .brand-lockup {
+    display: none;
+  }
+  .site-header .brand-mark {
+    display: block;
+  }
+}
+
+/* tap targets and small fixes */
+.find-eg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.find-eg > span {
+  flex-basis: 100%;
+}
+.chip-eg {
+  min-height: 44px;
+  padding-inline: 14px;
+  font-weight: 600;
+}
+.tap {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.closing-links a:not(.btn),
+.pin-link,
+.crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+abbr.ref {
+  text-decoration: none;
+  cursor: help;
+}
+/* zoom buttons sit in their own band under the plan, never over the seats */
+.stage-ground .ground {
+  bottom: 60px;
+}
+.stage-ground .stage-tools {
+  left: 12px;
+  right: 12px;
+  bottom: 8px;
+  justify-content: flex-end;
+}
+@media (max-width: 420px) {
+  .ticket-top > span:nth-child(2) {
+    display: none;
+  }
+  .ticket-top .ticket-asof {
+    margin-left: auto;
+  }
+}
+
+.buy-gap {
+  border: 2px solid var(--flare);
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.buy-check input {
+  accent-color: var(--marigold);
+}

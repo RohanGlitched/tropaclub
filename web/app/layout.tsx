@@ -17,6 +17,9 @@ const display = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // every page names its own address on tropaclub.xyz as the canonical one (the *.web.app copy is a duplicate)
+  alternates: { canonical: './' },
+  manifest: '/manifest.webmanifest',
   title: { default: 'Tropa Club: tickets sold vs fans who showed up', template: '%s · Tropa Club' },
   description: `Every stock token on Base is a football club, and every holder wallet is a seat. See who really showed up, and find your own seat. Tropa Club: ${TAGLINE}`,
   openGraph: {

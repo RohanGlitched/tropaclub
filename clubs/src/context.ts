@@ -34,7 +34,8 @@ export interface ClubsContext {
 export function defaultConfig(over: Partial<ClubsConfig> = {}): ClubsConfig {
   return {
     siteUrl: (process.env.SITE_URL ?? 'https://tropaclub.xyz').replace(/\/$/, ''),
-    minBuyUsd: 10,
+    // $5 puts a member in the Playing lineup for the gameweek. (The index's "real fan" line stays at $10 held.)
+    minBuyUsd: 5,
     matchSalt: process.env.PICKUP_MATCH_SALT ?? 'dev-only-salt',
     tokens: new Map(),
     maxPrivateMembers: 50,

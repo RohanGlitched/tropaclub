@@ -8,7 +8,7 @@ import { Pennant } from './ds/Pennant';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtInt, fmtPct } from '@/lib/format';
 
-export type Row = Pick<TokenSummary, 'symbol' | 'name' | 'holdersTotal' | 'realFans' | 'attendancePct' | 'weeklyBuyers' | 'newBuyers7d' | 'priceUsd'>;
+export type Row = Pick<TokenSummary, 'symbol' | 'name' | 'holdersTotal' | 'realFans' | 'attendancePct' | 'weeklyBuyers' | 'newBuyers7d' | 'priceUsd'> & Pick<Partial<TokenSummary>, 'priceSource'>;
 
 /** The Attendance: the league table of real holders. */
 export default function AttendanceTable({ rows, controls = true }: { rows: Row[]; controls?: boolean }) {
@@ -52,7 +52,7 @@ export default function AttendanceTable({ rows, controls = true }: { rows: Row[]
           <Pennant kit={kitFor(r.symbol)} width={18} />
           <span>
             {clubName(r.name)}
-            <small>{r.symbol}</small>
+            <small>{r.symbol}{r.priceSource === 'reference' && <abbr className="ref" title="No liquid DEX pool: valued at the share's last price times the token multiplier"> · ref. price</abbr>}</small>
           </span>
         </Link>
       )}

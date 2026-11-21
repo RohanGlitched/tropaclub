@@ -1,7 +1,7 @@
 /**
  * Lineups, member and club gameweek scores, Matchday cards, fixtures settlement and tables.
  *
- * - A member PLAYS a gameweek only with a qualifying buy (>= $10) inside that gameweek's buy window.
+ * - A member PLAYS a gameweek only with a qualifying buy (>= $5) inside that gameweek's buy window.
  * - Member GW return = time-weighted % return of their Tropa lots over (GW buy window start, cut],
  *   FIFO, valued at the token mark (Chainlink round at the cut, else stored DEX marks).
  * - Club GW score = median playing-member return. Stock clubs get no score (Supporters table only).

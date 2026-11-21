@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Lockup, Mark } from './ds/Logo';
 import ThemeToggle from './ThemeToggle';
 import RegionGate from './RegionGate';
+import MobileMenu from './MobileMenu';
 import { fmtDate } from '@/lib/format';
 import { DOCS_URL, TAGLINE, X_URL } from '@/lib/site';
 import type { Source } from '@/lib/server/data';
@@ -27,6 +28,18 @@ export function SiteHeader({ source, ground = '/ground/NVDAc', end, sampleClubs 
           <div className="site-header-end">
             {end ?? <Link href="/#find" className="btn btn-accent btn-sm header-cta">Find your seat</Link>}
             <ThemeToggle />
+            <MobileMenu
+              links={[
+                { label: 'The Ground', href: ground, note: 'Walk a club’s seating plan' },
+                { label: 'The Attendance', href: '/attendance', note: 'Real fans of every stock token' },
+                { label: 'Clubs', href: '/clubs', note: 'Found one, join one, or get matched' },
+                { label: 'League', href: '/league', note: 'Standings and the Supporters table' },
+                { label: 'Stats', href: '/stats', note: 'What has been measured so far' },
+                { label: 'Find your seat', href: '/#find', note: 'Paste a wallet, print its ticket' },
+                { label: 'How it works', href: '/about' },
+                { label: 'Docs', href: DOCS_URL, ext: true },
+              ]}
+            />
           </div>
         </div>
       </header>
@@ -75,7 +88,7 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
     title: 'Company',
     links: [
       { label: 'For partners', href: `${DOCS_URL}/for-partners`, ext: true },
-      { label: 'Contact', href: X_URL, ext: true },
+      { label: 'Contact', href: '/about#contact' },
     ],
   },
   {
@@ -117,9 +130,9 @@ export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: st
         </nav>
         <div className="foot-bar">
           <p className="foot-copy"><Mark size={16} /> <span>© 2026 Tropa Club</span></p>
-          <p>Stock tokens track the share price; they are not shares. Not available to US persons.</p>
+          <p>Stock tokens track the share price; they are not shares. Not available to US persons. Past performance · not advice.</p>
           <p>
-            {asOf ? <>Data as of <time dateTime={asOf}>{fmtDate(asOf, true)}</time>{source === 'mock' ? ' (sample)' : ''}</> : 'Data refreshed daily'}
+            {asOf ? <>Data as of <time dateTime={asOf}>{fmtDate(asOf, true)}</time>{source === 'mock' ? ' (sample)' : ''}</> : 'Data recounted every 6 hours'}
           </p>
           <p><a href="https://db-ip.com" rel="noopener">IP geolocation by DB-IP</a> (CC BY 4.0)</p>
         </div>

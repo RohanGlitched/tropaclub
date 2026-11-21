@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { LAUNCH_AT } from '@tropaclub/clubs';
-import { BuyButton, InviteBox, JoinButton, Roster } from '@/components/club/Actions';
+import BuyCta from '@/components/buy/BuyCta';
+import { InviteBox, JoinButton, Roster } from '@/components/club/Actions';
 import { Crest, Pennant } from '@/components/ds/Pennant';
 import Scoreboard from '@/components/ds/Scoreboard';
 import type { Member } from '@/components/ds/TeamSheet';
@@ -11,7 +11,7 @@ import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { OPENS } from '@/lib/site';
+import { OPENS, PLAY_USD, buyOpenAt } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -62,7 +62,8 @@ export default async function ClubPage({ params, searchParams }: Params) {
   const { page, now } = res;
   const { club, matchday: md, viewer: me } = page;
   const crest = crestOf(club);
-  const preLaunch = now < LAUNCH_AT;
+  const openAt = buyOpenAt();
+  void now;
   const isStock = club.kind === 'stock';
   const lineup = new Map((md?.lineup ?? []).map((l) => [l.who, l]));
   const canCall = new Set(me?.canCallUp ?? []);
@@ -91,7 +92,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
       : !md
         ? `Call-ups open with the first gameweek on ${OPENS}.`
         : !me.playedThisGw
-          ? 'Play this gameweek (buy $10 or more) to call up a teammate.'
+          ? `Play this gameweek (buy $${PLAY_USD} or more) to call up a teammate.`
           : canCall.size === 0 && benched > 0
             ? 'You have called up everyone you can this gameweek.'
             : undefined;
@@ -109,7 +110,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
             </p>
           </div>
         </div>
-        {sp.joined === '1' && me?.member && <p className="notice notice-ok" role="status">You have a seat on the Bench at {club.name}. Buy $10 or more in a gameweek to play it.</p>}
+        {sp.joined === '1' && me?.member && <p className="notice notice-ok" role="status">You have a seat on the Bench at {club.name}. Buy ${PLAY_USD} or more in a gameweek to play it.</p>}
         {sp.callup && !me?.playedThisGw && <p className="notice" role="status">You have been called up. {club.name} needs you playing this week for the 80% bonus.</p>}
       </section>
 
@@ -157,17 +158,14 @@ export default async function ClubPage({ params, searchParams }: Params) {
               ) : (
                 <p className="notice">This club is joined with an invite link from one of its members.</p>
               )
-            ) : preLaunch ? (
-              <p className="notice"><b>Buying opens {OPENS}.</b> Your seat is saved. Invite the group chat while you wait.</p>
             ) : (
-              <span className="clubs-only"><BuyButton clubId={club.id} token={club.stockToken} us={region.us} askUs={region.unknown} label={me.playedThisGw ? 'Buy again' : 'Buy and play this week'} /></span>
+              <BuyCta clubId={club.id} token={club.stockToken} symbol={club.stockSymbol ?? undefined} openAt={openAt} label={me.playedThisGw ? 'Buy again' : 'Buy and play this week'} compact />
             )}
-            {me?.member && !preLaunch && <p className="us-only notice"><b>Not available to US persons.</b> Buying is not offered in the United States.</p>}
-            {me?.member && <p className="muted small">Stock tokens track the share price. Buys here don’t earn third-party cashback.</p>}
+            {me?.member && <p className="muted small">Buys here don’t earn third-party cashback.</p>}
           </div>
         </div>
 
-        <div className="club-sheet">
+        <div className="club-sheet" id="team">
           <h2 className="h3">Team sheet{md ? `, ${md.gw.id.replace('GW', 'gameweek ')}` : ''}</h2>
           <Roster
             clubId={club.id}
@@ -183,7 +181,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
       </section>
 
       {me?.invite && (
-        <section className="band">
+        <section className="band" id="invite">
           <div className="wrap split">
             <div className="split-text">
               <h2>Invite the group chat</h2>
@@ -201,18 +199,18 @@ export default async function ClubPage({ params, searchParams }: Params) {
         <ul className="limits">
           {isStock ? (
             <>
-              <li><h3>Open to every supporter</h3><p>Anyone can take a seat. You play a gameweek by buying $10 or more of {club.stockSymbol} through Tropa Club.</p></li>
+              <li><h3>Open to every supporter</h3><p>Anyone can take a seat. You play a gameweek by buying ${PLAY_USD} or more of {club.stockSymbol} through Tropa Club.</p></li>
               <li><h3>Ranked on turnout</h3><p>Stock clubs sit in the Supporters table: share of members who played, then share on a payday streak. Returns play no part.</p></li>
               <li><h3>Same club, same ground</h3><p>This is the club whose seats you can walk in The Ground. <Link href={groundPath(club.stockSymbol ?? '')}>See the ground</Link></p></li>
             </>
           ) : (
             <>
-              <li><h3>Played or Bench</h3><p>Buy $10 or more of any stock token in the gameweek and you played it. Everyone else is on the Bench for that week.</p></li>
+              <li><h3>Played or Bench</h3><p>Buy ${PLAY_USD} or more of any stock token in the gameweek and you played it. Everyone else is on the Bench for that week.</p></li>
               <li><h3>The 80% bonus</h3><p>When four in five members play, the club earns a bonus point. One call-up per teammate each week helps get there.</p></li>
               <li><h3>Fixtures</h3><p>From gameweek 1, clubs of three or more are drawn against clubs their size. The higher median return among playing members takes three points.</p></li>
             </>
           )}
-          <li><h3>Payday streaks</h3><p>One buy of $10 or more in any 14 days keeps a personal streak alive, with one free skip a month.</p></li>
+          <li><h3>Payday streaks</h3><p>One buy of ${PLAY_USD} or more in any 14 days keeps a personal streak alive, with one free skip a month.</p></li>
           <li><h3>Status, not prizes</h3><p>Scores are bragging rights. Nothing of value is ever handed out for a return.</p></li>
           <li><h3>Your records</h3><p>Every member can print their own cost-basis statement. {viewer ? <Link href={`/statement/${viewer}`}>Open yours</Link> : 'Connect a wallet to open yours.'}</p></li>
         </ul>

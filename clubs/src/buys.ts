@@ -7,7 +7,7 @@
  *   5. a stock token Transfer to the wallet in the receipt (token + raw amount),
  *   6. USD in: net USDC out of the wallet, else WETH x ETH/USD, else tx ETH value x ETH/USD, else mark x qty,
  *   7. wash rule (buy -> sell -> buy of the same token within 24 h scores 0, both buys).
- * A qualifying buy (attributed, >= $10, not wash, wallet not excluded) promotes the seat to playing.
+ * A qualifying buy (attributed, >= $5, not wash, wallet not excluded) promotes the seat to playing.
  * A nightly/hourly sweep (sweepTransfers) catches missed attributed buys and records member outflows.
  */
 import { ensureWallet, memberId, walletClubs } from './clubs';
@@ -66,6 +66,8 @@ export async function recordBuy(
     /** From countryFromHeaders(req.headers); never stored against the wallet. */
     country?: string | null;
     selfCertifiedUsPerson?: boolean;
+    /** The buyer ticked "I am not a US person" before this buy. Stored on the buy record. */
+    certifiedNotUsPerson?: boolean;
     source?: 'client' | 'sweep';
   },
 ): Promise<RecordBuyResult> {
@@ -74,17 +76,18 @@ export async function recordBuy(
   const wallet = normAddr(input.wallet);
   const source = input.source ?? 'client';
 
-  if (source === 'client') {
-    const gate = buyGate(ctx.geo, input.country ?? null, { selfCertifiedUsPerson: input.selfCertifiedUsPerson });
-    await logGeoDecision(ctx, { country: gate.country, decision: gate.allowed ? 'allow' : 'block', reason: gate.reason, surface: 'record_buy' });
-    if (!gate.allowed) return reject(ctx, txHash, wallet, 'region_blocked', null, false);
-    if (!input.clubId || !(await ctx.store.get<MemberDoc>(COL.members, memberId(input.clubId, wallet))))
-      return reject(ctx, txHash, wallet, 'not_member', null, false);
-  }
+  // Everything is checked before anything is written: a made-up hash or a blocked region leaves no trace.
+  const gate = source === 'client' ? buyGate(ctx.geo, input.country ?? null, { selfCertifiedUsPerson: input.selfCertifiedUsPerson }) : null;
+  if (gate && !gate.allowed) return reject(ctx, txHash, wallet, 'region_blocked', null, false);
+  // A club is optional: a buy with no club still counts for the wallet. A named club must be one the wallet is in.
+  if (source === 'client' && input.clubId && !(await ctx.store.get<MemberDoc>(COL.members, memberId(input.clubId, wallet))))
+    return reject(ctx, txHash, wallet, 'not_member', null, false);
   if (await ctx.store.get<BuyDoc>(COL.buys, txHash)) return reject(ctx, txHash, wallet, 'duplicate', true, false);
 
   const receipt = await chain.getReceipt(txHash);
   if (!receipt) return reject(ctx, txHash, wallet, 'not_found', null, false);
+  // first write: only for a transaction that exists on Base
+  if (gate) await logGeoDecision(ctx, { country: gate.country, decision: 'allow', reason: gate.reason, surface: 'record_buy' });
   if (!receiptOk(receipt)) return reject(ctx, txHash, wallet, 'reverted', null);
 
   const attribution = await chain.verifyAttribution(txHash);
@@ -177,6 +180,7 @@ export async function recordBuy(
     recordedAt: ctx.now(),
     source,
     notes,
+    ...(input.certifiedNotUsPerson === undefined ? {} : { notUsCertified: input.certifiedNotUsPerson }),
   };
   try {
     await ctx.store.create(COL.buys, txHash, buy);
@@ -188,10 +192,8 @@ export async function recordBuy(
     const t = transfers.find((x) => x.logIndex === li)!;
     await upsertTransfer(ctx, { wallet, token: leg.token, dir: 'in', raw: t.value, blockNumber: Number(blockNumber), blockTime, txHash, logIndex: li, counterparty: t.from, tropa: true });
   }
-  if (priceAtBuy != null) {
-    const mark: MarkDoc = { id: `${leg.token}_${blockTime}`, token: leg.token, t: blockTime, usd: priceAtBuy, source: 'buy' };
-    await ctx.store.set(COL.marks, mark.id, mark);
-  }
+  // A buy's own fill price is never stored as a shared mark: anyone can craft a transaction with an
+  // absurd price. Marks come from the close captures and the Chainlink feeds only.
   // Earlier buys caught by this one's wash pattern lose their score too.
   for (const h of washSet) if (h !== txHash) await ctx.store.update(COL.buys, h, { wash: true, qualifies: false });
 
