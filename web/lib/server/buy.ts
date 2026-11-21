@@ -117,6 +117,8 @@ export interface QuoteHold {
   /** One plain sentence. */
   message: string;
   retry: boolean;
+  /** The wallet does not hold enough of what it pays with: the sheet shows how to add funds. */
+  needsFunds?: Pay;
 }
 
 const hold = (message: string, retry = true): QuoteHold => ({ ok: false, message, retry });
@@ -159,7 +161,7 @@ async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: strin
   const balance = p.pay === 'USDC' ? await client.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [taker] }) : await client.getBalance({ address: taker });
   if (balance < sellAmount) {
     const have = p.pay === 'USDC' ? `${Number(formatUnits(balance, 6)).toFixed(2)} USDC` : `${Number(formatUnits(balance, 18)).toFixed(5)} ETH`;
-    return hold(`This wallet holds ${have} on Base, which is less than the $${p.usd} this buy needs${p.pay === 'ETH' ? ' plus network fees' : ''}.`, false);
+    return { ...hold(`This wallet holds ${have} on Base, which is less than the $${p.usd} this buy needs${p.pay === 'ETH' ? ' plus network fees' : ''}.`, false), needsFunds: p.pay };
   }
 
   const quote = await getQuote({ sellToken: p.pay, buyToken: token, sellAmount, taker });

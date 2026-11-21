@@ -7,7 +7,7 @@ import GroundStage from '@/components/GroundStage';
 import GateReport from '@/components/GateReport';
 import FrontRow from '@/components/FrontRow';
 import { Pennant } from '@/components/ds/Pennant';
-import { getToken } from '@/lib/server/data';
+import { dataBaseUrl, getToken } from '@/lib/server/data';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { buildLayout } from '@/lib/stadium';
@@ -40,6 +40,7 @@ export default async function GroundPage({ params }: Params) {
   const pos = data.tokens.findIndex((t) => t.symbol === token.symbol) + 1;
   const L = buildLayout(token.holdersTotal);
   const priced = token.priceUsd != null;
+  const seatsBase = index.source === 'live' ? dataBaseUrl : null;
   const others = data.tokens.filter((t) => t.symbol !== token.symbol && t.realFans > 0).slice(0, 11);
   const clubs = data.tokens.map(({ symbol: s, name, holdersTotal, realFans, ghosts, attendancePct }) => ({ symbol: s, name, holdersTotal, realFans, ghosts, attendancePct }));
 
@@ -64,14 +65,16 @@ export default async function GroundPage({ params }: Params) {
         </section>
 
         <section className="wrap section-tight" aria-label={`Seating plan of ${club}`}>
-          <GroundStage mode="ground" clubs={clubs} initial={token.symbol} />
+          {/* the seat list starts downloading with the page, straight from the public file */}
+          {seatsBase && <link rel="preload" as="fetch" crossOrigin="anonymous" href={`${seatsBase}/tokens/${encodeURIComponent(token.symbol)}.json`} />}
+          <GroundStage mode="ground" clubs={clubs} initial={token.symbol} seatsBase={seatsBase} />
         </section>
 
         {priced && (
           <section className="wrap section-tight take-seat" aria-label="Take a seat">
             <div>
-              <h2 className="h3">Take seat {fmtInt(token.realFans + 1)} at {club}</h2>
-              <p>A seat needs $10 or more of {token.symbol} held in your own wallet. Buy it here and you also play this gameweek. No club needed.</p>
+              <h2 className="h3">Take a seat at {club} for $10</h2>
+              <p>About seat {fmtInt(token.realFans + 1)} at the next count: seats are recounted every 6 hours and ranked by time held. A seat needs $10 or more of {token.symbol} in your own wallet. No club needed.</p>
             </div>
             <BuyCta token={token.address} symbol={token.symbol} openAt={buyOpenAt()} standalone />
           </section>
@@ -104,7 +107,7 @@ export default async function GroundPage({ params }: Params) {
               <p>The ten fans who have held {token.symbol} longest without selling out. Rank one sits pitchside on the halfway line. How much they hold plays no part.</p>
               <p className="muted small">Addresses are public blockchain records. Tap one to see its ticket.</p>
             </div>
-            <FrontRow symbol={token.symbol} club={club} total={token.holdersTotal} realFans={token.realFans} />
+            <FrontRow symbol={token.symbol} club={club} total={token.holdersTotal} realFans={token.realFans} seatsBase={seatsBase} />
           </div>
         </section>
 

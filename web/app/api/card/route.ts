@@ -1,6 +1,7 @@
 import { fail, ok, rateLimited, readJson } from '@/lib/server/api';
 import { getIndex, getWallet } from '@/lib/server/data';
 import { ensureCard } from '@/lib/server/cardmake';
+import { playedStamps } from '@/lib/server/clubs';
 import { isAddress } from '@/lib/format';
 
 export const runtime = 'nodejs';
@@ -22,7 +23,8 @@ export async function POST(req: Request) {
   if (!token || !entry || entry.rank == null) return fail(404, 'This wallet has no real-fan seat at that club');
 
   try {
-    const input = { address, entry, token, asOf: index.asOf };
+    const played = await playedStamps(address);
+    const input = { address, entry, token, asOf: index.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge };
     const [landscape, portrait] = await Promise.all([ensureCard(input, 'landscape'), ensureCard(input, 'portrait')]);
     return ok({ landscape, portrait });
   } catch (e) {

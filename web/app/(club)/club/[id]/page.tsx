@@ -11,7 +11,7 @@ import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { OPENS, PLAY_USD, buyOpenAt } from '@/lib/site';
+import { OPENS, PLAY_USD, RULE_LINE, buyOpenAt } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -110,7 +110,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
             </p>
           </div>
         </div>
-        {sp.joined === '1' && me?.member && <p className="notice notice-ok" role="status">You have a seat on the Bench at {club.name}. Buy ${PLAY_USD} or more in a gameweek to play it.</p>}
+        {sp.joined === '1' && me?.member && <p className="notice notice-ok" role="status">You have a seat on the Bench at {club.name}. {RULE_LINE}</p>}
         {sp.callup && !me?.playedThisGw && <p className="notice" role="status">You have been called up. {club.name} needs you playing this week for the 80% bonus.</p>}
       </section>
 
@@ -199,13 +199,13 @@ export default async function ClubPage({ params, searchParams }: Params) {
         <ul className="limits">
           {isStock ? (
             <>
-              <li><h3>Open to every supporter</h3><p>Anyone can take a seat. You play a gameweek by buying ${PLAY_USD} or more of {club.stockSymbol} through Tropa Club.</p></li>
+              <li><h3>Open to every supporter</h3><p>Anyone can take a seat. {RULE_LINE} Here, the buy has to be {club.stockSymbol}.</p></li>
               <li><h3>Ranked on turnout</h3><p>Stock clubs sit in the Supporters table: share of members who played, then share on a payday streak. Returns play no part.</p></li>
               <li><h3>Same club, same ground</h3><p>This is the club whose seats you can walk in The Ground. <Link href={groundPath(club.stockSymbol ?? '')}>See the ground</Link></p></li>
             </>
           ) : (
             <>
-              <li><h3>Played or Bench</h3><p>Buy ${PLAY_USD} or more of any stock token in the gameweek and you played it. Everyone else is on the Bench for that week.</p></li>
+              <li><h3>Played or Bench</h3><p>{RULE_LINE} Any stock token counts. Everyone else is on the Bench for that week.</p></li>
               <li><h3>The 80% bonus</h3><p>When four in five members play, the club earns a bonus point. One call-up per teammate each week helps get there.</p></li>
               <li><h3>Fixtures</h3><p>From gameweek 1, clubs of three or more are drawn against clubs their size. The higher median return among playing members takes three points.</p></li>
             </>

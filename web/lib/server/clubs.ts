@@ -81,6 +81,24 @@ export function crestOf(club: { crestSeed?: string | null; kind?: string; stockS
   return crestFromSeed(club.crestSeed || 'tropa');
 }
 
+/**
+ * What a wallet has earned by buying through Tropa Club: for each token, the latest gameweek it
+ * played with that token ("Played GW0"), and its payday streak badge. Empty if the clubhouse is slow.
+ */
+export async function playedStamps(wallet: string, ms = 2500): Promise<{ byToken: Map<string, string>; badge: string | null }> {
+  const none = { byToken: new Map<string, string>(), badge: null as string | null };
+  const r = await tryClubs(async (svc) => {
+    const w = wallet.toLowerCase();
+    const buys = (await svc.ctx.store.query<BuyDoc>(COL.buys, { where: [['wallet', '==', w]] })).filter((b) => b.qualifies && b.attributed && !b.wash && !b.excluded && b.gw);
+    if (!buys.length) return none;
+    const byToken = new Map<string, string>();
+    for (const b of buys.sort((x, y) => x.blockTime - y.blockTime)) byToken.set(b.token.toLowerCase(), `Played ${b.gw}`);
+    const streak = await svc.getStreak(w).catch(() => null);
+    return { byToken, badge: streak?.badge?.replace(' · ', ', ') ?? null };
+  }, ms);
+  return r ?? none;
+}
+
 /** Run a clubs call for a page: a failure becomes null so the page can show a calm state. */
 export async function tryClubs<T>(run: (svc: ClubsService) => Promise<T>, ms = 20_000): Promise<T | null> {
   try {
@@ -178,6 +196,9 @@ async function demo(): Promise<ClubsService> {
     await refreshSeats(svc.ctx, wallet);
   }
   clock = DEMO_NOW;
+  // CLUBS_DEMO_BUYER=0x…: local preview of the "Played GW0" stamp on a real wallet's ticket
+  const buyer = process.env.CLUBS_DEMO_BUYER?.toLowerCase();
+  if (buyer && /^0x[0-9a-f]{40}$/.test(buyer)) await buy(buyer, 0, 10, tue + 120, null);
   await svc.refreshMatchday(DEMO_NOW).catch((e) => console.warn('[clubs] sample matchday not computed:', (e as Error).message));
   return svc;
 }

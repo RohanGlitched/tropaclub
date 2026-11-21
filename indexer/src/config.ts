@@ -20,6 +20,17 @@ export const START_BLOCK = 49_860_000;
 export const HEAD_LAG_BLOCKS = 150;
 
 export const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+// ERC-8056 / B20 corporate-action events, fetched in the same eth_getLogs pass (topic0 OR-list).
+export const UIM_UPDATED_TOPIC = '0x2205df4534432b2f60654a3fdb48737ffdaf3e9edb1a498bd985bc026b15b055'; // UIMultiplierUpdated(uint256,uint256,uint256)
+export const UIM_CANCELLED_TOPIC = '0x883856335ba5f60c18b9817c4505d3c7d3f6223dcf39516b30c508c46a5e1cad'; // UIMultiplierUpdateCancelled(uint256,uint256)
+export const ANNOUNCEMENT_TOPIC = '0xccebf8218a62875909564adef86a6f4df81503cb617221e793357d62f8e813f7'; // Announcement(address indexed,string,string,string)
+export const END_ANNOUNCEMENT_TOPIC = '0x96d64dafe2c790596430196b982ad1da3221cb3b0f4e6e2df77f2e4f71a90037'; // EndAnnouncement(string)
+export const CORP_TOPICS = [UIM_UPDATED_TOPIC, UIM_CANCELLED_TOPIC, ANNOUNCEMENT_TOPIC, END_ANNOUNCEMENT_TOPIC];
+// Wallet history: addresses with more stored transfers than this are bots; their history is dropped.
+export const HIST_CAP = 1000;
+// Published history: wallets holding >= $1 of any token, plus every real fan.
+export const HIST_MIN_USD = 1;
+export const HIST_SHARD_SPLIT_BYTES = 2_000_000; // gzipped
 export const ZERO = '0x0000000000000000000000000000000000000000';
 export const UNI_V4_POOL_MANAGER = '0x498581ff718922c3f8e6a244956af099b2652b2b';
 

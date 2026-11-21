@@ -1197,3 +1197,109 @@ abbr.ref {
 .buy-check input {
   accent-color: var(--marigold);
 }
+
+/* round 2 */
+.ticket-stamp {
+  position: absolute;
+  right: 18px;
+  top: 96px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 14px 7px;
+  border: 3px solid var(--pitch);
+  border-radius: 5px;
+  color: var(--pitch);
+  transform: rotate(-6deg);
+  background: transparent;
+  pointer-events: none;
+}
+.ticket-main {
+  position: relative;
+}
+.ticket-stamp b {
+  font: 700 1.125rem/1 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ticket-stamp small {
+  font: 600 0.6875rem/1.2 var(--display);
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  /* on a phone the stamp sits in the flow, under the seat numbers, so it never covers text */
+  .ticket-stamp {
+    position: static;
+    justify-self: start;
+    width: max-content;
+    transform: rotate(-3deg);
+    padding: 6px 10px 5px;
+    margin: 2px 0 2px 4px;
+  }
+  .ticket-stamp b {
+    font-size: 0.9375rem;
+  }
+}
+.ticket-fan .about {
+  font-size: 0.45em;
+  font-weight: 600;
+  opacity: 0.72;
+}
+.convert-seat {
+  font: 600 1.125rem/1.4 var(--display);
+  max-width: 48ch;
+}
+.buy-facts-up {
+  display: grid;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  max-width: 50ch;
+}
+.buy-facts-up li {
+  padding-left: 14px;
+  position: relative;
+}
+.buy-facts-up li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  background: var(--marigold);
+}
+.buy-facts-up b {
+  color: var(--ink);
+}
+.buy-funds {
+  display: grid;
+  gap: 8px;
+  border-top: 2px solid var(--ink);
+  padding-top: 10px;
+  font-size: 0.9375rem;
+}
+.buy-funds h3 {
+  font-size: 1.125rem;
+}
+.buy-funds ol {
+  list-style: decimal;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+.buy-addr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--field);
+  border: 1.5px dashed var(--line-2);
+}
+.buy-addr .num {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  flex: 1 1 200px;
+}

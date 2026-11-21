@@ -11,7 +11,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { getExamples, getIndex, getStats } from '@/lib/server/data';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
-import { OPENS } from '@/lib/site';
+import { OPENS, RULE_LINE } from '@/lib/site';
 
 export const revalidate = 300;
 
@@ -61,7 +61,7 @@ export default async function Home() {
               <p>
                 An explorer counts every wallet with a balance above zero: {fmtInt(top.holdersTotal)} for {top.symbol}. Most of the difference is leftovers worth cents, giveaway recipients and contracts. Counting the fans apart gives an attendance of <strong className="num">{fmtPct(top.attendancePct)}</strong>, and a number that can grow for the right reason.
               </p>
-              <p><Link href="/about#method">How each kind is told apart</Link></p>
+              <p><Link className="tap" href="/about#method">How each kind is told apart</Link></p>
             </div>
             <GateReport token={top} />
           </div>
@@ -112,7 +112,7 @@ export default async function Home() {
               <li>
                 <div className="step-art" aria-hidden="true"><span className="tenner"><b>$10</b><small>a week</small></span></div>
                 <h3>Put in $10 a week</h3>
-                <p>Each member buys from their own wallet. $5 or more in a gameweek and you play it. Tropa Club never holds the money and takes no fee.</p>
+                <p>Each member buys from their own wallet. {RULE_LINE} Tropa Club never holds the money and takes no fee.</p>
               </li>
               <li>
                 <div className="step-art" aria-hidden="true">

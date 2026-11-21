@@ -21,12 +21,14 @@ interface Props {
   examples?: string[];
   /** Hero only: the paragraph under the headline. */
   lede?: ReactNode;
+  /** Live data: where the seat files are (the public bucket). */
+  seatsBase?: string | null;
 }
 
 type Focus = { index: number; address?: string; mine: boolean; rank?: number | null; of?: number; kind?: string };
 type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: string; links?: { href: string; label: string }[] };
 
-export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede }: Props) {
+export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, seatsBase }: Props) {
   const [symbol, setSymbol] = useState(initial);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [emphasis, setEmphasis] = useState<Emphasis>('all');
@@ -41,7 +43,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
 
   const club = useMemo(() => clubs.find((c) => c.symbol === symbol) ?? clubs[0], [clubs, symbol]);
   const kit = useMemo(() => kitFor(club.symbol), [club.symbol]);
-  const seats = useSeats(club.symbol, mode === 'ground');
+  const seats = useSeats(club.symbol, mode === 'ground', seatsBase);
   const tabClubs = useMemo(() => (tabs ?? []).map((s) => clubs.find((c) => c.symbol === s)).filter((c): c is Club => !!c), [tabs, clubs]);
 
   // fly after the club (and its layout) has switched
@@ -319,7 +321,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           ))}
         </div>
         <p className="explore-hint">
-          {seats.status === 'loading' ? 'Loading the seat list…' : seats.status === 'missing' ? 'The seat-by-seat list is not out yet. The plan is drawn from the club totals.' : 'Tap a seat to see who sits there. Pinch or double-tap to zoom, drag to move.'}
+          {seats.status === 'missing' ? 'The seat-by-seat list is not out yet. The plan is drawn from the club totals.' : 'Tap a seat to see who sits there. Pinch or double-tap to zoom, drag to move.'}
         </p>
       </div>
       {stage}

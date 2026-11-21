@@ -75,7 +75,7 @@ export default async function AboutPage() {
             <div className="clubs-only">
               <h2 id="clubs">Clubs, from {OPENS}</h2>
               <p>
-                A club is a group of friends who each put $10 a week into stock tokens from their own wallets. A member who buys $5 or more in a gameweek has played that Matchday. Members who have not are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs sit in a separate Supporters table that ignores returns and ranks on turnout and streaks.
+                A club is a group of friends who each put $10 a week into stock tokens from their own wallets. $10 a week is the habit; $5 or more in a gameweek counts as played. Members who have not are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs sit in a separate Supporters table that ignores returns and ranks on turnout and streaks.
               </p>
               <p>Tropa Club holds no funds, takes no fee, and has no contract of its own in the path of your money.</p>
             </div>

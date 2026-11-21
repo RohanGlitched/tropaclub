@@ -5,6 +5,8 @@ import { DATA_DIR, OUT_DIR, START_BLOCK, HEAD_LAG_BLOCKS, PUBLIC_PREFIX, CACHE_C
 import { loadApiTokens, loadPairs, poolSet, dexPrices, referencePrices, loadDailyPrices, yahooDaily, type ApiToken } from './tokens.ts';
 import { loadState, saveLocal, mirrorState, readStateFile, type State } from './state.ts';
 import { fetchWindow, fetchStats, type Log } from './fetcher.ts';
+import type { CorpLog } from './state.ts';
+import { buildHistory, writeHistory, buildCorporateActions, historyWallets, historyCounterparties } from './history.ts';
 import { applyLogs, compactBuckets, type ReplayCtx } from './replay.ts';
 import { batch, headBlock, rpcStats } from './rpc.ts';
 import { ensureCodes } from './codes.ts';
@@ -51,16 +53,17 @@ async function replayRange(s: State, addrs: string[], tokenIdx: Map<string, numb
   const start = (a: number) => {
     const b = Math.min(to, a + clamp(Math.round(TARGET_WINDOW_LOGS / Math.max(density, 0.005)), 2_000, 400_000) - 1);
     const unit = clamp(Math.round(TARGET_UNIT_LOGS / Math.max(density, 0.005)), 200, 50_000);
-    return Promise.all([fetchWindow(addrs, tokenIdx, a, b, unit), ensureGrid(s, a, b)]).then(([logs]) => ({ a, b, logs }));
+    return Promise.all([fetchWindow(addrs, tokenIdx, a, b, unit), ensureGrid(s, a, b)]).then(([r]) => ({ a, b, logs: r.logs, corp: r.corp }));
   };
-  let pending: Promise<{ a: number; b: number; logs: Log[] }> | null = start(from);
+  let pending: Promise<{ a: number; b: number; logs: Log[]; corp: CorpLog[] }> | null = start(from);
   let negTotal = 0;
   while (pending) {
-    const { a, b, logs }: { a: number; b: number; logs: Log[] } = await pending;
+    const { a, b, logs, corp }: { a: number; b: number; logs: Log[]; corp: CorpLog[] } = await pending;
     density = 0.5 * density + 0.5 * (logs.length / (b - a + 1));
     pending = b < to ? start(b + 1) : null; // prefetch next window while applying this one
     const ts = makeTs(s);
     const { negatives } = applyLogs(s, logs, { ...ctxBase, ts });
+    if (corp.length) s.corp.push(...corp);
     negTotal += negatives;
     if (label === 'main') { s.cursor = b; s.cursorTs = ts(b); }
     console.log(`[${el()}] ${label} ${a}-${b} (${new Date(ts(b) * 1000).toISOString().slice(0, 16)}) logs ${logs.length} total ${s.transfers} req ${fetchStats.requests} splits ${fetchStats.splits} retries ${fetchStats.retries}${negatives ? ' NEG ' + negatives : ''}`);
@@ -70,7 +73,7 @@ async function replayRange(s: State, addrs: string[], tokenIdx: Map<string, numb
       const sz = saveLocal(s);
       console.log(`[${el()}] checkpoint saved (${(sz / 1e6).toFixed(1)} MB) at ${s.cursor}`);
       lastSave = Date.now();
-      if (Date.now() - lastMirror > 30 * 60_000 && process.env.SKIP_UPLOAD !== '1') { await mirrorState(); lastMirror = Date.now(); }
+      if (Date.now() - lastMirror > 30 * 60_000 && process.env.SKIP_UPLOAD !== '1' && process.env.SKIP_MIRROR !== '1' && from !== START_BLOCK) { await mirrorState(); lastMirror = Date.now(); }
     }
   }
   if (negTotal) console.warn(`${label}: ${negTotal} transient negative balance events`);
@@ -107,6 +110,7 @@ async function main() {
   const labels = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'labels.json'), 'utf8'));
   const distributors = new Set<string>(labels.distributors.map((a: string) => a.toLowerCase()));
   const smartHashes = new Set<string>(labels.smart_wallet_code_hashes);
+  const routers = new Set<string>((labels.routers || []).map((a: string) => a.toLowerCase()));
 
   const s = await loadState();
   if (!s.cursor && process.env.CLOUD_RUN_JOB && process.env.ALLOW_FRESH !== '1') {
@@ -116,7 +120,9 @@ async function main() {
     // reuse wallet code kinds + GeckoTerminal daily prices from an earlier state (saves ~20 min of RPC/API calls)
     const seed = readStateFile(process.env.SEED_STATE);
     s.codes = seed.codes;
-    for (const [a, m] of Object.entries(seed.dailyPx)) if (!seed.yahooFilled?.includes(a)) s.dailyPx[a] = m;
+    s.dailyPx = seed.dailyPx;
+    s.yahooFilled = seed.yahooFilled || [];
+    s.pools = seed.pools; // keep every pool ever seen so swap classification matches earlier runs
     console.log(`seeded ${s.codes.size} code kinds and ${Object.keys(s.dailyPx).length} daily price series from ${process.env.SEED_STATE}`);
   }
   const api = await loadApiTokens();
@@ -171,7 +177,7 @@ async function main() {
     console.log(`[${el()}] Yahoo daily closes filled ${filled} token-days for ${yd.size}/${needY.length} tokens`);
   }
   const ctxBase: Omit<ReplayCtx, 'ts'> = {
-    pools, distributors,
+    pools, distributors, routers,
     priceAt: (t, day) => {
       const a = s.tokens[t].address;
       const v = s.dailyPx[a]?.[day];
@@ -210,13 +216,37 @@ async function main() {
   }
   console.log(`[${el()}] all checks passed`);
 
+  // ---- wallet history + corporate actions ----
+  const tsOf = makeTs(s);
+  const hw = historyWallets(s, out, pools, new Set([...routers, ...distributors]));
+  const nCp = await ensureCodes(s, historyCounterparties(s, hw), smartHashes, s.cursor);
+  // every published wallet's history must sum to its replayed balance, token by token
+  let histBad = 0;
+  for (const a of hw) {
+    if (s.histHeavy.has(a)) continue;
+    const net = new Map<number, number>();
+    for (const e of s.hist.get(a) || []) { const p = e.split(','); net.set(+p[2], (net.get(+p[2]) || 0) + Number(p[3])); }
+    s.tokens.forEach((_, t) => { const bal = s.pairs[t].get(a)?.bal || 0; if ((net.get(t) || 0) !== bal) { histBad++; if (histBad <= 5) console.error(`history mismatch ${a} ${s.tokens[t].symbol}: ${net.get(t) || 0} != ${bal}`); } });
+  }
+  if (histBad) throw new Error(`${histBad} wallet-token histories do not sum to the balance; nothing published`);
+  const hb = buildHistory(s, hw, prices, tsOf, s.cursorTs);
+  const corpFile = buildCorporateActions(s, meta, tsOf, out.index.asOf, s.cursor);
   const files = writeOutputs(out);
+  const hres = writeHistory(s, OUT_DIR, hb.files);
+  const corpLocal = path.join(OUT_DIR, 'corporate-actions.json');
+  fs.writeFileSync(corpLocal, JSON.stringify(corpFile));
+  const nMult = corpFile.tokens.reduce((x, t) => x + t.multiplierEvents.length, 0), nAnn = corpFile.tokens.reduce((x, t) => x + t.announcements.length, 0);
+  console.log(`[${el()}] history: ${hb.wallets} wallets (${hb.tooActive} too active), ${hb.entries} entries, ${hb.files.size} files, ${(hres.totalBytes / 1e6).toFixed(1)} MB raw / ${(hres.totalGz / 1e6).toFixed(1)} MB gz (max shard ${(hres.maxGz / 1e3).toFixed(0)} KB gz), ${hres.changed.length} changed; ${nCp} new counterparty codes; balances reconcile`);
+  console.log(`[${el()}] corporate actions: ${nMult} multiplier events, ${nAnn} announcements`);
   if (process.env.SKIP_UPLOAD === '1') { console.log('SKIP_UPLOAD=1: not uploading'); return; }
   const opts = { cacheControl: CACHE_CONTROL, contentType: 'application/json', gzip: true };
   await uploadMany(files.tokens, opts);
   await uploadMany(files.wallets, opts);
+  await uploadMany(hres.changed, opts);
+  await uploadMany([[corpLocal, PUBLIC_PREFIX + 'corporate-actions.json']], opts);
   await uploadMany(files.top, opts); // index + stats last, so they never point at missing files
-  console.log(`[${el()}] uploaded ${files.tokens.length + files.wallets.length + files.top.length} files to gs://.../${PUBLIC_PREFIX}`);
+  console.log(`[${el()}] uploaded ${files.tokens.length + files.wallets.length + hres.changed.length + 1 + files.top.length} files to gs://.../${PUBLIC_PREFIX}`);
+  saveLocal(s); // persists published-shard hashes + counterparty codes
   if (process.env.SKIP_MIRROR === '1') { console.log('SKIP_MIRROR=1: state not mirrored'); return; }
   await mirrorState();
   console.log(`[${el()}] state mirrored; done`);

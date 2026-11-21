@@ -36,7 +36,7 @@ export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLa
       <section aria-label={playingLabel}>
         <h4>{playingLabel} <span className="num">{playing.length}</span></h4>
         {playing.length === 0 ? (
-          <p className="sheet-empty">Nobody has played yet this gameweek. The first buy of $5 or more puts a name here.</p>
+          <p className="sheet-empty">Nobody has played yet this gameweek. $5 or more in a gameweek counts as played, and puts a name here.</p>
         ) : (
           <ol>
             {playing.map((m, i) => (

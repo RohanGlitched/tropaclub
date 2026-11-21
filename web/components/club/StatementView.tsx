@@ -10,19 +10,20 @@ import { fmtDate, fmtUsd } from '@/lib/format';
 const LINE: Record<string, string> = {
   buy: 'Buy', transfer_in: 'Received', mint: 'Mint', sell: 'Sell', transfer_out: 'Sent', redeem: 'Redeem', split: 'Split', dividend: 'Stock dividend', unclassified: 'Multiplier change', pending_action: 'Pending change',
 };
+const OPENING = /^0x0{60}/;
 const ORIGIN: Record<string, string> = { buy: 'Bought', buy_estimated: 'Bought (estimated)', dividend: 'Stock dividend', transfer_in: 'Received', mint: 'Minted' };
 const money = (n: number | null | undefined) => (n == null ? '—' : fmtUsd(n));
 const plain = (n: number | null | undefined) => (n == null ? '—' : `${n < 0 ? '−' : ''}${fmtUsd(Math.abs(n))}`);
 const shares = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 6 });
 
-function Programme({ s }: { s: Statement }) {
+function Programme({ s, countedAt }: { s: Statement; countedAt?: string | null }) {
   const t = s.totals;
   return (
     <article className="programme" aria-label="Statement">
       <header className="programme-head">
         <p className="programme-brand"><Mark size={18} /> Tropa Club</p>
         <p>Official statement</p>
-        <p className="programme-no">As of {fmtDate(s.asOf, true)}</p>
+        <p className="programme-no">Prices as counted {fmtDate(countedAt ?? s.asOf, true)}</p>
       </header>
       <div className="programme-title">
         <h2>Cost basis and results</h2>
@@ -50,7 +51,7 @@ function Programme({ s }: { s: Statement }) {
                 <tr key={l.id}>
                   <td data-label="Acquired">{fmtDate(l.acquiredAt)}</td>
                   <th scope="row" data-label="Token">{l.symbol}</th>
-                  <td data-label="How">{ORIGIN[l.origin] ?? l.origin}</td>
+                  <td data-label="How">{OPENING.test(l.txHash ?? '') ? 'Held before the readable history' : ORIGIN[l.origin] ?? l.origin}</td>
                   <td className="r num" data-label="Shares">{shares(l.shares)}</td>
                   <td className="r num" data-label="Basis">{l.basisStatus === 'unknown' ? 'basis unknown' : `${money(l.basisUsd)}${l.basisStatus === 'estimated' ? ' est.' : ''}`}</td>
                   <td className="r num" data-label="Value">{money(l.marketValueUsd)}</td>
@@ -75,8 +76,8 @@ function Programme({ s }: { s: Statement }) {
                 <td data-label="Date">{fmtDate(l.t)}</td>
                 <th scope="row" data-label="Token">{l.symbol}</th>
                 <td data-label="What">
-                  {LINE[l.type] ?? l.type}
-                  {l.note && l.note.length > 10 && <small>{l.note}</small>}
+                  {OPENING.test(l.txHash ?? '') ? 'Opening balance' : LINE[l.type] ?? l.type}
+                  {OPENING.test(l.txHash ?? '') ? <small>held before the readable history: basis unknown</small> : l.note && l.note.length > 10 && <small>{l.note}</small>}
                 </td>
                 <td className="r num" data-label="Shares">{shares(l.shares)}</td>
                 <td className="r num" data-label="Cost">{l.basisStatus === 'unknown' ? 'unknown' : money(l.costUsd)}</td>
@@ -108,9 +109,12 @@ function Programme({ s }: { s: Statement }) {
 
 type State =
   | { status: 'pending'; step: string; done: number; total: number; seconds: number }
-  | { status: 'ready'; statement: Statement }
+  | { status: 'ready'; statement: Statement; countedAt?: string | null }
   | { status: 'empty' }
   | { status: 'failed' };
+
+/** How long to wait for a statement before saying its history is being prepared. */
+const SLOW_AFTER_MS = 10_000;
 
 const START: State = { status: 'pending', step: 'Looking up what this wallet holds', done: 0, total: 0, seconds: 0 };
 
@@ -119,9 +123,15 @@ export default function StatementView({ address }: { address: string }) {
   const [state, setState] = useState<State>(START);
   const [attempt, setAttempt] = useState(0);
   const started = useRef(Date.now());
+  // After ten seconds without a statement the page stops promising one "soon" and says the
+  // history is being prepared. It never prints figures it does not have.
+  const [slow, setSlow] = useState(false);
+  const slowRef = useRef(false);
 
   const retry = useCallback(() => {
     started.current = Date.now();
+    slowRef.current = false;
+    setSlow(false);
     setState(START);
     setAttempt((n) => n + 1);
   }, []);
@@ -129,6 +139,11 @@ export default function StatementView({ address }: { address: string }) {
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout>;
+    const slowTimer = setTimeout(() => {
+      if (!live) return;
+      slowRef.current = true;
+      setSlow(true);
+    }, SLOW_AFTER_MS);
     const poll = async () => {
       try {
         const res = await fetch(`/api/statement/${address}`, { cache: 'no-store', signal: AbortSignal.timeout(20000) });
@@ -136,9 +151,9 @@ export default function StatementView({ address }: { address: string }) {
         const j = (await res.json()) as State;
         if (!live) return;
         if (j.status === 'pending') {
-          if (Date.now() - started.current > 150_000) return setState({ status: 'failed' });
+          if (Date.now() - started.current > 420_000) return setState({ status: 'failed' });
           setState(j);
-          timer = setTimeout(poll, 1200);
+          timer = setTimeout(poll, slowRef.current ? 5000 : 1200);
         } else setState(j);
       } catch {
         if (live) setState({ status: 'failed' });
@@ -148,6 +163,7 @@ export default function StatementView({ address }: { address: string }) {
     return () => {
       live = false;
       clearTimeout(timer);
+      clearTimeout(slowTimer);
     };
   }, [address, attempt]);
 
@@ -155,7 +171,7 @@ export default function StatementView({ address }: { address: string }) {
     return (
       <>
         <div className="statement-actions"><CsvButton address={address} /><Link className="btn" href={`/ticket/${address}`}>Its tickets</Link></div>
-        <div className="programme-stage"><Programme s={state.statement} /></div>
+        <div className="programme-stage"><Programme s={state.statement} countedAt={state.countedAt} /></div>
       </>
     );
   }
@@ -172,19 +188,28 @@ export default function StatementView({ address }: { address: string }) {
     return (
       <div className="statement-state" role="alert">
         <h2 className="h3">The statement could not be read</h2>
-        <p>The public Base nodes did not answer in time, so there is nothing to show for this wallet right now. Nothing is lost: the records are onchain.</p>
+        <p>This wallet’s history could not be read in full from the public Base nodes, so nothing is shown rather than a wrong figure. Nothing is lost: the records are onchain.</p>
         <p><button type="button" className="btn btn-accent" onClick={retry}>Retry</button></p>
       </div>
     );
   }
   const pct = state.total > 0 ? Math.min(100, Math.round((state.done / state.total) * 100)) : null;
+  if (slow) {
+    return (
+      <div className="statement-state" role="status" aria-live="polite">
+        <h2 className="h3">History is being prepared</h2>
+        <p>This wallet’s history is still being read from Base{pct != null ? ` (${pct}% so far)` : ''}. No figures are shown until all of it is in, so nothing here can be wrong or zero by mistake. The statement opens on this page by itself when it is ready.</p>
+        <p><button type="button" className="btn btn-accent" onClick={retry}>Retry</button></p>
+      </div>
+    );
+  }
   return (
     <div className="statement-state" role="status" aria-live="polite">
       <h2 className="h3">{state.step}…</h2>
       <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} aria-label="Reading progress">
         <span style={{ width: `${pct ?? 6}%` }} />
       </div>
-      <p className="muted small">{pct != null ? `${pct}% of the blocks since this wallet was first seen.` : 'Starting.'} The first read can take up to a minute. After that it opens at once for ten minutes.</p>
+      <p className="muted small">{pct != null ? `${pct}% of the blocks read.` : 'Starting.'} Reading a wallet for the first time can take a while. After that it opens at once.</p>
       <div className="programme-stage programme-skel" aria-hidden="true">
         <div className="programme">
           <span className="sk sk-title" />

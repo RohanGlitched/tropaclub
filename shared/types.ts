@@ -79,3 +79,94 @@ export interface StatsFile {
   tokensMinted: number;
   totalValueUsd: number;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Wallet B20 transfer history (indexer replay), for the statement page.
+// history/<first two hex chars after 0x>.json  -> WalletHistoryShard
+// If a shard would exceed ~2 MB gzipped it is split by token:
+// history/<xx>.json -> WalletHistorySplitIndex, and history/<xx>/<symbol>.json -> WalletHistoryShard
+// holding only that token's entries for the shard's wallets.
+// Published wallets: EOA / 7702 / smart wallets holding >= $1 of any stock token now, plus every real fan.
+// ---------------------------------------------------------------------------------------------
+
+export type CounterpartyKind =
+  | 'pool'        // DEX pool (DexScreener-listed pair or the Uniswap v4 PoolManager)
+  | 'router'      // labelled aggregator/router (research-scripts/labels.json)
+  | 'distributor' // labelled airdrop/"gifted stock" distributor
+  | 'wallet'      // EOA / 7702-delegated EOA / smart wallet
+  | 'contract'    // any other contract
+  | 'mint'        // from 0x0
+  | 'burn';       // to 0x0 or a burn/sink address (0x…dead)
+
+export interface HistoryEntry {
+  block: number;
+  ts: number;               // unix seconds (block time)
+  logIndex: number;         // order inside the block
+  dir: 'in' | 'out';
+  raw: string;              // raw token amount (8 decimals, NOT multiplier-adjusted), decimal string
+  counterpartyKind: CounterpartyKind;
+  counterparty?: string;    // lowercase address, only for 'wallet' and 'contract'
+  txHash: string;
+  // USD per raw whole token (raw / 1e8 x priceUsd = USD) on that UTC day: GeckoTerminal daily average of the
+  // deepest DEX pool, gaps filled with the underlying's Yahoo close x multiplier. null if unknown.
+  // It is a day mark, not the price this transfer paid (no USDC legs are indexed).
+  priceUsd: number | null;
+}
+
+export interface WalletHistoryToken {
+  symbol: string;
+  address: string;
+  entries: HistoryEntry[];  // ascending (block, logIndex)
+}
+
+export interface WalletHistory {
+  tokens: WalletHistoryToken[];
+  // true for bot-like wallets with more than 1000 indexed stock-token transfers; tokens is then empty.
+  tooActive?: boolean;
+}
+
+export type WalletHistoryShard = Record<string, WalletHistory>;
+
+export interface WalletHistorySplitIndex {
+  split: true;
+  symbols: string[];        // fetch history/<xx>/<symbol>.json for each and merge per wallet
+}
+
+// corporate-actions.json: ERC-8056 multiplier changes and Announcement brackets per token, from the replay.
+export interface MultiplierEventJson {
+  token: string;            // lowercase token address
+  kind: 'updated' | 'cancelled';
+  oldWad: string;           // 1e18 = 1.0, decimal string; '0' for 'cancelled'
+  newWad: string;           // for 'cancelled': the multiplier that was cancelled
+  effectiveAt: number;      // unix seconds (for 'cancelled': the effectiveAt that was cancelled)
+  blockNumber: number;
+  logIndex: number;
+  txHash: string;
+  ts: number;               // block time of the log
+  announcement?: string;    // description of an Announcement in the same tx, if any
+}
+
+export interface AnnouncementJson {
+  token: string;
+  kind: 'Announcement' | 'EndAnnouncement';
+  id: string;               // e.g. "<uuid>" or "<uuid>:pre"
+  description?: string;
+  uri?: string;
+  caller?: string;
+  blockNumber: number;
+  logIndex: number;
+  txHash: string;
+  ts: number;
+}
+
+export interface CorporateActionsFile {
+  asOf: string;
+  block: number;
+  tokens: {
+    symbol: string;
+    address: string;
+    multiplierNow: number;  // Coinbase API multiplier at asOf
+    multiplierEvents: MultiplierEventJson[];
+    announcements: AnnouncementJson[];
+  }[];
+}

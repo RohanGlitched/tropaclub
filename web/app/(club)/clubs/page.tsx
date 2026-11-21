@@ -8,7 +8,7 @@ import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, OPENS, PLAY_USD, buyIsOpen } from '@/lib/site';
+import { DOCS_URL, OPENS, RULE_LINE, buyIsOpen } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: $10 a week in stocks with your group chat',
@@ -72,7 +72,7 @@ export default async function ClubsPage() {
             <p>Name it and Tropa Club cuts its crest. You get an invite link for the group chat. Everyone who opens it takes a free seat on the Bench.</p>
             <ul className="ticks">
               <li>Up to 50 members. A wallet can found five clubs and sit in twelve.</li>
-              <li>A seat on the Bench needs no buy. Buy ${PLAY_USD} or more in a gameweek and you play it.</li>
+              <li>A seat on the Bench needs no buy. {RULE_LINE}</li>
               <li>Clubs of three or more play fixtures against clubs their size.</li>
             </ul>
           </div>
@@ -121,7 +121,7 @@ export default async function ClubsPage() {
             <h2>How a club is scored</h2>
           </div>
           <ul className="limits">
-            <li><h3>You play by buying</h3><p>A member plays a gameweek by buying ${PLAY_USD} or more of any stock token through Tropa Club before the last close of the week. $10 a week is the habit; ${PLAY_USD} is the line.</p></li>
+            <li><h3>You play by buying</h3><p>{RULE_LINE} Any stock token counts, bought through Tropa Club before the last close of the week.</p></li>
             <li><h3>Turnout comes first</h3><p>When 80% or more of a club plays, it earns a bonus point. That is what call-ups are for.</p></li>
             <li><h3>Fixtures are bragging rights</h3><p>A fixture goes to the club whose playing members had the higher median return for the week, in percent. No prize ever depends on it.</p></li>
             <li><h3>Size never counts</h3><p>Scores use percentages and head counts. Ten dollars counts the same as ten thousand.</p></li>

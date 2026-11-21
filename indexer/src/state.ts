@@ -5,7 +5,7 @@ import zlib from 'node:zlib';
 import { CACHE_DIR, STATE_PREFIX, STATE_BUCKET } from './config.ts';
 import { download, uploadMany } from './gcs.ts';
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 // Per (token, wallet). Raw amounts are token base units (8 decimals); all < 2^53.
 export interface PairRec {
@@ -31,6 +31,9 @@ export const F_SWAP_IN = 1, F_MINT_IN = 2, F_XFER_IN = 4, F_XFER_NONDIST = 8;
 // Code kinds from eth_getCode
 export const K_EOA = 0, K_7702 = 1, K_SMART = 2, K_CONTRACT = 3;
 
+// Raw corporate-action logs emitted by the B20 tokens (UIMultiplierUpdated / ...Cancelled / Announcement / EndAnnouncement).
+export interface CorpLog { address: string; topics: string[]; data: string; b: number; li: number; h: string }
+
 export interface TrackedToken { address: string; symbol: string; fromBlock: number }
 
 export interface State {
@@ -50,14 +53,57 @@ export interface State {
   yahooFilled: string[];       // tokens whose dailyPx gaps were filled from Yahoo
   transfers: number;
   updatedAt: string;
+  // ---- wallet history (persisted in a second file, history.json.gz) ----
+  // addr -> entries "block,logIndex,tokenIdx,signedRaw,cp,txHashBase64url"; cp = p|r|d|m|b or the counterparty address
+  hist: Map<string, string[]>;
+  histHeavy: Set<string>;      // addresses that passed HIST_CAP entries (bots); history dropped
+  corp: CorpLog[];
+  histShardHash: Record<string, string>; // published shard -> content hash (upload only changed shards)
 }
 
 export function emptyState(): State {
-  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '' };
+  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '', hist: new Map(), histHeavy: new Set(), corp: [], histShardHash: {} };
 }
 
 const FILE = 'state.json.gz';
+const HFILE = 'history.json.gz';
 const localPath = () => path.join(CACHE_DIR, FILE);
+const histPath = () => path.join(CACHE_DIR, HFILE);
+
+// History file: gzip members of text lines. Line 1 = JSON header, then "addr<TAB>entry|entry|...".
+// Written in chunks (never one giant string), parsed from a Buffer line by line.
+function writeHist(s: State, file: string): number {
+  const fd = fs.openSync(file, 'w');
+  let bytes = 0;
+  const put = (txt: string) => { const gz = zlib.gzipSync(Buffer.from(txt), { level: 6 }); fs.writeSync(fd, gz); bytes += gz.length; };
+  put(JSON.stringify({ cursor: s.cursor, heavy: [...s.histHeavy] }) + '\n');
+  let buf: string[] = [], len = 0;
+  for (const [a, es] of s.hist) {
+    const line = a + '\t' + es.join('|') + '\n';
+    buf.push(line); len += line.length;
+    if (len > 8_000_000) { put(buf.join('')); buf = []; len = 0; }
+  }
+  if (buf.length) put(buf.join(''));
+  fs.closeSync(fd);
+  return bytes;
+}
+function loadHistInto(s: State, gz: Buffer) {
+  const raw = zlib.gunzipSync(gz);
+  let pos = raw.indexOf(10);
+  const head = JSON.parse(raw.subarray(0, pos).toString());
+  if (head.cursor !== s.cursor) throw new Error(`history cursor ${head.cursor} != state cursor ${s.cursor}`);
+  s.histHeavy = new Set(head.heavy);
+  s.hist = new Map();
+  pos++;
+  while (pos < raw.length) {
+    let nl = raw.indexOf(10, pos);
+    if (nl < 0) nl = raw.length;
+    const line = raw.subarray(pos, nl).toString();
+    const tab = line.indexOf('\t');
+    if (tab > 0) { const j = line.slice(tab + 1); s.hist.set(line.slice(0, tab), j ? j.split('|') : []); }
+    pos = nl + 1;
+  }
+}
 
 function serialize(s: State): Buffer {
   const pairs = s.pairs.map((m) => {
@@ -69,40 +115,58 @@ function serialize(s: State): Buffer {
   const obj = {
     version: s.version, cursor: s.cursor, cursorTs: s.cursorTs, tokens: s.tokens, pairs,
     flags: [...s.flags], firstBuyAny: [...s.firstBuyAny], codes: [...s.codes], hours: bk(s.hours), days: bk(s.days),
-    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, updatedAt: new Date().toISOString(),
+    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, corp: s.corp, histShardHash: s.histShardHash, updatedAt: new Date().toISOString(),
   };
   return zlib.gzipSync(Buffer.from(JSON.stringify(obj)), { level: 6 });
 }
 
-function deserialize(buf: Buffer): State {
+function deserialize(buf: Buffer, allowOld = false): State {
   const o = JSON.parse(zlib.gunzipSync(buf).toString());
-  if (o.version !== STATE_VERSION) throw new Error(`state version ${o.version} != ${STATE_VERSION}`);
+  if (o.version !== STATE_VERSION && !allowOld) throw new Error(`state version ${o.version} != ${STATE_VERSION}`);
   const bk = (arr: any[]) => new Map<number, Map<string, BucketRec>>(arr.map(([k, v]: any) => [k, new Map(v.map(([a, n, b]: any) => [a, { n, b }]))]));
   return {
     version: o.version, cursor: o.cursor, cursorTs: o.cursorTs, tokens: o.tokens,
     pairs: o.pairs.map((rows: any[]) => new Map(rows.map((r: any[]) => [r[0], { bal: r[1], fi: r[2], rs: r[3], gap: r[4], fdb: r[5], cw: r[6], cn: r[7], lp: r[8], sk: r[9], bq: r[10], bc: r[11] }]))),
     flags: new Map(o.flags), firstBuyAny: new Map(o.firstBuyAny), codes: new Map(o.codes), hours: bk(o.hours), days: bk(o.days),
     pools: o.pools, grid: new Map(o.grid), dailyPx: o.dailyPx || {}, yahooFilled: o.yahooFilled || [], transfers: o.transfers || 0, updatedAt: o.updatedAt,
+    hist: new Map(), histHeavy: new Set(), corp: o.corp || [], histShardHash: o.histShardHash || {},
   };
 }
 
-export function readStateFile(file: string): State { return deserialize(fs.readFileSync(file)); }
+// For seeding a rebuild from an older state (codes, prices); version is not checked.
+export function readStateFile(file: string): State { return deserialize(fs.readFileSync(file), true); }
+
+function withHist(s: State, file: string): State {
+  if (!fs.existsSync(file)) throw new Error(`state at ${s.cursor} has no ${HFILE}; rebuild needed`);
+  loadHistInto(s, fs.readFileSync(file));
+  return s;
+}
 
 export async function loadState(): Promise<State> {
-  const lp = localPath();
+  const lp = localPath(), hp = histPath();
   if (process.env.NO_GCS_STATE !== '1' && (process.env.STATE_FROM_GCS === '1' || !fs.existsSync(lp))) {
     try {
       const got = await download(STATE_PREFIX + FILE, lp + '.dl', STATE_BUCKET);
       if (got) {
         const remote = deserialize(fs.readFileSync(lp + '.dl'));
         const local = fs.existsSync(lp) ? deserialize(fs.readFileSync(lp)) : null;
-        fs.renameSync(lp + '.dl', lp);
-        if (!local || remote.cursor >= local.cursor) { console.log(`state: loaded from gs at block ${remote.cursor}`); return remote; }
-        return local;
+        if (!local || remote.cursor >= local.cursor) {
+          if (!(await download(STATE_PREFIX + HFILE, hp + '.dl', STATE_BUCKET))) throw new Error('remote history missing');
+          fs.renameSync(lp + '.dl', lp);
+          fs.renameSync(hp + '.dl', hp);
+          console.log(`state: loaded from gs at block ${remote.cursor}`);
+          return withHist(remote, hp);
+        }
+        fs.rmSync(lp + '.dl', { force: true });
+        console.log(`state: local (${local.cursor}) is newer than gs (${remote.cursor})`);
+        return withHist(local, hp);
       }
-    } catch (e: any) { console.warn('state: GCS load failed:', e?.message); }
+    } catch (e: any) {
+      if (process.env.CLOUD_RUN_JOB) throw e; // never silently start over in the cloud
+      console.warn('state: GCS load failed:', e?.message);
+    }
   }
-  if (fs.existsSync(lp)) { const s = deserialize(fs.readFileSync(lp)); console.log(`state: loaded local at block ${s.cursor}`); return s; }
+  if (fs.existsSync(lp)) { const s = deserialize(fs.readFileSync(lp)); console.log(`state: loaded local at block ${s.cursor}`); return withHist(s, hp); }
   console.log('state: none, starting fresh');
   return emptyState();
 }
@@ -111,10 +175,14 @@ export function saveLocal(s: State): number {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const buf = serialize(s);
   fs.writeFileSync(localPath() + '.tmp', buf);
+  const hbytes = writeHist(s, histPath() + '.tmp');
   fs.renameSync(localPath() + '.tmp', localPath());
-  return buf.length;
+  fs.renameSync(histPath() + '.tmp', histPath());
+  return buf.length + hbytes;
 }
 
 export async function mirrorState(): Promise<void> {
+  // history first: a reader that sees the new state file must also find the matching history file
+  await uploadMany([[histPath(), STATE_PREFIX + HFILE]], { contentType: 'application/gzip', cacheControl: 'no-store', bucket: STATE_BUCKET });
   await uploadMany([[localPath(), STATE_PREFIX + FILE]], { contentType: 'application/gzip', cacheControl: 'no-store', bucket: STATE_BUCKET });
 }

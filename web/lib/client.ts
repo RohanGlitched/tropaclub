@@ -35,10 +35,12 @@ export async function fetchWallet(address: string): Promise<{ wallet: WalletSumm
 }
 
 const seatCache = new Map<string, Promise<TokenSeatsFile | null>>();
-function loadSeats(symbol: string): Promise<TokenSeatsFile | null> {
+function loadSeats(symbol: string, base?: string | null): Promise<TokenSeatsFile | null> {
   let p = seatCache.get(symbol);
   if (!p) {
-    p = getJson<TokenSeatsFile>(`/api/seats/${encodeURIComponent(symbol)}`, 25000)
+    // with live data the file comes straight from the public bucket (gzip, preloaded by the page)
+    const url = base ? `${base}/tokens/${encodeURIComponent(symbol)}.json` : `/api/seats/${encodeURIComponent(symbol)}`;
+    p = (base ? fetch(url, { signal: AbortSignal.timeout(25000) }).then((r) => (r.ok ? (r.json() as Promise<TokenSeatsFile>) : Promise.reject(new Error(String(r.status))))) : getJson<TokenSeatsFile>(url, 25000))
       .then((f) => (f && Array.isArray(f.seats) ? f : null))
       .catch(() => {
         seatCache.delete(symbol);
@@ -54,13 +56,13 @@ export type SeatsState = { status: 'loading' | 'ready' | 'missing'; seats: Seat[
 const KIND_CODE: Record<string, number> = { real: 0, dust: 1, farmer: 2, contract: 3, pool: 3 };
 
 /** The full seat list for one ground. Shared between the stadium and the lists under it. */
-export function useSeats(symbol: string, enabled = true): SeatsState {
+export function useSeats(symbol: string, enabled = true, base?: string | null): SeatsState {
   const [state, setState] = useState<SeatsState>({ status: 'loading', seats: [], kinds: null });
   useEffect(() => {
     if (!enabled) return;
     let live = true;
     setState({ status: 'loading', seats: [], kinds: null });
-    loadSeats(symbol).then((f) => {
+    loadSeats(symbol, base).then((f) => {
       if (!live) return;
       if (!f || !f.seats.length) return setState({ status: 'missing', seats: [], kinds: null });
       const kinds = new Uint8Array(f.seats.length);
@@ -70,6 +72,6 @@ export function useSeats(symbol: string, enabled = true): SeatsState {
     return () => {
       live = false;
     };
-  }, [symbol, enabled]);
+  }, [symbol, enabled, base]);
   return state;
 }

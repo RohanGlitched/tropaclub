@@ -13,6 +13,10 @@ export interface CardInput {
   entry: WalletTokenEntry;
   token: TokenSummary;
   asOf: string;
+  /** "Played GW0": set when the wallet bought this token through Tropa Club in that gameweek. */
+  stamp?: string | null;
+  /** Payday streak badge, shown under the stamp. */
+  badge?: string | null;
 }
 
 const inFlight = new Map<string, Promise<string>>();
@@ -26,7 +30,7 @@ function remember(name: string, url: string) {
 }
 
 async function render(input: CardInput, variant: Variant): Promise<string> {
-  const name = cardName(input.address, input.token.symbol, variant);
+  const name = cardName(input.address, input.token.symbol, variant, input.stamp);
   const size = variant === 'landscape' ? { width: 1200, height: 630 } : { width: 1080, height: 1350 };
   const img = new ImageResponse(await ticketCard(input, variant), { ...size, fonts: await cardFonts() });
   // Share pictures are JPEGs under 300 KB so every chat app previews them.
@@ -44,7 +48,7 @@ async function render(input: CardInput, variant: Variant): Promise<string> {
 
 /** The stored picture's URL, drawing and storing it first if there is no recent one. */
 export function ensureCard(input: CardInput, variant: Variant): Promise<string> {
-  const name = cardName(input.address, input.token.symbol, variant);
+  const name = cardName(input.address, input.token.symbol, variant, input.stamp);
   const hit = known.get(name);
   if (hit && Date.now() - hit.at < KNOWN_TTL) return Promise.resolve(hit.url);
   let p = inFlight.get(name);
@@ -68,7 +72,7 @@ export function ensureCard(input: CardInput, variant: Variant): Promise<string> 
  * the real picture and every later one certainly does.
  */
 export async function ogCardUrl(input: CardInput, waitMs = 2500): Promise<string | null> {
-  const name = cardName(input.address, input.token.symbol, 'landscape');
+  const name = cardName(input.address, input.token.symbol, 'landscape', input.stamp);
   const hit = known.get(name);
   if (hit && Date.now() - hit.at < KNOWN_TTL) return hit.url;
   if (!inFlight.has(name)) {

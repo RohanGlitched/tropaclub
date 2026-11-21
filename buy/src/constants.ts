@@ -12,7 +12,7 @@ export const DEFAULT_SIMULATE_RPC_URLS = ['https://mainnet.base.org', 'https://b
 
 export const USDC: Address = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const WETH: Address = '0x4200000000000000000000000000000000000006';
-/** KyberSwap / LI.FI sentinel for native ETH. */
+/** KyberSwap sentinel for native ETH. */
 export const NATIVE_ETH: Address = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 export const ZERO_ADDRESS: Address = '0x0000000000000000000000000000000000000000';
 
@@ -80,7 +80,6 @@ export const KYBER_API = 'https://aggregator-api.kyberswap.com/base/api/v1';
 export const KYBER_CLIENT_ID = 'tropaclub';
 /** KyberSwap MetaAggregationRouterV2 on Base. The only contract a buy is ever sent to or approved for. */
 export const KYBER_ROUTER: Address = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5';
-export const LIFI_API = 'https://li.quest/v1';
 export const COINBASE_STOCKS_API = 'https://api.coinbase.com/v1/tokenized-stocks';
 
 /** Guard: amountOutMin = mark x (1 - 1.5%). */

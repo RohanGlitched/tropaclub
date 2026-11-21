@@ -1,5 +1,6 @@
 // Chronological replay of Transfer logs into State (same semantics as research-scripts/analyze1.py).
-import { ZERO } from './config.ts';
+import { ZERO, HIST_CAP } from './config.ts';
+import { isSink } from './sinks.ts';
 import type { Log } from './fetcher.ts';
 import { newPair, type State, type PairRec, type BucketRec, F_SWAP_IN, F_MINT_IN, F_XFER_IN, F_XFER_NONDIST } from './state.ts';
 import { coversGap, weekIdx, hourIdx, dayIdx } from './time.ts';
@@ -7,6 +8,7 @@ import { coversGap, weekIdx, hourIdx, dayIdx } from './time.ts';
 export interface ReplayCtx {
   pools: Set<string>;
   distributors: Set<string>;
+  routers: Set<string>;
   ts: (block: number) => number;
   // price per raw-token unit for cost basis at a given day (daily avg), falling back to current DEX price
   priceAt: (tidx: number, day: number) => number | null;
@@ -48,7 +50,17 @@ function bucket(s: State, ts: number, a: string): BucketRec {
 }
 
 export function applyLogs(s: State, logs: Log[], ctx: ReplayCtx): { negatives: number } {
-  const { pools, distributors } = ctx;
+  const { pools, distributors, routers } = ctx;
+  // ---- wallet history ----
+  const tracked = (a: string) => a !== ZERO && !pools.has(a) && !routers.has(a) && !distributors.has(a) && !s.histHeavy.has(a) && !isSink(a);
+  const cpCode = (x: string, side: 'from' | 'to') =>
+    x === ZERO ? (side === 'from' ? 'm' : 'b') : pools.has(x) ? 'p' : routers.has(x) ? 'r' : distributors.has(x) ? 'd' : isSink(x) ? 'b' : x;
+  const record = (a: string, l: Log, sign: '+' | '-', cp: string) => {
+    let es = s.hist.get(a);
+    if (!es) { es = []; s.hist.set(a, es); }
+    es.push(`${l.b},${l.li},${l.t},${sign}${l.v},${cp},${Buffer.from(l.h.slice(2), 'hex').toString('base64url')}`);
+    if (es.length > HIST_CAP) { s.hist.delete(a); s.histHeavy.add(a); }
+  };
   let negatives = 0;
   let i = 0;
   while (i < logs.length) {
@@ -73,6 +85,10 @@ export function applyLogs(s: State, logs: Log[], ctx: ReplayCtx): { negatives: n
       for (const l of fl) {
         if (l.v === 0) continue; // zero-value spam transfers carry no ownership change
         s.transfers++;
+        if (l.f !== l.to) {
+          if (tracked(l.f)) record(l.f, l, '-', cpCode(l.to, 'to'));
+          if (tracked(l.to)) record(l.to, l, '+', cpCode(l.f, 'from'));
+        }
         if (l.f !== ZERO) {
           const p = pair(s, t, l.f);
           rollWeek(p, w);

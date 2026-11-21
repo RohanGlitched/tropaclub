@@ -5,13 +5,13 @@
  *   GET  /base/api/v1/routes        -> routeSummary (routes B20 stocks through Aerodrome Slipstream "aero-cl")
  *   POST /base/api/v1/route/build   -> { data, routerAddress, amountOut, transactionValue }
  *   Router 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5 (MetaAggregationRouterV2.swap, selector 0xe21fd0e9).
- * Fallback: LI.FI /v1/quote (keyless, rate-limited; adds a feeCollection step, routes via OKX etc.).
+ * No fallback aggregator: a route that cannot be decoded and checked is never used.
  * 1inch and 0x both return 401 without an API key, so they are not used.
  */
 import { type Address, type Hex, decodeFunctionData, getAddress, isAddress } from 'viem';
-import { KYBER_API, KYBER_CLIENT_ID, KYBER_ROUTER, LIFI_API, NATIVE_ETH, USDC, WETH, kyberRouterAbi } from './constants';
+import { KYBER_API, KYBER_CLIENT_ID, KYBER_ROUTER, NATIVE_ETH, USDC, WETH, kyberRouterAbi } from './constants';
 
-export type Provider = 'kyberswap' | 'lifi';
+export type Provider = 'kyberswap';
 
 export interface Quote {
   provider: Provider;
@@ -86,38 +86,6 @@ async function kyberQuote(sellToken: Address, buyToken: Address, sellAmount: big
   };
 }
 
-async function lifiQuote(
-  sellToken: Address,
-  buyToken: Address,
-  sellAmount: bigint,
-  taker: Address,
-  fetchImpl: typeof fetch,
-  slippage = 0.015,
-): Promise<Quote & { lifiTx: { to: Address; data: Hex; value: bigint }; toAmountMin: bigint }> {
-  const u = new URL(`${LIFI_API}/quote`);
-  const from = isNative(sellToken) ? '0x0000000000000000000000000000000000000000' : sellToken;
-  Object.entries({ fromChain: '8453', toChain: '8453', fromToken: from, toToken: buyToken, fromAmount: sellAmount.toString(), fromAddress: taker, integrator: 'tropaclub', slippage: String(slippage) }).forEach(([k, v]) => u.searchParams.set(k, v));
-  const res = await fetchImpl(u, { headers: { accept: 'application/json' } });
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok || !j.transactionRequest) throw new Error(`LI.FI quote ${res.status}: ${j.message ?? 'no route'}`);
-  return {
-    provider: 'lifi',
-    sellToken,
-    buyToken,
-    sellAmount,
-    amountOut: BigInt(j.estimate.toAmount),
-    amountInUsd: Number(j.estimate.fromAmountUSD ?? NaN),
-    amountOutUsd: Number(j.estimate.toAmountUSD ?? NaN),
-    router: getAddress(j.estimate.approvalAddress ?? j.transactionRequest.to),
-    gasEstimate: j.estimate.gasCosts?.[0]?.estimate ? BigInt(j.estimate.gasCosts[0].estimate) : undefined,
-    venues: (j.includedSteps ?? []).map((s: any) => String(s.tool)),
-    raw: j,
-    taker,
-    lifiTx: { to: getAddress(j.transactionRequest.to), data: j.transactionRequest.data, value: BigInt(j.transactionRequest.value ?? 0) },
-    toAmountMin: BigInt(j.estimate.toAmountMin),
-  };
-}
-
 export interface QuoteParams {
   sellToken: Address | 'ETH' | 'USDC' | string;
   buyToken: Address | string;
@@ -137,8 +105,7 @@ export async function getQuote(p: QuoteParams): Promise<Quote> {
   const buyToken = resolveToken(p.buyToken);
   const f = p.fetchImpl ?? fetch;
   const errors: string[] = [];
-  // KyberSwap only by default: its router is pinned and its calldata is decoded and checked.
-  // LI.FI can still be asked for a quote for comparison, but buildSwap will not build from it.
+  // KyberSwap only: its router is pinned and its calldata is decoded and checked.
   for (const prov of p.providers ?? ['kyberswap']) {
     try {
       if (prov === 'kyberswap') {
@@ -153,7 +120,7 @@ export async function getQuote(p: QuoteParams): Promise<Quote> {
         }
         return await kyberQuote(sellToken, buyToken, p.sellAmount, p.taker, f);
       }
-      if (prov === 'lifi') return await lifiQuote(sellToken, buyToken, p.sellAmount, p.taker, f);
+      // any other provider is ignored: a quote that buildSwap would refuse is never returned
     } catch (e) {
       errors.push((e as Error).message);
     }

@@ -7,8 +7,8 @@ import { fmtDate, fmtInt, shortAddr } from '@/lib/format';
 import { seatLabel } from '@/lib/stadium';
 
 /** The first ten fans by rank, and a few facts about the crowd, from the seat list. */
-export default function FrontRow({ symbol, club, total, realFans }: { symbol: string; club: string; total: number; realFans: number }) {
-  const s = useSeats(symbol);
+export default function FrontRow({ symbol, club, total, realFans, seatsBase }: { symbol: string; club: string; total: number; realFans: number; seatsBase?: string | null }) {
+  const s = useSeats(symbol, true, seatsBase);
   const real = useMemo(() => s.seats.slice(0, Math.min(realFans, s.seats.length)).filter((x) => x.k === 'real'), [s.seats, realFans]);
   const facts = useMemo(() => {
     if (!real.length) return null;

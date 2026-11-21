@@ -52,7 +52,7 @@ export default async function StatsPage() {
         <p className="lede">
           Everything Tropa Club claims about itself, counted from onchain records. Only transactions the member signed are counted, and only those that carry our Builder Code. Wallets that belong to the team are left out and listed below.
         </p>
-        <p className="asof">Counted {fmtDate(s.asOf, true)}.</p>
+        <p className="asof">Club numbers are live. The crowd was counted {fmtDate(index.asOf, true)}.</p>
       </section>
 
       {pre ? (
@@ -72,7 +72,7 @@ export default async function StatsPage() {
             <div><dt>First-time buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.newBuyers) : '—'}</dd><p>The people a club gives a reason to come back.</p></div>
             <div><dt>Clubs founded</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(totalSeats)} {totalSeats === 1 ? 'seat' : 'seats'} taken on the Bench so far.</p></div>
           </dl>
-          <p className="muted small">These four come from The Attendance and the club list, not from Tropa Club buys. Counted {fmtDate(index.asOf, true)}.</p>
+          <p className="muted small">These four come from The Attendance and the club list, not from Tropa Club buys.</p>
         </section>
       ) : (
         <section className="wrap section-tight" aria-label="Builder Code counter">
@@ -173,10 +173,7 @@ export default async function StatsPage() {
           </div>
           <div className="split-text">
             <h2>Against a control group</h2>
-            <div className="chart-wait" role="img" aria-label="Cohort chart placeholder: the comparison is published on 3 Dec">
-              <span /><span /><span /><span />
-              <p>The chart is drawn on Thu 3 Dec, once the first joiners reach seven days.</p>
-            </div>
+            <p><strong>Published Thu 3 Dec</strong>, once the first joiners reach seven days.</p>
             <p>Club joiners will be compared with ordinary first-time buyers of the same token, the same week and a similar size, and with cashback-campaign recipients. The method was fixed before any data existed.</p>
             <p className="muted small">Descriptive, not causal: joiners choose to join. <a href={DOCS_URL} rel="noopener">Read the method in the docs</a></p>
           </div>

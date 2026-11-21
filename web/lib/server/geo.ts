@@ -2,7 +2,7 @@
 // territories (contest rules). Every read-only page is open everywhere.
 //
 // Which headers are believed depends on how the request arrived (see lib/hosts.ts):
-//   through Firebase Hosting (our own host): its x-country-code if present, else the visitor IP
+//   through Firebase Hosting (our own host, and the connecting peer is a Google proxy address): its x-country-code if present, else the visitor IP
 //     it reports (fastly-client-ip, or the first x-forwarded-for entry). Hosting overwrites all
 //     three, so a visitor cannot forge them on that path.
 //   any other way (the bare Cloud Run URL): no header is believed. The country comes from the last

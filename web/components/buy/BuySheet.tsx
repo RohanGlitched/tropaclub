@@ -16,7 +16,7 @@ interface Quote {
   shares: string; minShares: string; pricePerShareUsd: number; paying: string;
   markSource: string; referencePrice: boolean; reopenGapRisk: boolean; venues: string[]; expiresAt: number;
 }
-type QuoteState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; q: Quote } | { status: 'hold'; message: string; retry: boolean };
+type QuoteState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; q: Quote } | { status: 'hold'; message: string; retry: boolean; needsFunds?: 'USDC' | 'ETH' };
 type StepState = 'todo' | 'wallet' | 'chain' | 'done' | 'failed';
 type Phase = 'form' | 'sending' | 'recording' | 'done' | 'failed';
 type Eip1193 = { request(args: { method: string; params?: unknown }): Promise<unknown> };
@@ -69,6 +69,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
   const [steps, setSteps] = useState<{ label: string; state: StepState }[]>([]);
   const [error, setError] = useState('');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [record, setRecord] = useState<{ recorded: boolean; attributed: boolean | null; message: string | null; promoted: boolean } | null>(null);
   const seq = useRef(0);
 
@@ -122,7 +123,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
       const res = await fetch('/api/buy/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: sel, pay, usd, taker: address, notUsPerson: notUs }), signal: AbortSignal.timeout(35000) });
       const j = await res.json();
       if (!res.ok) return { status: 'hold', message: j.error || 'The quote could not be made just now.', retry: res.status !== 403 };
-      return j.ok ? { status: 'ready', q: j as Quote } : { status: 'hold', message: j.message, retry: !!j.retry };
+      return j.ok ? { status: 'ready', q: j as Quote } : { status: 'hold', message: j.message, retry: !!j.retry, needsFunds: j.needsFunds };
     } catch {
       return { status: 'hold', message: 'The quote did not arrive. Check your connection and try again.', retry: true };
     }
@@ -362,6 +363,38 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
                 </dl>
               ) : (
                 <div className="buy-skel" aria-busy="true"><span /><span /><span /><span /></div>
+              )}
+              {quote.status === 'hold' && quote.needsFunds && address && (
+                <div className="buy-funds">
+                  <h3>Add funds to this wallet</h3>
+                  {connector?.id === 'coinbaseWalletSDK' && (
+                    <p><a className="btn btn-sm" href="https://keys.coinbase.com" target="_blank" rel="noopener noreferrer">Open your Base Account</a> and choose “Add funds”.</p>
+                  )}
+                  <ol>
+                    <li>Buy {quote.needsFunds} at an exchange you already use.</li>
+                    <li>Withdraw it to the address below, choosing the <b>Base</b> network.</li>
+                    <li>Come back and tap “Get a new quote”. {quote.needsFunds === 'USDC' ? 'Keep a few cents of ETH on Base for gas.' : ''}</li>
+                  </ol>
+                  <p className="buy-addr">
+                    <span className="num">{address}</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(address);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        } catch {
+                          window.prompt('Copy this address', address);
+                        }
+                      }}
+                    >
+                      {copied ? 'Copied' : 'Copy address'}
+                    </button>
+                  </p>
+                  <p><button type="button" className="linklike" onClick={() => { setQuote({ status: 'loading' }); void fetchQuote().then(setQuote); }}>Get a new quote</button></p>
+                </div>
               )}
               {q?.reopenGapRisk && (
                 <p className="buy-gap" role="note">

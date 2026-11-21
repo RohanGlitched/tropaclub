@@ -17,7 +17,7 @@ export const GET = (req: Request, ctx: { params: Promise<{ address: string }> })
     if (job.state === 'ready' && job.value) {
       // raw token amounts are bigints: send them as strings
       const statement = JSON.parse(JSON.stringify(job.value, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)));
-      return ok({ status: 'ready', statement });
+      return ok({ status: 'ready', statement, countedAt: job.countedAt ?? null });
     }
     if (job.state === 'empty') return ok({ status: 'empty' });
     if (job.state === 'failed') return ok({ status: 'failed' });

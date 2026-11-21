@@ -12,6 +12,8 @@ export const buyOpenAt = () => {
 export const buyIsOpen = (now = Date.now()) => now >= Date.parse(buyOpenAt());
 /** The Playing line: buy this much in a gameweek and you played it. (A "real fan" seat in the index needs $10 held.) */
 export const PLAY_USD = 5;
+/** The one sentence used wherever $5 or $10 is mentioned as a rule. */
+export const RULE_LINE = '$10 a week is the habit; $5 or more in a gameweek counts as played.';
 /** The indexer recounts at :17 past 00, 06, 12 and 18 UTC. */
 export const COUNT_EVERY = 'every 6 hours';
 export const X_FOLLOW_URL = 'https://x.com/intent/follow?screen_name=tropaclubxyz';

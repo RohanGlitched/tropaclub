@@ -9,10 +9,11 @@ import BuyCta from '@/components/buy/BuyCta';
 import { Pennant } from '@/components/ds/Pennant';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
 import { ogCardUrl } from '@/lib/server/cardmake';
+import { playedStamps } from '@/lib/server/clubs';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
-import { COUNT_EVERY, PLAY_USD, SITE_URL, buyOpenAt } from '@/lib/site';
+import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
 export const dynamic = 'force-dynamic';
@@ -37,14 +38,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const top = d.real[0];
   if (!top) {
     const t = d.index.data.tokens[0];
-    const title = `Take seat ${fmtInt(t.realFans + 1)} at ${clubName(t.name)}`;
+    const title = `Take a seat at ${clubName(t.name)} for $10`;
     return { title, description: `${shortAddr(d.address)} has no real-fan seat yet. A seat needs $10 of one stock token, held in your own wallet.`, robots };
   }
   const token = d.bySymbol.get(top.symbol)!;
   const title = `Matchday ticket: ${clubName(token.name)}, real fan ${fmtInt(top.rank!)} of ${fmtInt(top.of || token.realFans)}`;
   const description = `${statSentence(top.bestStat)}. ${shortAddr(d.address)} has ${d.real.length === 1 ? 'a seat' : `${d.real.length} seats`} in The Ground. Find yours.`;
   // This wallet's own ticket picture: a plain stored file. If there is none yet it is drawn now, in the background.
-  const made = await ogCardUrl({ address: d.address, entry: top, token, asOf: d.index.data.asOf }).catch(() => null);
+  const played = await playedStamps(d.address, 1500);
+  const made = await ogCardUrl({ address: d.address, entry: top, token, asOf: d.index.data.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge }).catch(() => null);
   const image = made ?? '/og-default.png';
   return {
     title,
@@ -73,7 +75,7 @@ export default async function TicketPage({ params }: Params) {
   const targetClub = clubName(target.name);
   const top = real[0];
   const topToken = top ? bySymbol.get(top.symbol)! : null;
-  const neighbours = top && topToken ? await getNeighbours(top.symbol, top.rank!) : null;
+  const [neighbours, played] = await Promise.all([top && topToken ? getNeighbours(top.symbol, top.rank!) : null, real.length ? playedStamps(address) : null]);
 
   return (
     <main id="main">
@@ -92,11 +94,12 @@ export default async function TicketPage({ params }: Params) {
               return (
                 <div key={e.symbol} className="ticket-block">
                   <div className="ticket-stage">
-                    <Ticket address={address} entry={e} token={token} asOf={index.data.asOf} headingLevel={2} printIn={i === 0} />
+                    <Ticket address={address} entry={e} token={token} asOf={index.data.asOf} headingLevel={2} printIn={i === 0} stamp={played?.byToken.get(token.address.toLowerCase()) ?? null} badge={played?.badge} />
                   </div>
                   <div className="ticket-actions">
                     <ShareBar address={address} symbol={e.symbol} club={clubName(token.name)} line={statSentence(e.bestStat)} pageUrl={pageUrl} />
                     <Link className="btn" href={groundPath(e.symbol)}>See it in the ground</Link>
+                    {i === 0 && <Link className="btn" href={`/statement/${address}`} prefetch={false}>Statement</Link>}
                   </div>
                   {i === 0 && real.length > 1 && <p className="tickets-more">More tickets for this wallet</p>}
                 </div>
@@ -122,8 +125,8 @@ export default async function TicketPage({ params }: Params) {
                   <Link className="btn" href="/clubs#start">Found a club</Link>
                 </li>
                 <li>
-                  <h3>Play this gameweek</h3>
-                  <p>Buy ${PLAY_USD} or more of any stock token in a gameweek and you played it, with or without a club.</p>
+                  <h3>Get the “Played” stamp</h3>
+                  <p>Buy through Tropa Club in a gameweek and this ticket, and its share picture, are stamped “Played GW0”, with your payday streak under it. {RULE_LINE}</p>
                   <BuyCta token={topToken.address} symbol={topToken.symbol} openAt={openAt} standalone compact label={`Buy $10 more of ${topToken.symbol}`} />
                 </li>
               </ul>
@@ -159,7 +162,8 @@ export default async function TicketPage({ params }: Params) {
         <section className="wrap page-head convert">
           <div className="convert-text">
             <p className="crumbs">No seat yet for <span className="num addr">{shortAddr(address)}</span></p>
-            <h1>Take seat <span className="num">{fmtInt(target.realFans + 1)}</span> at {targetClub} for $10</h1>
+            <h1>Take a seat at {targetClub} for $10</h1>
+            <p className="convert-seat">About seat <span className="num">{fmtInt(target.realFans + 1)}</span> at the next count. Seats are recounted {COUNT_EVERY} and ranked by time held, so the newest fan starts at the back and moves forward by holding.</p>
             <p className="lede">
               {near
                 ? near.kind === 'dust'
@@ -172,7 +176,7 @@ export default async function TicketPage({ params }: Params) {
           </div>
           <div className="convert-ticket">
             <Ticket address={address} entry={{ symbol: target.symbol, usd: 10, kind: 'real', rank: target.realFans + 1, of: target.realFans + 1, bestStat: null }} token={target} headingLevel={2} preview />
-            <p className="caption">A preview. The real ticket prints once the wallet holds $10 of {target.symbol} at a count.</p>
+            <p className="caption">A preview. The real ticket, with its exact seat, prints once the wallet holds $10 of {target.symbol} at a count.</p>
           </div>
         </section>
       )}
@@ -190,7 +194,7 @@ export default async function TicketPage({ params }: Params) {
             </div>
             <div className="split-text">
               <h2>Take it with a club</h2>
-              <p>Tropa Club is a free investing club for your group chat: $10 a week each, from your own wallets, with the score kept for you. Buy ${PLAY_USD} or more in a gameweek and you played it.</p>
+              <p>Tropa Club is a free investing club for your group chat, each buying from their own wallet, with the score kept for you. {RULE_LINE}</p>
               <p className="closing-links"><Link className="btn" href="/clubs#start">Found a club</Link><Link href="/clubs">How clubs work</Link></p>
             </div>
           </div>

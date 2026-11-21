@@ -54,6 +54,15 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
   }, [opensMs]);
 
   const text = label ?? `Buy $10 of ${symbol ?? 'a stock token'}`;
+  // what it costs and who can use it, before anything is tapped
+  const facts = (
+    <ul className="buy-facts-up">
+      <li><b>0% Tropa fee.</b> Network gas is a few cents.</li>
+      <li><b>1.5% price guard.</b> If the price moves past it, the buy stops and nothing is spent.</li>
+      <li>Routed through Aerodrome on Base, from your own wallet, in USDC or ETH.</li>
+      <li>Available outside the US. You’ll confirm you’re not a US person.</li>
+    </ul>
+  );
   return (
     <div className={`buy-cta${compact ? ' buy-cta-compact' : ''}`}>
       <div className="clubs-only">
@@ -70,7 +79,7 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
             >
               {text}
             </button>
-            {!compact && <p className="buy-cta-note">From your own wallet, in USDC or ETH on Base. No account. Tropa Club holds nothing and takes no fee.</p>}
+            {facts}
           </>
         ) : (
           <>
@@ -79,7 +88,7 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
               <a className="btn btn-accent" href="/remind.ics" download="tropa-club-buying-opens.ics">Remind me</a>
               <a className="btn" href={X_FOLLOW_URL} target="_blank" rel="noopener noreferrer">Follow @tropaclubxyz</a>
             </div>
-            {!compact && <p className="buy-cta-note">“Remind me” adds the moment to your calendar. {symbol ? `Then ${text.charAt(0).toLowerCase()}${text.slice(1)} from your own wallet.` : ''}</p>}
+            {facts}
           </>
         )}
       </div>

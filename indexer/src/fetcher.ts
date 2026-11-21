@@ -1,9 +1,10 @@
 // Work-stealing eth_getLogs fetcher across several public RPCs with adaptive range/address splitting.
 // Completeness: every (address, block) of a window is covered by exactly one successful request.
-import { PROVIDERS, TRANSFER_TOPIC, type Provider } from './config.ts';
+import { PROVIDERS, TRANSFER_TOPIC, CORP_TOPICS, type Provider } from './config.ts';
+import type { CorpLog } from './state.ts';
 import { rpcOn, RpcError, sleep } from './rpc.ts';
 
-export interface Log { b: number; ti: number; li: number; t: number; f: string; to: string; v: number }
+export interface Log { b: number; ti: number; li: number; t: number; f: string; to: string; v: number; h: string }
 
 interface Unit { addrs: string[]; from: number; to: number; tries: number }
 
@@ -13,10 +14,11 @@ const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 export const fetchStats = { requests: 0, splits: 0, retries: 0, logs: 0 };
 const providerPenalty = new Map<string, number>(); // provider -> time until which it backs off
 
-export async function fetchWindow(addrs: string[], tokenIdx: Map<string, number>, a: number, b: number, unitSpan: number): Promise<Log[]> {
+export async function fetchWindow(addrs: string[], tokenIdx: Map<string, number>, a: number, b: number, unitSpan: number): Promise<{ logs: Log[]; corp: CorpLog[] }> {
   const queue: Unit[] = [];
   for (let s = a; s <= b; s += unitSpan) queue.push({ addrs, from: s, to: Math.min(b, s + unitSpan - 1), tries: 0 });
   const out: Log[] = [];
+  const corp: CorpLog[] = [];
   let inflight = 0;
   let fatal: Error | null = null;
 
@@ -37,13 +39,17 @@ export async function fetchWindow(addrs: string[], tokenIdx: Map<string, number>
 
   const parse = (raw: any[]) => {
     for (const l of raw) {
-      if (!l.topics || l.topics.length !== 3 || l.topics[0] !== TRANSFER_TOPIC) continue;
-      if (l.removed) continue;
+      if (!l.topics || l.removed) continue;
+      if (l.topics[0] !== TRANSFER_TOPIC) {
+        if (CORP_TOPICS.includes(l.topics[0])) corp.push({ address: l.address.toLowerCase(), topics: l.topics, data: l.data, b: parseInt(l.blockNumber, 16), li: parseInt(l.logIndex, 16), h: l.transactionHash.toLowerCase() });
+        continue;
+      }
+      if (l.topics.length !== 3) continue;
       const t = tokenIdx.get(l.address.toLowerCase());
       if (t === undefined) continue;
       const d = l.data && l.data !== '0x' ? BigInt(l.data) : 0n;
       if (d > MAX_SAFE) throw new Error(`value exceeds 2^53 in ${l.transactionHash}`);
-      out.push({ b: parseInt(l.blockNumber, 16), ti: parseInt(l.transactionIndex, 16), li: parseInt(l.logIndex, 16), t, f: '0x' + l.topics[1].slice(26).toLowerCase(), to: '0x' + l.topics[2].slice(26).toLowerCase(), v: Number(d) });
+      out.push({ b: parseInt(l.blockNumber, 16), ti: parseInt(l.transactionIndex, 16), li: parseInt(l.logIndex, 16), t, f: '0x' + l.topics[1].slice(26).toLowerCase(), to: '0x' + l.topics[2].slice(26).toLowerCase(), v: Number(d), h: l.transactionHash.toLowerCase() });
     }
   };
 
@@ -61,7 +67,7 @@ export async function fetchWindow(addrs: string[], tokenIdx: Map<string, number>
       inflight++;
       try {
         fetchStats.requests++;
-        const res = await rpcOn(p, 'eth_getLogs', [{ address: u.addrs, topics: [TRANSFER_TOPIC], fromBlock: hex(u.from), toBlock: hex(u.to) }], 60_000);
+        const res = await rpcOn(p, 'eth_getLogs', [{ address: u.addrs, topics: [[TRANSFER_TOPIC, ...CORP_TOPICS]], fromBlock: hex(u.from), toBlock: hex(u.to) }], 60_000);
         if (!Array.isArray(res)) throw new RpcError(`${p.name} getLogs non-array`, p.name, 'other');
         parse(res);
         fetchStats.logs += res.length;
@@ -94,5 +100,6 @@ export async function fetchWindow(addrs: string[], tokenIdx: Map<string, number>
   let w = 0;
   for (let i = 0; i < out.length; i++) if (i === 0 || out[i].b !== out[w - 1].b || out[i].li !== out[w - 1].li) out[w++] = out[i];
   out.length = w;
-  return out;
+  corp.sort((x, y) => x.b - y.b || x.li - y.li);
+  return { logs: out, corp };
 }

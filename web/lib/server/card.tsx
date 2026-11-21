@@ -78,6 +78,18 @@ export interface CardInput {
   entry: WalletTokenEntry;
   token: TokenSummary;
   asOf?: string;
+  stamp?: string | null;
+  badge?: string | null;
+}
+
+/** The "Played GW0" stamp: an inked box, slightly turned, like a turnstile stamp. */
+function Stamp({ stamp, badge, size }: { stamp: string; badge?: string | null; size: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', border: `${Math.round(size / 8)}px solid ${C.pitch}`, color: C.pitch, padding: `${Math.round(size / 3)}px ${Math.round(size / 1.6)}px`, transform: 'rotate(-6deg)', borderRadius: 6 }}>
+      <div style={{ fontSize: size, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', lineHeight: 1 }}>{stamp}</div>
+      {badge ? <div style={{ fontSize: size * 0.5, fontWeight: 600, marginTop: 6, lineHeight: 1 }}>{badge}</div> : null}
+    </div>
+  );
 }
 
 const label = { fontSize: 19, fontWeight: 600, letterSpacing: 2.4, textTransform: 'uppercase' as const, opacity: 0.72 };
@@ -109,7 +121,7 @@ function SeatCells({ entry, token, address, big }: CardInput & { big: number }) 
 }
 
 export async function ticketCard(input: CardInput, variant: 'landscape' | 'portrait') {
-  const { address, entry, token, asOf } = input;
+  const { address, entry, token, asOf, stamp, badge } = input;
   const kit = kitFor(token.symbol);
   const idx = seatIndexFor(address, entry, token);
   const logo = await lockup(C.chalk);
@@ -138,9 +150,14 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
               </div>
             </div>
             <SeatCells {...input} big={68} />
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
               <div style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
               <div style={{ fontSize: 17, fontWeight: 500, marginTop: 8, opacity: 0.72 }}>{fine}</div>
+              {stamp ? (
+                <div style={{ display: 'flex', position: 'absolute', right: 0, top: -262 }}>
+                  <Stamp stamp={stamp} badge={badge} size={30} />
+                </div>
+              ) : null}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', width: 330, background: C.marigold, color: C.midnight, padding: '24px 26px', borderLeft: `4px dashed ${C.midnight}` }}>
@@ -179,7 +196,10 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
             <div style={{ fontSize: 58, fontWeight: 700, lineHeight: 1, marginLeft: 18, letterSpacing: -0.6 }}>{clubName(token.name)}</div>
           </div>
           <SeatCells {...input} big={60} />
-          <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
+            {stamp ? <Stamp stamp={stamp} badge={badge} size={24} /> : null}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.marigold, color: C.midnight, padding: '16px 34px', borderTop: `4px dashed ${C.midnight}` }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

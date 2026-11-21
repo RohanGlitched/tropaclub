@@ -48,9 +48,13 @@ interface Props {
   printIn?: boolean;
   /** A seat not taken yet: drawn in ghost style, marked Preview. */
   preview?: boolean;
+  /** "Played GW0": stamped on when the wallet bought this token through Tropa Club that gameweek. */
+  stamp?: string | null;
+  /** Payday streak badge, printed under the stamp. */
+  badge?: string | null;
 }
 
-export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn, preview }: Props) {
+export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn, preview, stamp, badge }: Props) {
   const kit = kitFor(token.symbol);
   const seat = ticketSeat(address, entry, token);
   const H = `h${headingLevel}` as 'h2' | 'h3';
@@ -75,10 +79,16 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
           <div><dt>Seat</dt><dd className="num">{seat?.seat ?? '—'}</dd></div>
           <div className="ticket-fan">
             <dt>Real fan</dt>
-            <dd className="num">{entry.rank != null ? fmtInt(entry.rank) : '—'}<small> of {fmtInt(entry.of || token.realFans)}</small></dd>
+            <dd className="num">{preview && <small className="about">about </small>}{entry.rank != null ? fmtInt(entry.rank) : '—'}<small> of {fmtInt(entry.of || token.realFans)}</small></dd>
           </div>
         </dl>
-        <p className="ticket-stat">{preview ? 'Yours after one $10 buy' : statSentence(entry.bestStat)}</p>
+        {stamp && !preview && (
+          <p className="ticket-stamp" aria-label={`${stamp} with Tropa Club${badge ? `, ${badge}` : ''}`}>
+            <b>{stamp}</b>
+            {badge && <small>{badge}</small>}
+          </p>
+        )}
+        <p className="ticket-stat">{preview ? 'Yours after one $10 buy, at the next count' : statSentence(entry.bestStat)}</p>
         <p className="ticket-fine">
           {seat?.stand ?? 'The Ground'}. {token.symbol} is a stock token that tracks the share price; it is not the share. Seats go by time held, never by size. Not advice.
         </p>

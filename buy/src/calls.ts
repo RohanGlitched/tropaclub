@@ -36,7 +36,7 @@ export function buildBuyCalls(p: BuildBuyCallsParams): Call[] {
   const suffix = p.suffix ?? TROPA_SUFFIX;
   const calls: Call[] = [];
   const native = isNative(p.quote.sellToken);
-  const spender = p.swap.to; // router == approval target for KyberSwap; LI.FI diamond likewise
+  const spender = p.swap.to; // router == approval target for KyberSwap
   if (!native && (p.currentAllowance ?? 0n) < p.quote.sellAmount) {
     const amount = p.approveMode === 'unlimited' ? maxUint256 : p.quote.sellAmount;
     calls.push({

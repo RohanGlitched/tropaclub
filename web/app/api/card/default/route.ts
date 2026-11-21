@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { SITE_URL } from '@/lib/site';
 
 // The default share picture is a static file. Nothing is rendered per request.
-export function GET(req: Request) {
-  return NextResponse.redirect(new URL('/og-default.png', req.url), 308);
+// The address is built from the site's own URL, never from the request.
+export function GET() {
+  return NextResponse.redirect(`${SITE_URL}/og-default.png`, 308);
 }

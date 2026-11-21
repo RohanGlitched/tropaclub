@@ -7,7 +7,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, OPENS, PLAY_USD } from '@/lib/site';
+import { DOCS_URL, OPENS, RULE_LINE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'The league: club standings and the Supporters table',
@@ -112,7 +112,7 @@ export default async function LeaguePage() {
       <section className="wrap section">
         <div className="section-head"><h2>How the tables work</h2></div>
         <ul className="limits">
-          <li><h3>You play by buying</h3><p>Buy ${PLAY_USD} or more of any stock token in a gameweek and you played it. Everyone else is on the Bench that week.</p></li>
+          <li><h3>You play by buying</h3><p>{RULE_LINE} Everyone else is on the Bench that week.</p></li>
           <li><h3>Three for a win</h3><p>A fixture goes to the club whose playing members had the higher median return for the gameweek. Win three points, draw one.</p></li>
           <li><h3>One for turning up</h3><p>Any club with 80% or more of its members playing earns a bonus point, win or lose.</p></li>
           <li><h3>Drawn by size</h3><p>Clubs need three members to be drawn, and they meet clubs in the same size band.</p></li>
