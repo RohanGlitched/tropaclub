@@ -9,6 +9,8 @@ export const DATA_DIR = path.join(ROOT, 'data');
 
 export const BUCKET = process.env.BUCKET || 'tropaclub-data';
 export const STATE_PREFIX = 'indexer-state/';
+// Private bucket for replay state (the data bucket is public-read).
+export const STATE_BUCKET = process.env.STATE_BUCKET || 'tropaclub-state';
 export const PUBLIC_PREFIX = 'public/';
 export const CACHE_CONTROL = 'public, max-age=300';
 

@@ -17,29 +17,29 @@ function gcloud(args: string[]): Promise<{ code: number; out: string; err: strin
 }
 
 let _storage: any = null;
-async function bucket() {
+async function bucket(name: string = BUCKET) {
   if (!_storage) {
     const { Storage } = await import('@google-cloud/storage');
     _storage = new Storage();
   }
-  return _storage.bucket(BUCKET);
+  return _storage.bucket(name);
 }
 
-export async function download(object: string, local: string): Promise<boolean> {
+export async function download(object: string, local: string, bucketName: string = BUCKET): Promise<boolean> {
   fs.mkdirSync(path.dirname(local), { recursive: true });
   if (useCli()) {
-    const r = await gcloud(['storage', 'cp', `gs://${BUCKET}/${object}`, local]);
+    const r = await gcloud(['storage', 'cp', `gs://${bucketName}/${object}`, local]);
     if (r.code !== 0) { if (/No URLs matched|not found|404/i.test(r.err)) return false; throw new Error('gcloud download failed: ' + r.err.slice(0, 300)); }
     return true;
   }
-  const f = (await bucket()).file(object);
+  const f = (await bucket(bucketName)).file(object);
   const [exists] = await f.exists();
   if (!exists) return false;
   await f.download({ destination: local });
   return true;
 }
 
-export interface UploadOpts { cacheControl?: string; contentType?: string; gzip?: boolean }
+export interface UploadOpts { cacheControl?: string; contentType?: string; gzip?: boolean; bucket?: string }
 
 // Upload a list of [localPath, objectName] pairs.
 export async function uploadMany(files: [string, string][], opts: UploadOpts): Promise<void> {
@@ -58,7 +58,7 @@ export async function uploadMany(files: [string, string][], opts: UploadOpts): P
       const whole = localDirs.size === 1 && fs.readdirSync([...localDirs][0]).length === ls.length;
       const parts = whole && ls.length > 10 ? [[path.join([...localDirs][0], '*')]] : Array.from({ length: Math.ceil(ls.length / 40) }, (_, k) => ls.slice(k * 40, k * 40 + 40));
       for (const part of parts) {
-        const args = ['storage', 'cp', ...part, `gs://${BUCKET}/${dir}`];
+        const args = ['storage', 'cp', ...part, `gs://${opts.bucket || BUCKET}/${dir}`];
         if (opts.cacheControl) args.push(`--cache-control=${opts.cacheControl}`);
         if (opts.contentType) args.push(`--content-type=${opts.contentType}`);
         if (opts.gzip) args.push('--gzip-local-all');
@@ -68,7 +68,7 @@ export async function uploadMany(files: [string, string][], opts: UploadOpts): P
     }
     return;
   }
-  const b = await bucket();
+  const b = await bucket(opts.bucket || BUCKET);
   let i = 0;
   async function w() {
     while (i < files.length) {

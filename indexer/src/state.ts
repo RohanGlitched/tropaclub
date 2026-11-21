@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { CACHE_DIR, STATE_PREFIX } from './config.ts';
+import { CACHE_DIR, STATE_PREFIX, STATE_BUCKET } from './config.ts';
 import { download, uploadMany } from './gcs.ts';
 
 export const STATE_VERSION = 1;
@@ -92,7 +92,7 @@ export async function loadState(): Promise<State> {
   const lp = localPath();
   if (process.env.NO_GCS_STATE !== '1' && (process.env.STATE_FROM_GCS === '1' || !fs.existsSync(lp))) {
     try {
-      const got = await download(STATE_PREFIX + FILE, lp + '.dl');
+      const got = await download(STATE_PREFIX + FILE, lp + '.dl', STATE_BUCKET);
       if (got) {
         const remote = deserialize(fs.readFileSync(lp + '.dl'));
         const local = fs.existsSync(lp) ? deserialize(fs.readFileSync(lp)) : null;
@@ -116,5 +116,5 @@ export function saveLocal(s: State): number {
 }
 
 export async function mirrorState(): Promise<void> {
-  await uploadMany([[localPath(), STATE_PREFIX + FILE]], { contentType: 'application/gzip', cacheControl: 'no-store' });
+  await uploadMany([[localPath(), STATE_PREFIX + FILE]], { contentType: 'application/gzip', cacheControl: 'no-store', bucket: STATE_BUCKET });
 }
