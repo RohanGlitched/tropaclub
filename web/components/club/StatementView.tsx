@@ -75,9 +75,12 @@ function Programme({ s, countedAt, own, priceSources }: { s: Statement; countedA
         <h3>Every movement</h3>
         <table className="programme-table">
           <caption className="sr">All stock-token movements, oldest first</caption>
-          <thead><tr><th scope="col">Date</th><th scope="col">Token</th><th scope="col">What</th><th scope="col" className="r">Share equivalent</th><th scope="col" className="r">Cost</th><th scope="col" className="r">Proceeds</th><th scope="col" className="r">Gain or loss</th></tr></thead>
+          <thead><tr><th scope="col">Date</th><th scope="col">Token</th><th scope="col">What</th><th scope="col" className="r">Share equivalent</th><th scope="col" className="r">Cost</th><th scope="col" className="r">Proceeds</th><th scope="col" className="r">Income</th><th scope="col" className="r">Gain or loss</th></tr></thead>
           <tbody>
-            {s.lines.map((l, i) => (
+            {s.lines.map((l, i) => {
+              // A stock dividend is income: its value shows under Income only, never as a cost or proceeds.
+              const income = l.type === 'dividend' || l.incomeUsd != null;
+              return (
               <tr key={i}>
                 <td data-label="Date">{fmtDate(l.t)}</td>
                 <th scope="row" data-label="Token">{l.symbol}</th>
@@ -86,11 +89,13 @@ function Programme({ s, countedAt, own, priceSources }: { s: Statement; countedA
                   {OPENING.test(l.txHash ?? '') ? <small>held before the readable history: basis unknown</small> : l.note && l.note.length > 10 && <small>{readableNote(l.note, l.t)}</small>}
                 </td>
                 <td className="r num" data-label="Share equivalent">{shares(l.shares)}</td>
-                <td className="r num" data-label="Cost">{l.basisStatus === 'unknown' ? 'unknown' : money(l.costUsd)}</td>
-                <td className="r num" data-label="Proceeds">{money(l.proceedsUsd ?? l.incomeUsd)}</td>
+                <td className="r num" data-label="Cost">{income ? money(null) : l.basisStatus === 'unknown' ? 'unknown' : money(l.costUsd)}</td>
+                <td className="r num" data-label="Proceeds">{income ? money(null) : money(l.proceedsUsd)}</td>
+                <td className="r num" data-label="Income">{income ? (l.basisStatus === 'unknown' ? 'value unknown' : money(l.incomeUsd)) : money(null)}</td>
                 <td className="r num" data-label="Gain or loss">{plain(l.realizedUsd)}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </section>
@@ -106,7 +111,7 @@ function Programme({ s, countedAt, own, priceSources }: { s: Statement; countedA
       )}
 
       <footer className="programme-foot">
-        <p>{labelText(s.label)} When tokens are sold or sent, the oldest are used up first. A split spreads your total cost over the new share equivalent; the total doesn’t change. A stock dividend is income, and new tokens at that day’s value. Tokens sent to this wallet from another wallet, including another of your own, show “basis unknown”.</p>
+        <p>{labelText(s.label)} When tokens are sold or sent, the oldest are used up first. A split spreads your total cost over the new share equivalent; the total doesn’t change. A stock dividend is income: its value shows under Income, not as a cost, and the new tokens are kept at that day’s value. Tokens sent to this wallet from another wallet, including another of your own, show “basis unknown”.</p>
       </footer>
     </article>
   );

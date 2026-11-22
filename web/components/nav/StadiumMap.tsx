@@ -38,7 +38,7 @@ function Markings({ portrait }: { portrait?: boolean }) {
  * The stadium map: the whole site drawn as a ground plan, one stand per destination.
  * Arrow keys walk between stands, Enter opens one, Esc closes. Under reduced motion it is a list.
  */
-export default function StadiumMap({ tokens, ground, wallet, here, onClose }: PanelProps) {
+export default function StadiumMap({ tokens, wallet, here, onClose }: PanelProps) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const links = useRef(new Map<Section, HTMLElement>());
@@ -134,7 +134,7 @@ export default function StadiumMap({ tokens, ground, wallet, here, onClose }: Pa
         <div className="smap-stage">
           <ul className="smap-plan" onKeyDown={onPlanKey} onPointerLeave={() => setActive(null)}>
             {stands.map((s) => {
-              const href = hrefFor(s.id, ground, w);
+              const href = hrefFor(s.id, w);
               const isHere = here === s.id;
               const inner = (
                 <>

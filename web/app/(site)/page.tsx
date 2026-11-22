@@ -14,7 +14,8 @@ import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
 import PageSections from '@/components/nav/PageSections';
 import Anchor from '@/components/nav/Anchor';
-import { getExamples, getIndex, getStats } from '@/lib/server/data';
+import { getExamples, getIndex, getMovers, getStats, pickHomeNotable } from '@/lib/server/data';
+import { HomeNotable } from '@/components/Movers';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { LAUNCH_AT, PAUSED_MESSAGE, PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyState, groundName } from '@/lib/site';
@@ -28,7 +29,8 @@ export const metadata: Metadata = {
 const SPECIMEN = '0x7a3f9c2e41b85d06e9a1c4f27b3d8e5a60c9f1d4';
 
 export default async function Home() {
-  const [{ data: index }, { data: stats }, examples] = await Promise.all([getIndex(), getStats(), getExamples()]);
+  const [{ data: index, source }, { data: stats }, examples, movers] = await Promise.all([getIndex(), getStats(), getExamples(), getMovers()]);
+  const notable = source === 'live' ? pickHomeNotable(movers) : null;
   const tokens = index.tokens;
   const top = tokens[0];
   const topName = shortName(top.name, top.symbol);
@@ -73,6 +75,8 @@ export default async function Home() {
             note={<>Nothing to connect or sign. No fee. We never hold your money. A <Term id="stock-token">stock token</Term> tracks a share price, like {topName}&rsquo;s. It is not the share.</>}
           />
         </section>
+
+        {notable && movers && <HomeNotable line={notable} asOf={movers.asOf} />}
 
         <section className="wrap section" id="what" aria-labelledby="what-h">
           <div className="section-head">
@@ -183,7 +187,7 @@ export default async function Home() {
             <p className="after-table club-cta">
               <Link className="btn btn-accent" href="/clubs#start">Start a club</Link>
               <Link className="btn" href="/clubs#join">Join with an invite</Link>
-              <Link className="btn" href="/league">See club rankings</Link>
+              <Link className="btn" href="/league">See the League</Link>
             </p>
             <p className="muted small"><Link href="/league?tab=caps">Earn points (we call them Caps) by playing each week and bringing friends.</Link></p>
             <p className="muted small">Checking wallets and holder counts works everywhere, including the US.</p>
@@ -194,7 +198,7 @@ export default async function Home() {
           <div className="section-head">
             <h2>Real holders of all {tokens.length} stock tokens<Anchor id="attendance" label="Stock rankings" /></h2>
             <p>
-              Every Coinbase stock token on Base, ranked by how many real holders it has, counted again every 6 hours. Here is the top of the list.
+              Every Coinbase stock token on Base, ranked by how many real holders it has, counted again about every 6 hours. Here is the top of the list.
             </p>
           </div>
           <AttendanceTable rows={tokens.slice(0, 7)} controls={false} />

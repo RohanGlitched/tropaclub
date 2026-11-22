@@ -199,7 +199,7 @@ app/api/      auth/{challenge,verify,session}   buy/{tokens,quote,record}
 4. A step list shows approve, buy and confirmation. Buttons lock while anything is in flight. Every failure maps to one sentence (`decodeRevert` for reverts).
 5. On success: BaseScan link, then `POST /api/buy/record`, which runs `verifyAttribution` and `clubs.recordBuy`.
 
-US visitors get "Not available to US persons" and no buy button. The sheet always says "Buys here don't earn third-party cashback".
+US visitors get the region line (`REGION_LINE`: "Buying, clubs and call-ups aren't available to US persons or in sanctioned regions. Checking a wallet works everywhere.") and no buy button. The sheet always says "Buys here don't earn third-party cashback".
 
 ### Design-system additions
 

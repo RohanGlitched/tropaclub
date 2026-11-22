@@ -15,7 +15,7 @@ import PreSeason from '@/components/PreSeason';
 import LookBeforeConnect from '@/components/LookBeforeConnect';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, FIXTURE_RULE, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, STREAK_SHORT, buyState, openClubName } from '@/lib/site';
+import { DOCS_URL, FIXTURE_STEPS, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, STREAK_SHORT, buyState, openClubName } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: buy stock tokens with your group chat',
@@ -128,7 +128,7 @@ export default async function ClubsPage() {
             <h2>No group chat? Join a club with strangers</h2>
             <p>Ask to be matched and we&rsquo;ll put you in a pick-up club with up to 4 other people from your region. It starts once it has three. It gets a region name and a crest, and it never shows where any member is from.</p>
             <PickupButton />
-            <p className="muted small">Connecting a wallet signs you in; it doesn&rsquo;t spend anything. Your country is used once to match you and is not stored with your wallet. Wallets funded from the same source are never matched together.</p>
+            <p className="muted small">Connecting a wallet signs you in; it doesn&rsquo;t spend anything. Your country is used once to match you and is not stored with your wallet. Wallets with the same first USDC or WETH sender are never matched together.</p>
           </div>
         </div>
       </section>
@@ -174,14 +174,21 @@ export default async function ClubsPage() {
         <ul className="limits">
           <li><h3>You play by buying</h3><p>{RULE_LINE} Any stock token counts, bought through Tropa Club before the US stock market closes on the last trading day of the week.</p></li>
           <li><h3>Turnout comes first</h3><p>If 80% or more of members buy that week, the club gets a bonus point in the weekly rankings. That is what nudges are for.</p></li>
-          <li><h3>Weekly pairings are bragging rights</h3><p>{FIXTURE_RULE} No prize ever depends on it.</p></li>
+          <li>
+            <h3>Weekly pairings are bragging rights</h3>
+            <p>{FIXTURE_STEPS.lead}</p>
+            <ol className="tiebreak">
+              {FIXTURE_STEPS.steps.map((s) => <li key={s}>{s}</li>)}
+            </ol>
+            <p>{FIXTURE_STEPS.after} No prize ever depends on it.</p>
+          </li>
           <li><h3>Payday streak</h3><p>{STREAK_SHORT} A habit badge: it never changes a score.</p></li>
           <li><h3>Size never counts</h3><p>Scores use percentages and head counts. Ten dollars counts the same as ten thousand.</p></li>
           <li><h3>Your money stays yours</h3><p>Each buy goes from your wallet to a public exchange. There is no club pot and nothing to withdraw.</p></li>
-          <li><h3>Where buying is offered</h3><p>Buying and nudges: {REGION_LINE} Clubs can still be viewed everywhere.</p></li>
+          <li><h3>Where buying is offered</h3><p>{REGION_LINE} Club pages can still be viewed everywhere.</p></li>
         </ul>
         <p className="after-table">
-          <Link className="btn" href="/league">Club rankings</Link>{' '}
+          <Link className="btn" href="/league">League</Link>{' '}
           <a className="btn" href={`${DOCS_URL}/scoring-and-seasons`} rel="noopener">Full rules</a>
         </p>
       </section>
@@ -199,7 +206,7 @@ export default async function ClubsPage() {
 
       <NextStrip
         items={[
-          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
+          { title: 'League', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
           { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
         ]}
       />

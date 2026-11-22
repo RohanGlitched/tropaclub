@@ -1,7 +1,7 @@
 // Server-side data access. Live files come from the indexer's public bucket; any file
 // that is missing, slow or malformed falls back to the sample generator, per file.
 import 'server-only';
-import type { IndexFile, StatsFile, TokenSummary, WalletShard, WalletSummary } from '@shared/types';
+import type { IndexFile, MoverRow, MoversFile, MoversWindow, NotableLine, StatsFile, TokenSummary, WalletShard, WalletSummary } from '@shared/types';
 import { shortName } from '@/lib/clubs';
 import { mockIndex, mockStats, mockShard, mockSeats, mockExamples } from '@/mock/generate';
 
@@ -18,21 +18,42 @@ export const dataBaseUrl = BASE;
 // Per-instance memo on top of Next's fetch cache. A hit lasts 5 minutes, a miss 1 minute,
 // so a missing or slow file costs one round trip a minute, not one per request.
 const memo = new Map<string, { at: number; ttl: number; p: Promise<unknown | null> }>();
+/** Last good body and ETag per file: a 304 keeps the body, so a check costs almost nothing. */
+const lastGood = new Map<string, { etag: string | null; body: unknown }>();
 
-function fetchJson(path: string, revalidate = 300, timeoutMs = 4000): Promise<unknown | null> {
+/**
+ * The indexer rewrites its files about every 6 hours and pages must show a new count within a
+ * minute or two. So a file is checked at most once a minute (ttlSec), past every cache on the way:
+ * not Next's fetch cache (no-store), and not Google's edge cache for public objects, which honours
+ * the files' max-age=300 per URL (a per-minute query string). The ETag makes an unchanged file a
+ * cheap 304. On any failure the last good copy is served.
+ */
+function fetchJson(path: string, ttlSec = 60, timeoutMs = 4000): Promise<unknown | null> {
   if (MODE === 'mock') return Promise.resolve(null);
   const now = Date.now();
   const hit = memo.get(path);
   if (hit && now - hit.at < hit.ttl) return hit.p;
-  const entry = { at: now, ttl: revalidate * 1000, p: Promise.resolve<unknown | null>(null) };
+  const entry = { at: now, ttl: Math.min(ttlSec, 60) * 1000, p: Promise.resolve<unknown | null>(null) };
   entry.p = (async () => {
+    const prev = lastGood.get(path);
     try {
-      const res = await fetch(`${BASE}/${path}`, { next: { revalidate }, signal: AbortSignal.timeout(timeoutMs) });
-      if (res.ok) return await res.json();
+      const res = await fetch(`${BASE}/${path}?m=${Math.floor(now / 60_000)}`, {
+        cache: 'no-store',
+        headers: prev?.etag ? { 'if-none-match': prev.etag } : undefined,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.status === 304 && prev) return prev.body;
+      if (res.ok) {
+        const body = await res.json();
+        if (lastGood.size > 400) lastGood.clear();
+        lastGood.set(path, { etag: res.headers.get('etag'), body });
+        return body;
+      }
     } catch {
       /* fall through */
     }
-    entry.ttl = 60_000;
+    if (prev) return prev.body;
+    entry.ttl = 30_000;
     return null;
   })();
   if (memo.size > 400) memo.clear();
@@ -204,6 +225,191 @@ export async function getExamples(): Promise<string[]> {
   if (real.length < 3) return [];
   // one early fan, one from the middle, one recent: spread across the ground
   return [real[Math.floor(real.length * 0.04)], real[Math.floor(real.length * 0.45)], real[Math.floor(real.length * 0.85)]];
+}
+
+// ---------------------------------------------------------------------------------------------
+// Time series and movers. Both are live-only: a missing or malformed file returns null and the
+// widget that uses it is hidden. There is no sample fallback, so no invented history is shown.
+// ---------------------------------------------------------------------------------------------
+
+const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const isIso = (v: unknown): v is string => typeof v === 'string' && !isNaN(Date.parse(v));
+const count = (v: unknown): number | null => (typeof v === 'number' && isFinite(v) && v >= 0 ? Math.round(v) : null);
+
+export interface HistoryPoint {
+  /** YYYY-MM-DD, UTC */
+  day: string;
+  /** null: no count exists for that day (a gap, never a zero) */
+  real: number | null;
+  holders: number | null;
+}
+
+export interface WeekChange {
+  now: number;
+  then: number;
+  diff: number;
+  /** null when there were no real holders 7 days earlier */
+  pct: number | null;
+  thenDay: string;
+}
+
+export interface GroundHistory {
+  symbol: string;
+  asOf: string;
+  /** From the first day with any holder; the last point is today so far when partial is true. */
+  points: HistoryPoint[];
+  partial: boolean;
+  /** Days inside the range with no count. */
+  gaps: number;
+  week: WeekChange | null;
+}
+
+/**
+ * One series, checked against the file's day list and cut to start at the ground's first day.
+ * Returns null unless the arrays line up and there are at least two days to draw.
+ */
+export function shapeHistory(raw: unknown, daysRaw: unknown, missingRaw: unknown, asOf: string, partial: boolean): GroundHistory | null {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(daysRaw) || !daysRaw.length || !daysRaw.every(isDay)) return null;
+  const s = raw as Record<string, unknown>;
+  const days = daysRaw as string[];
+  if (typeof s.symbol !== 'string' || !Array.isArray(s.realFans) || !Array.isArray(s.holdersTotal)) return null;
+  if (s.realFans.length !== days.length || s.holdersTotal.length !== days.length) return null;
+  const missing = new Set(Array.isArray(missingRaw) ? missingRaw.filter(isDay) : []);
+  const realArr = s.realFans as unknown[];
+  const holdArr = s.holdersTotal as unknown[];
+  const all: HistoryPoint[] = days.map((day, i) => {
+    if (missing.has(day)) return { day, real: null, holders: null };
+    const holders = count(holdArr[i]);
+    const real = count(realArr[i]);
+    return { day, holders, real: real == null || holders == null ? real : Math.min(real, holders) };
+  });
+  const launch = isDay(s.launchDay) ? days.indexOf(s.launchDay) : -1;
+  const start = launch >= 0 ? launch : all.findIndex((p) => (p.holders ?? 0) > 0);
+  if (start < 0) return null;
+  const points = all.slice(start);
+  if (points.length < 2 || !points.some((p) => (p.real ?? 0) > 0)) return null;
+  return {
+    symbol: s.symbol,
+    asOf,
+    points,
+    partial,
+    gaps: points.filter((p) => p.real == null).length,
+    week: weekChange(all),
+  };
+}
+
+/** Real holders on the last day against the same count 7 days earlier (before launch counts as 0). */
+export function weekChange(points: HistoryPoint[]): WeekChange | null {
+  if (points.length < 8) return null;
+  const last = points[points.length - 1];
+  const prev = points[points.length - 8];
+  if (last.real == null || prev.real == null) return null;
+  const diff = last.real - prev.real;
+  return { now: last.real, then: prev.real, diff, pct: prev.real > 0 ? Math.round((diff / prev.real) * 1000) / 10 : null, thenDay: prev.day };
+}
+
+/** The history of one ground, from attendance-history.json or, when split, its own file. */
+export async function getGroundHistory(symbol: string): Promise<GroundHistory | null> {
+  try {
+    let top = (await fetchJson('attendance-history.json')) as Record<string, unknown> | null;
+    if (!top || (!Array.isArray(top.tokens) && top.split !== true)) top = (await fetchJson('attendance-history/index.json')) as Record<string, unknown> | null;
+    if (!top || !isIso(top.asOf)) return null;
+    const partial = top.todayPartial !== false;
+    if (Array.isArray(top.tokens)) {
+      const series = top.tokens.find((t) => !!t && typeof t === 'object' && (t as { symbol?: unknown }).symbol === symbol);
+      return series ? shapeHistory(series, top.days, top.missingDays, top.asOf, partial) : null;
+    }
+    if (top.split === true && Array.isArray(top.symbols) && top.symbols.includes(symbol)) {
+      const series = await fetchJson(`attendance-history/${encodeURIComponent(symbol)}.json`);
+      return shapeHistory(series, top.days, top.missingDays, top.asOf, partial);
+    }
+  } catch {
+    /* hidden, never an error page */
+  }
+  return null;
+}
+
+function cleanMover(raw: unknown): MoverRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.symbol !== 'string' || !r.symbol) return null;
+  const realFansNow = count(r.realFansNow);
+  const realFansThen = count(r.realFansThen);
+  if (realFansNow == null || realFansThen == null) return null;
+  return {
+    symbol: r.symbol,
+    name: typeof r.name === 'string' && r.name ? r.name : r.symbol,
+    realFansNow,
+    realFansThen,
+    change: realFansNow - realFansThen,
+    changePct: numOrNull(r.changePct),
+    newRealFans: count(r.newRealFans) ?? 0,
+    holdersNow: count(r.holdersNow) ?? 0,
+    attendancePctNow: num(r.attendancePctNow),
+  };
+}
+
+function cleanWindow(raw: unknown): MoversWindow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const w = raw as Record<string, unknown>;
+  if ((w.window !== '24h' && w.window !== '7d') || !isIso(w.from) || !isIso(w.to)) return null;
+  const rows = (v: unknown) => (Array.isArray(v) ? v.map(cleanMover).filter((r): r is MoverRow => !!r) : []);
+  const pctMinBase = Math.max(1, num(w.pctMinBase, 10));
+  const t = (w.totals && typeof w.totals === 'object' ? w.totals : {}) as Record<string, unknown>;
+  return {
+    window: w.window,
+    from: w.from,
+    to: w.to,
+    hours: num(w.hours),
+    baselineBlock: num(w.baselineBlock),
+    byChange: rows(w.byChange),
+    // the baseline rule is applied here as well, so a row under it can never reach the % list
+    byChangePct: rows(w.byChangePct).filter((r) => r.changePct != null && r.realFansThen >= pctMinBase),
+    pctMinBase,
+    byNewRealFans: rows(w.byNewRealFans).filter((r) => r.newRealFans > 0),
+    totals: {
+      realFansNow: num(t.realFansNow), realFansThen: num(t.realFansThen), realFansChange: num(t.realFansChange),
+      holdersNow: num(t.holdersNow), holdersThen: num(t.holdersThen), holdersChange: num(t.holdersChange),
+      uniqueHoldersNow: num(t.uniqueHoldersNow), uniqueHoldersThen: num(t.uniqueHoldersThen),
+      newWallets: num(t.newWallets), newBuyerWallets: num(t.newBuyerWallets),
+    },
+  };
+}
+
+/** movers.json, checked. Null when nothing in it is usable. */
+export function cleanMovers(raw: unknown): MoversFile | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const m = raw as Record<string, unknown>;
+  if (!isIso(m.asOf)) return null;
+  const windows = Array.isArray(m.windows) ? m.windows.map(cleanWindow).filter((w): w is MoversWindow => !!w) : [];
+  const notable: NotableLine[] = [];
+  for (const n of Array.isArray(m.notable) ? m.notable : []) {
+    if (!n || typeof n !== 'object') continue;
+    const r = n as Record<string, unknown>;
+    if (typeof r.key !== 'string' || typeof r.text !== 'string' || !r.text.trim()) continue;
+    if (r.window !== '24h' && r.window !== '7d' && r.window !== 'now') continue;
+    notable.push({ key: r.key, window: r.window, symbol: typeof r.symbol === 'string' && r.symbol ? r.symbol : undefined, value: num(r.value), text: r.text.trim() });
+  }
+  if (!windows.length && !notable.length) return null;
+  return { asOf: m.asOf, block: num(m.block), windows, notable };
+}
+
+export async function getMovers(): Promise<MoversFile | null> {
+  try {
+    return cleanMovers(await fetchJson('movers.json'));
+  } catch {
+    return null;
+  }
+}
+
+/** The one line for the home page: new wallets this week first, then the 7-day total, then any 7-day line. */
+export function pickHomeNotable(m: MoversFile | null): NotableLine | null {
+  if (!m) return null;
+  for (const key of ['new-wallets-7d', 'total-7d', 'top-new-7d', 'top-gain-7d']) {
+    const hit = m.notable.find((n) => n.key === key);
+    if (hit) return hit;
+  }
+  return m.notable.find((n) => n.window === '7d') ?? null;
 }
 
 export { mockShard };

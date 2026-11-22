@@ -259,7 +259,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
           <li><h3>Your records</h3><p>Every member can open their own cost-basis statement. {viewer ? <Link href={`/statement/${viewer}`}>Open yours</Link> : 'Connect a wallet to open yours.'}</p></li>
         </ul>
         <p className="after-table">
-          <Link className="btn" href={isStock ? '/league#supporters' : '/league'}>{isStock ? 'Open club rankings' : 'Club rankings'}</Link>
+          <Link className="btn" href={isStock ? '/league#supporters' : '/league'}>{isStock ? 'Open club rankings' : 'League'}</Link>
         </p>
       </section>
 
@@ -268,13 +268,13 @@ export default async function ClubPage({ params, searchParams }: Params) {
           <div className="closing-crests" aria-hidden="true"><Pennant kit={crest} width={34} rail /></div>
           <h2>{me?.member ? 'Invite more friends' : `Not in ${theName}?`}</h2>
           <p>{me?.member ? 'If 80% of members buy each week, the club gets a bonus point. Send the invite.' : 'Start your own club in a minute. It is free.'}</p>
-          <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Start a club</Link><Link href="/clubs">All clubs</Link><Link href="/league">Club rankings</Link></p>
+          <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Start a club</Link><Link href="/clubs">All clubs</Link><Link href="/league">League</Link></p>
         </div>
       </section>
 
       <NextStrip
         items={[
-          isStock ? { title: 'Open club rankings', sub: 'Ranked on how many members buy', href: '/league#supporters' } : { title: 'Club rankings', sub: 'Where this club stands', href: '/league' },
+          isStock ? { title: 'Open club rankings', sub: 'Ranked on how many members buy', href: '/league#supporters' } : { title: 'League', sub: 'Where this club stands', href: '/league' },
           { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
         ]}
       />

@@ -7,7 +7,8 @@ import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import PageSections from '@/components/nav/PageSections';
 import Anchor from '@/components/nav/Anchor';
-import { dataBaseUrl, getIndex, getStats } from '@/lib/server/data';
+import { dataBaseUrl, getIndex, getMovers, getStats } from '@/lib/server/data';
+import MoversStrip from '@/components/Movers';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { groundName } from '@/lib/site';
 import { fmtDate, fmtInt, fmtPct } from '@/lib/format';
@@ -19,14 +20,21 @@ export const metadata: Metadata = {
 };
 
 export default async function AttendancePage() {
-  const [{ data: index, source }, { data: stats }] = await Promise.all([getIndex(), getStats()]);
+  const [{ data: index, source }, { data: stats }, movers] = await Promise.all([getIndex(), getStats(), getMovers()]);
+  const showMovers = source === 'live' && !!movers?.windows.some((w) => w.window === '7d' && (w.byNewRealFans.length > 0 || w.byChangePct.some((r) => (r.changePct ?? 0) > 0)));
   const tokens = index.tokens;
   const priced = tokens.filter((t) => t.priceUsd != null);
   const held = tokens.reduce((a, t) => a + t.holdersTotal, 0);
   const fans = tokens.reduce((a, t) => a + t.realFans, 0);
-  const best = [...priced].filter((t) => t.holdersTotal >= 200).sort((a, b) => b.attendancePct - a.attendancePct)[0];
-  const busiest = [...tokens].sort((a, b) => b.weeklyBuyers - a.weeklyBuyers)[0];
-  const emptiest = [...priced].filter((t) => t.holdersTotal >= 1000).sort((a, b) => a.attendancePct - b.attendancePct)[0];
+  // The three highlights are computed from the live index, each over the set its line names. A real
+  // share needs a price (the $10 line), and a tiny token can read 0% or 100% from a handful of
+  // wallets, so the highest is taken over priced tokens with 200+ holders and the lowest over
+  // priced tokens with 1,000+ holders. Ties go to the bigger crowd.
+  const BEST_MIN = 200;
+  const LOW_MIN = 1000;
+  const best = priced.filter((t) => t.holdersTotal >= BEST_MIN).sort((a, b) => b.attendancePct - a.attendancePct || b.holdersTotal - a.holdersTotal)[0];
+  const busiest = [...tokens].sort((a, b) => b.weeklyBuyers - a.weeklyBuyers || b.newBuyers7d - a.newBuyers7d)[0];
+  const emptiest = priced.filter((t) => t.holdersTotal >= LOW_MIN).sort((a, b) => a.attendancePct - b.attendancePct || b.holdersTotal - a.holdersTotal)[0];
   const stack = tokens.slice(0, 10);
 
   return (
@@ -34,6 +42,7 @@ export default async function AttendancePage() {
       <main id="main">
         <PageSections
           sections={[
+            ...(showMovers ? [{ id: 'movers', label: 'This week’s movers' }] : []),
             { id: 'rankings', label: 'The table' },
             { id: 'highlights', label: 'Three things it shows' },
             { id: 'top-10', label: 'The 10 biggest' },
@@ -48,10 +57,12 @@ export default async function AttendancePage() {
           <p className="lede">
             All {tokens.length} Coinbase <Term id="stock-token">stock tokens</Term> on Base, ranked by how many wallets really hold them: $10 or more, bought it themselves, and not a contract. Of <span className="num">{fmtInt(held)}</span> token holdings, <span className="num">{fmtInt(fans)}</span> ({fmtPct((fans / Math.max(1, held)) * 100)}) are real. They belong to <span className="num">{fmtInt(stats.realWallets)}</span> wallets.
           </p>
-          <p className="asof">Counted {fmtDate(index.asOf, true)}{index.block ? <> <span className="muted small">(Base block {fmtInt(index.block)})</span></> : ''}, and again every 6 hours.</p>
+          <p className="asof">Counted {fmtDate(index.asOf, true)}{index.block ? <> <span className="muted small">(Base block {fmtInt(index.block)})</span></> : ''}, and again about every 6 hours.</p>
           <p className="muted small">How we decide who is real: the wallet holds $10 or more, it bought the token itself (not only a giveaway), and it is a person&rsquo;s wallet, not a contract. Each token&rsquo;s page is a <Term id="ground">ground</Term>, like the {groundName(tokens[0].name, tokens[0].symbol)}: its holders drawn as a stadium.</p>
           <p className="hero-cta"><a className="btn btn-accent" href="#check">Check my wallet</a></p>
         </section>
+
+        {showMovers && movers && <MoversStrip movers={movers} />}
 
         <section className="wrap section-tight" id="rankings" aria-label="Stock rankings">
           <AttendanceTable rows={tokens} />
@@ -67,19 +78,19 @@ export default async function AttendancePage() {
               {best && (
                 <li>
                   <h3>Highest real share</h3>
-                  <p><Link href={groundPath(best.symbol)}>{shortName(best.name, best.symbol)} ({best.symbol})</Link>: {fmtPct(best.attendancePct)} of holders are real, {fmtInt(best.realFans)} of {fmtInt(best.holdersTotal)}. Small groups of holders can be loyal ones.</p>
+                  <p>Among stock tokens with {fmtInt(BEST_MIN)}+ holders: <Link href={groundPath(best.symbol)}>{shortName(best.name, best.symbol)} ({best.symbol})</Link>, {fmtPct(best.attendancePct)} of holders are real, {fmtInt(best.realFans)} of {fmtInt(best.holdersTotal)}. Small groups of holders can be loyal ones.</p>
                 </li>
               )}
               {emptiest && (
                 <li>
                   <h3>Lowest real share</h3>
-                  <p><Link href={groundPath(emptiest.symbol)}>{shortName(emptiest.name, emptiest.symbol)} ({emptiest.symbol})</Link>: {fmtInt(emptiest.holdersTotal)} holders, {fmtPct(emptiest.attendancePct)} real. Giveaways inflate holder counts.</p>
+                  <p>Among stock tokens with {fmtInt(LOW_MIN)}+ holders: <Link href={groundPath(emptiest.symbol)}>{shortName(emptiest.name, emptiest.symbol)} ({emptiest.symbol})</Link>, {fmtPct(emptiest.attendancePct)} real, {fmtInt(emptiest.realFans)} of {fmtInt(emptiest.holdersTotal)} holders. Giveaways and dust inflate holder counts.</p>
                 </li>
               )}
               {busiest && (
                 <li>
                   <h3>Most buyers this week</h3>
-                  <p><Link href={groundPath(busiest.symbol)}>{shortName(busiest.name, busiest.symbol)} ({busiest.symbol})</Link> saw {fmtInt(busiest.weeklyBuyers)} wallets buy in the last seven days, {fmtInt(busiest.newBuyers7d)} of them for the first time.</p>
+                  <p>Among all {tokens.length} stock tokens: <Link href={groundPath(busiest.symbol)}>{shortName(busiest.name, busiest.symbol)} ({busiest.symbol})</Link> saw {fmtInt(busiest.weeklyBuyers)} wallets buy on an exchange in the last seven days, {fmtInt(busiest.newBuyers7d)} of them for the first time. Bots with more than 50 swaps are left out.</p>
                 </li>
               )}
             </ul>
@@ -134,7 +145,7 @@ export default async function AttendancePage() {
             </div>
             <div className="split-text" id="feed">
               <h2>For developers: free JSON feed<Anchor id="feed" label="Free JSON feed" /></h2>
-              <p>The table is a public file, rewritten at every count, every 6 hours. Use it in a dashboard, a bot or a research note. No key, no sign-up.</p>
+              <p>The table is a public file, rewritten at every count, about every 6 hours. Use it in a dashboard, a bot or a research note. No key, no sign-up.</p>
               <pre className="code" tabIndex={0}><code>GET {dataBaseUrl}/index.json{'\n'}GET {dataBaseUrl}/tokens/NVDAc.json{'\n'}GET {dataBaseUrl}/stats.json</code></pre>
               <p className="muted small">{source === 'mock' ? 'The first files are published with the indexer’s first run. Until then this page shows sample data.' : `Last written ${fmtDate(index.asOf, true)}.`} Please credit Tropa Club.</p>
               <h3 id="check">Is your wallet a real holder?</h3>

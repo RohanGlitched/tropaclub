@@ -64,7 +64,7 @@
       <h1>Scoring and seasons</h1>
       <p class="lede">Tropa Club keeps score in gameweeks: trading weeks that follow the New York Stock Exchange calendar. You played a gameweek if you bought $5 or more through Tropa Club inside it. Clubs are scored on how many members bought, with one fixture a week from week 1 (GW1, Mon Nov 30).</p>
       <p class="page-meta">Updated Nov 22 2026</p>
-      <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#clubs">Club types</a></li><li class="sub"><a href="#pickup">How pick-up matching works</a></li><li class=""><a href="#gameweeks">Gameweeks and the Matchday card</a></li><li class=""><a href="#lineup">The lineup rule</a></li><li class="sub"><a href="#qualifying">What counts as a qualifying buy</a></li><li class="sub"><a href="#matchday-card">What the Matchday card shows</a></li><li class=""><a href="#returns">Member return and the club score</a></li><li class=""><a href="#fixtures">Fixtures</a></li><li class="sub"><a href="#pairing">Pairing</a></li><li class="sub"><a href="#points">Points</a></li><li class=""><a href="#callups">Nudges (call-ups)</a></li><li class=""><a href="#supporters">Open club rankings</a></li><li class=""><a href="#streak">Payday streak</a></li><li class=""><a href="#caps">Points (Caps)</a></li><li class=""><a href="#scouts">Scouts</a></li><li class=""><a href="#prizes">No prizes tied to returns</a></li><li class=""><a href="#pennant">Founders’ Pennant</a></li></ol></nav>
+      <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#clubs">Club types</a></li><li class="sub"><a href="#pickup">How pick-up matching works</a></li><li class=""><a href="#gameweeks">Gameweeks and the Matchday card</a></li><li class=""><a href="#lineup">The lineup rule</a></li><li class="sub"><a href="#qualifying">What counts as a qualifying buy</a></li><li class="sub"><a href="#matchday-card">What the Matchday card shows</a></li><li class=""><a href="#returns">Member return and the club score</a></li><li class=""><a href="#fixtures">Fixtures</a></li><li class="sub"><a href="#pairing">Pairing</a></li><li class="sub"><a href="#order">Who takes the points, in order</a></li><li class="sub"><a href="#points">Points</a></li><li class=""><a href="#callups">Nudges (call-ups)</a></li><li class=""><a href="#supporters">Open club rankings</a></li><li class=""><a href="#streak">Payday streak</a></li><li class=""><a href="#caps">Points (Caps)</a></li><li class=""><a href="#scouts">Scouts</a></li><li class=""><a href="#prizes">No prizes tied to returns</a></li><li class=""><a href="#pennant">Founders’ Pennant</a></li></ol></nav>
       
 <h2 id="clubs">Club types<a class="anchor" href="#clubs" aria-label="Link to Club types">#</a></h2>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
@@ -79,7 +79,7 @@
 <ul>
   <li>Matching starts inside your country, widens to your region after 24 hours in the queue, and to the whole world after 48 hours.</li>
   <li>Clubs get a region name and a generated crest. A club never shows a member&rsquo;s country, and the queue keeps only a salted hash of it, deleted once you are matched.</li>
-  <li>Two wallets funded by the same first sender are never put in the same club.</li>
+  <li>Two wallets with the same first USDC or WETH sender are never put in the same club.</li>
   <li>You can opt out of matching at any time.</li>
 </ul>
 
@@ -133,6 +133,13 @@
 <p>A fixture is a weekly pairing. Fixtures start in GW1 (Mon Nov 30 2026). Each week, private and pick-up clubs that have at least three members when the pairs are made are paired with a club of a similar size. 3 points if more of your club played than theirs. Turnout is the share of a club&rsquo;s members who bought $5 or more through Tropa Club that week. It is for bragging rights only: no prize depends on it, and returns decide nothing. Open clubs are never paired.</p>
 <h3 id="pairing">Pairing<a class="anchor" href="#pairing" aria-label="Link to Pairing">#</a></h3>
 <p>Clubs are grouped into size bands of 3 to 5, 6 to 10, 11 to 20 and 21 or more members. Within a band the pairing is a shuffle seeded by the gameweek and the band, so it is reproducible. If a band has an odd club, it moves up into the next band. The last club left gets a bye.</p>
+<h3 id="order">Who takes the points, in order<a class="anchor" href="#order" aria-label="Link to Who takes the points, in order">#</a></h3>
+<ol>
+  <li>More of your club played: the share of members who bought $5 or more that week. The club with the higher share takes 3 points.</li>
+  <li>Within 1 percentage point: the club with more members still holding last week's buy at day 7 takes the 3 points.</li>
+  <li>Still level: 1 point each.</li>
+</ol>
+<p>Any club where 80% or more of members bought also gets 1 bonus point. Returns decide nothing.</p>
 <h3 id="points">Points<a class="anchor" href="#points" aria-label="Link to Points">#</a></h3>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
   <thead><tr><th>Result</th><th class="num">Points</th></tr></thead>
@@ -194,7 +201,7 @@
 <ul>
   <li><strong>First link counts.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
   <li><strong>Only real buys count.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at $5 or more of that token on day 7. Sign-ups and joins earn nothing. (This $5 line is not the $10 real-fan line.)</li>
-  <li><strong>No credit for wallets you funded.</strong> No credit when the friend was funded by the scout, or both share a first funder (the first USDC or WETH sender in the 30 days before the check).</li>
+  <li><strong>No credit for wallets you funded.</strong> No credit for a friend funded with USDC or WETH from the scout's wallet, or sharing a first USDC or WETH sender with the scout or with another of the scout's credited friends. The first sender is the first address that sent the wallet USDC or WETH in the 30 days before the check; exchange and bridge wallets are ignored.</li>
   <li><strong>Limit.</strong> At most 20 credits per scout per gameweek, counted in the gameweek of the friend&rsquo;s first buy.</li>
   <li><strong>Stamps.</strong> A Scout stamp on the ticket at 1 credited friend, a Captain&rsquo;s armband at 3. The Top scouts table ranks scouts by credited friends who still hold $5 or more.</li>
   <li><strong>First 1,000 stamp.</strong> The first 1000 wallets whose first verified buy was still held at $5 or more at D+7 get a &ldquo;First 1,000&rdquo; stamp on their ticket. It is separate from the Founders&rsquo; Pennant crest below.</li>
@@ -214,7 +221,7 @@
 
       <nav class="pager" aria-label="Previous and next page"><a class="prev" href="buying-and-safety.html" rel="prev"><small>Previous</small><strong>Buying and safety</strong></a><a class="next" href="retention-evidence.html" rel="next"><small>Next</small><strong>Retention evidence</strong></a></nav>
     </article>
-    <aside class="toc-side" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#clubs">Club types</a></li><li class="sub"><a href="#pickup">How pick-up matching works</a></li><li class=""><a href="#gameweeks">Gameweeks and the Matchday card</a></li><li class=""><a href="#lineup">The lineup rule</a></li><li class="sub"><a href="#qualifying">What counts as a qualifying buy</a></li><li class="sub"><a href="#matchday-card">What the Matchday card shows</a></li><li class=""><a href="#returns">Member return and the club score</a></li><li class=""><a href="#fixtures">Fixtures</a></li><li class="sub"><a href="#pairing">Pairing</a></li><li class="sub"><a href="#points">Points</a></li><li class=""><a href="#callups">Nudges (call-ups)</a></li><li class=""><a href="#supporters">Open club rankings</a></li><li class=""><a href="#streak">Payday streak</a></li><li class=""><a href="#caps">Points (Caps)</a></li><li class=""><a href="#scouts">Scouts</a></li><li class=""><a href="#prizes">No prizes tied to returns</a></li><li class=""><a href="#pennant">Founders’ Pennant</a></li></ol></aside>
+    <aside class="toc-side" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#clubs">Club types</a></li><li class="sub"><a href="#pickup">How pick-up matching works</a></li><li class=""><a href="#gameweeks">Gameweeks and the Matchday card</a></li><li class=""><a href="#lineup">The lineup rule</a></li><li class="sub"><a href="#qualifying">What counts as a qualifying buy</a></li><li class="sub"><a href="#matchday-card">What the Matchday card shows</a></li><li class=""><a href="#returns">Member return and the club score</a></li><li class=""><a href="#fixtures">Fixtures</a></li><li class="sub"><a href="#pairing">Pairing</a></li><li class="sub"><a href="#order">Who takes the points, in order</a></li><li class="sub"><a href="#points">Points</a></li><li class=""><a href="#callups">Nudges (call-ups)</a></li><li class=""><a href="#supporters">Open club rankings</a></li><li class=""><a href="#streak">Payday streak</a></li><li class=""><a href="#caps">Points (Caps)</a></li><li class=""><a href="#scouts">Scouts</a></li><li class=""><a href="#prizes">No prizes tied to returns</a></li><li class=""><a href="#pennant">Founders’ Pennant</a></li></ol></aside>
   </main>
 </div>
 <footer class="site-footer">
@@ -239,7 +246,7 @@
     </div>
     <div class="footer-fine">
       <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. A ground such as the &ldquo;NVIDIA ground&rdquo; is a drawing of a token&rsquo;s holders. Tropa Club is not affiliated with or endorsed by the companies.</p>
-      <p>Buying: not available to US persons or in sanctioned regions. &copy; 2026 Tropa Club.</p>
+      <p>Buying, clubs and call-ups aren't available to US persons or in sanctioned regions. Checking a wallet works everywhere. &copy; 2026 Tropa Club.</p>
     </div>
   </div>
 </footer>

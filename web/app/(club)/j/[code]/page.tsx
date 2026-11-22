@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { tryClubs } from '@/lib/server/clubs';
 import { boardNames } from '@/lib/server/honours';
 import { REGION_LINE, SCOUT_COPY } from '@/lib/site';
@@ -9,20 +10,29 @@ export const metadata: Metadata = { title: 'You are invited to Tropa Club', desc
 
 export default async function ScoutInvitePage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = await params;
-  const code = decodeURIComponent(raw).trim().toLowerCase();
-  const scout = /^[0-9a-z]{6,12}$/.test(code) ? await tryClubs((svc) => svc.scoutOfCode(code), 4000) : null;
+  let code = '';
+  try {
+    code = decodeURIComponent(raw).trim().toLowerCase();
+  } catch {
+    notFound();
+  }
+  if (!/^[0-9a-z]{6,12}$/.test(code)) notFound();
+  // `found` is null only when the clubs service could not answer; { scout: null } means no such code.
+  const found = await tryClubs(async (svc) => ({ scout: await svc.scoutOfCode(code) }), 4000);
+  if (found && !found.scout) notFound();
 
-  if (!scout) {
+  if (!found) {
     return (
       <main id="main">
         <section className="wrap page-head empty">
-          <h1>This invite link isn&rsquo;t valid</h1>
-          <p className="lede">The link may be mistyped or cut short. Ask your friend to send it again, or have a look around: clubs are free to join.</p>
+          <h1>This invite link can&rsquo;t be checked just now</h1>
+          <p className="lede">The clubs list is not answering for a moment, so we can&rsquo;t tell who sent this link. Nothing is lost: open it again in a minute and it will work.</p>
           <p className="closing-links"><Link className="btn" href="/clubs">All about clubs</Link></p>
         </section>
       </main>
     );
   }
+  const scout = found.scout!;
   const name = (await boardNames([scout], 2500)).get(scout)!;
   return (
     <main id="main">
@@ -39,7 +49,7 @@ export default async function ScoutInvitePage({ params }: { params: Promise<{ co
         <ul className="ticks">
           <li>{SCOUT_COPY}</li>
           <li>Connecting shares only your wallet address. One free signature proves it is yours. It moves no funds.</li>
-          <li>Buying: {REGION_LINE}</li>
+          <li>{REGION_LINE}</li>
         </ul>
       </section>
     </main>

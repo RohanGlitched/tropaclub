@@ -257,7 +257,7 @@ html:has(dialog.smap[open]) {
   min-width: 0;
 }
 .smap-home { grid-area: home; }
-.smap-ground { grid-area: ground; }
+.smap-check { grid-area: ground; }
 .smap-attendance { grid-area: attendance; }
 .smap-clubs { grid-area: clubs; }
 .smap-league { grid-area: league; }

@@ -87,9 +87,15 @@ export default async function TicketPage({ params }: Params) {
   ].slice(0, 6);
   // the preview ticket: the wallet's own ghost seat if it has one, else the biggest ground as an example
   const sample = pick[0]?.token ?? index.data.tokens[0];
-  const crumbs = [{ label: 'Grounds', href: groundPath(index.data.tokens[0].symbol) }, { label: <span className="num">{shortAddr(address)}</span> }];
   const top = real[0];
   const topToken = top ? bySymbol.get(top.symbol)! : null;
+  // A ticket sits under Stock rankings, inside the wallet's primary ground (its best real seat):
+  // "Stock rankings › NVIDIA ground › 0xfdcd…4689". With no real seat: "Stock rankings › 0xfdcd…4689".
+  const crumbs = [
+    { label: 'Stock rankings', href: '/attendance' },
+    ...(topToken ? [{ label: groundName(topToken.name, topToken.symbol), href: groundPath(topToken.symbol) }] : []),
+    { label: <span className="num">{shortAddr(address)}</span> },
+  ];
   const [neighbours, played, honours, viewer] = await Promise.all([
     top && topToken ? getNeighbours(top.symbol, top.rank!) : null,
     real.length ? playedStamps(address) : null,
@@ -132,18 +138,10 @@ export default async function TicketPage({ params }: Params) {
       />
       {real.length > 0 && topToken ? (
         <>
-          <section className="wrap page-head">
+          <section className="wrap page-head ticket-head">
             <Crumbs trail={crumbs} />
             <h1><span className="num addr">{shortAddr(address)}</span> is a real {real.length === 1 ? `${shortName(topToken.name, topToken.symbol)} holder` : `holder of ${real.length} stock tokens`}</h1>
-            <p className="lede">
-              This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? `${topToken.symbol}` : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders, by how long they&rsquo;ve held, and its best stat. The ticket itself shows no dollar amounts. Like any wallet, its history is public on Base. It is a picture, not an NFT, and has no value. <Link href="/about#method">What “real” means</Link>
-            </p>
-            {honours.caps && (
-              <p className="caps-line">
-                {capsPointsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the points (Caps) table</Link>
-              </p>
-            )}
-            <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
+            <p className="lede ticket-lede">Ranked by time held. <Link href="/about#method">What “real” means</Link></p>
           </section>
           <section className="wrap tickets" id="tickets" aria-label="Tickets">
             {real.map((e, i) => {
@@ -158,6 +156,19 @@ export default async function TicketPage({ params }: Params) {
                     <Link className="btn" href={groundPath(e.symbol)}>See it in the stadium drawing</Link>
                     {i === 0 && <Link className="btn" href={`/statement/${address}`} prefetch={false}>Cost-basis statement</Link>}
                   </div>
+                  {i === 0 && (
+                    <div className="ticket-facts">
+                      {honours.caps && (
+                        <p className="caps-line">
+                          {capsPointsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the points (Caps) table</Link>
+                        </p>
+                      )}
+                      <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
+                      <p className="muted small">
+                        This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? topToken.symbol : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders and its best stat, and no dollar amounts. It is a picture, not an NFT, and has no value. Like any wallet, its history is public on Base.
+                      </p>
+                    </div>
+                  )}
                   {i === 0 && real.length > 1 && <p className="tickets-more">More tickets for this wallet</p>}
                 </div>
               );
@@ -321,7 +332,7 @@ export default async function TicketPage({ params }: Params) {
       <NextStrip
         items={[
           { title: 'Start a club with friends', sub: 'Your group chat, about $10 a week each, from your own wallets', href: '/clubs#start' },
-          { title: 'Club rankings', sub: 'Club scores and weekly rankings', href: '/league' },
+          { title: 'League', sub: 'Club scores and weekly rankings', href: '/league' },
         ]}
       />
     </main>

@@ -49,7 +49,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
         </div>
         <ul className="ticks">
           <li>Connecting shares only your wallet address. One free signature proves it is yours. It moves no funds.</li>
-          <li>Buying: {REGION_LINE}</li>
+          <li>{REGION_LINE}</li>
         </ul>
       </section>
     </main>

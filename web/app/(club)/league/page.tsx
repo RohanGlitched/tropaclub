@@ -14,7 +14,7 @@ import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
 import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
-import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_SHORT, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, STREAK_SHORT, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
+import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_SHORT, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_FUNDER_RULE, SCOUT_RULES, STREAK_SHORT, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
 
 type Tab = 'tables' | 'caps' | 'scouts';
 type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
@@ -40,7 +40,7 @@ export async function generateMetadata({ searchParams }: Search): Promise<Metada
   const t = one((await searchParams).tab);
   if (t === 'caps') return { title: 'Caps: points for buying and holding', description: 'Caps are scoreboard points for buying each week and still holding a week later. Not money, not a token.' };
   if (t === 'scouts') return { title: 'Top referrers (Scouts)', description: 'Members whose referred friends bought through Tropa Club and still held at day 7. No prizes, no cash.' };
-  return { title: 'Club rankings: friend clubs and open clubs', description: 'Friend clubs on Tropa Club are paired each week and collect points, with a bonus for turnout. Open clubs are ranked only on how many members buy. No prize depends on returns.' };
+  return { title: 'League: friend clubs and open clubs', description: 'Friend clubs on Tropa Club are paired each week and collect points, with a bonus for turnout. Open clubs are ranked only on how many members buy. No prize depends on returns.' };
 }
 
 export default async function LeaguePage({ searchParams }: Search) {
@@ -102,8 +102,8 @@ export default async function LeaguePage({ searchParams }: Search) {
       />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'League' }]} />
-        <p className="hero-pitch">The league</p>
-        <h1>Club rankings</h1>
+        <p className="hero-pitch">Club scores and weekly rankings</p>
+        <h1>League</h1>
         <p className="lede">
           Friend clubs (private and <Term id="pickup-club">pick-up clubs</Term>) are paired each week with a club of a similar size and collect points, plus a bonus point whenever 80% or more of members buy. <Term id="stock-club">Open clubs</Term> are ranked only on how many members buy. Nothing here depends on how much money anyone holds: every number is a head count or a percentage.
         </p>
@@ -132,7 +132,7 @@ export default async function LeaguePage({ searchParams }: Search) {
         <section className="wrap section-tight"><p className="notice">The tables could not be loaded just now. Try again in a minute.</p></section>
       ) : season || pre.length ? (
         <section className="wrap section-tight" id="league" aria-label={season ? 'Friend club rankings' : 'Practice week rankings'}>
-          <h2 className="h3 table-title">{season ? 'Friend club rankings' : 'Practice week rankings, by turnout'}<Anchor id="league" label="Club rankings" /></h2>
+          <h2 className="h3 table-title">{season ? 'Friend club rankings' : 'Practice week rankings, by turnout'}<Anchor id="league" label="Friend club rankings" /></h2>
           {season ? <ClubLeagueTable rows={league} /> : <PreseasonTable rows={pre} />}
         </section>
       ) : (
@@ -304,7 +304,7 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
               <li><h3>Your link</h3><p>Every member gets a personal link (tropaclub.xyz/j/ plus a code). Club invites you send carry it too.</p></li>
               <li><h3>First link counts</h3><p>A new wallet that arrives through a link is linked to that member once, and that never changes. You cannot refer yourself.</p></li>
               <li><h3>Only real buys count</h3><p>The friend&rsquo;s first buy through Tropa Club, still held at ${SCOUT_RULES.holdUsd} or more on day 7. Nothing for sign-ups or joins. (This is not the ${REAL_FAN_USD} real-holder line.)</p></li>
-              <li><h3>No credit for wallets you funded</h3><p>No credit when you funded the friend&rsquo;s wallet, or you share a first funder.</p></li>
+              <li><h3>No credit for wallets you funded</h3><p>{SCOUT_FUNDER_RULE}</p></li>
               <li><h3>Badges</h3><p>A Scout stamp on your ticket at {SCOUT_RULES.scoutAt === 1 ? '1 friend who counts' : `${SCOUT_RULES.scoutAt} friends who count`}, a Captain&rsquo;s armband at {SCOUT_RULES.captainAt}. The first {fmtInt(SCOUT_RULES.foundersLimit)} wallets whose first buy is still held on day 7 get the First {fmtInt(SCOUT_RULES.foundersLimit)} stamp.</p></li>
               <li><h3>No prizes</h3><p>{SCOUT_COPY}</p></li>
             </ul>

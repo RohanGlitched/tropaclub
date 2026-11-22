@@ -228,14 +228,14 @@ export default async function StatsPage() {
         <div className="wrap closing-in">
           <h2>Add to the count</h2>
           <p>Every member and every buy on this page comes from someone who chose to join or buy.</p>
-          <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Start a club</Link><Link href="/league">Club rankings</Link></p>
+          <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Start a club</Link><Link href="/league">League</Link></p>
         </div>
       </section>
 
       <NextStrip
         items={[
           { title: 'Stock rankings', sub: 'Real holders of every stock token, ranked', href: '/attendance' },
-          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
+          { title: 'League', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
         ]}
       />
     </main>

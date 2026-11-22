@@ -11,7 +11,8 @@ import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import PageSections from '@/components/nav/PageSections';
 import Anchor from '@/components/nav/Anchor';
-import { dataBaseUrl, getToken } from '@/lib/server/data';
+import { dataBaseUrl, getGroundHistory, getToken } from '@/lib/server/data';
+import GroundHistory from '@/components/GroundHistory';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { buildLayout } from '@/lib/stadium';
@@ -40,6 +41,7 @@ export default async function GroundPage({ params }: Params) {
   const { token, index } = await getToken(decodeURIComponent(symbol));
   if (!token) notFound();
   const { data } = index;
+  const history = index.source === 'live' ? await getGroundHistory(token.symbol) : null;
   const kit = kitFor(token.symbol);
   const club = groundName(token.name, token.symbol);
   const company = shortName(token.name, token.symbol);
@@ -58,6 +60,7 @@ export default async function GroundPage({ params }: Params) {
           sections={[
             { id: 'stadium', label: 'The ground' },
             ...(priced ? [{ id: 'hold', label: 'Become a real holder' }] : []),
+            ...(history ? [{ id: 'history', label: 'Over time' }] : []),
             { id: 'count', label: 'How we count' },
             { id: 'longest', label: 'Longest holders' },
             { id: 'layout', label: 'How it is laid out' },
@@ -78,7 +81,7 @@ export default async function GroundPage({ params }: Params) {
             </div>
           </div>
           <p className="asof">
-            The {fmtInt(token.holdersTotal)} wallets holding {token.symbol}, {company}&rsquo;s <Term id="stock-token">stock token</Term> on Base, drawn as a stadium (a <Term id="ground">ground</Term>). Each dot is one wallet. Bright seats are <Term id="real-fan">real holders</Term>; faint ones hold under $10, only got an airdrop, or are a contract. Counted {fmtDate(data.asOf, true)}, and again every 6 hours.
+            The {fmtInt(token.holdersTotal)} wallets holding {token.symbol}, {company}&rsquo;s <Term id="stock-token">stock token</Term> on Base, drawn as a stadium (a <Term id="ground">ground</Term>). Each dot is one wallet. Bright seats are <Term id="real-fan">real holders</Term>; faint ones hold under $10, only got an airdrop, or are a contract. Counted {fmtDate(data.asOf, true)}, and again about every 6 hours.
           </p>
         </section>
 
@@ -92,11 +95,13 @@ export default async function GroundPage({ params }: Params) {
           <section className="wrap section-tight take-seat" id="hold" aria-label={`Become a real holder of ${token.symbol}`}>
             <div>
               <h2 className="h3">Become a real holder: buy $10 of {token.symbol}<Anchor id="hold" label="Become a real holder" /></h2>
-              <p>You&rsquo;d be about real holder number {fmtInt(token.realFans + 1)} at the next count (every 6 hours). Ranked by how long you&rsquo;ve held, not how much. Buying here is optional: $10 or more of {token.symbol} held in any wallet of your own counts, and no club is needed.</p>
+              <p>You&rsquo;d be about real holder number {fmtInt(token.realFans + 1)} at the next count (about every 6 hours). Ranked by how long you&rsquo;ve held, not how much. Buying here is optional: $10 or more of {token.symbol} held in any wallet of your own counts, and no club is needed.</p>
             </div>
             <BuyCta token={token.address} symbol={token.symbol} state={buyState()} openAt={buyOpenAt()} standalone />
           </section>
         )}
+
+        {history && <GroundHistory history={history} symbol={token.symbol} club={club} />}
 
         <section className="band" id="count">
           <div className="wrap split">

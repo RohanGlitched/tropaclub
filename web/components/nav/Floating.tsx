@@ -53,11 +53,12 @@ function useChromeHidden(): boolean {
   return dialog || keyboard;
 }
 
-const TABS: { label: string; glyph: Glyph; href: (g: string) => string; section: string }[] = [
-  { label: 'Home', glyph: 'home', href: () => '/', section: 'home' },
-  { label: 'Grounds', glyph: 'seat', href: (g) => g, section: 'ground' },
-  { label: 'Clubs', glyph: 'clubs', href: () => '/clubs', section: 'clubs' },
-  { label: 'League', glyph: 'league', href: () => '/league', section: 'league' },
+// `name` is the full name where the tab can only fit a short one ("Rankings" for Stock rankings).
+const TABS: { label: string; name?: string; glyph: Glyph; href: string; section: string }[] = [
+  { label: 'Home', glyph: 'home', href: '/', section: 'home' },
+  { label: 'Rankings', name: 'Stock rankings', glyph: 'seat', href: '/attendance', section: 'attendance' },
+  { label: 'Clubs', glyph: 'clubs', href: '/clubs', section: 'clubs' },
+  { label: 'League', glyph: 'league', href: '/league', section: 'league' },
 ];
 
 // the progress ring is an outline around the solid button, never on top of it
@@ -65,7 +66,7 @@ const R = 25;
 const C = 2 * Math.PI * R;
 
 /** Phones: a fixed bar with the four main destinations and the map. Plus the back-to-top button everywhere. */
-export default function Floating({ ground }: { ground: string }) {
+export default function Floating() {
   const here = sectionOf(usePathname());
   const hidden = useChromeHidden();
   const ring = useRef<SVGCircleElement>(null);
@@ -130,7 +131,7 @@ export default function Floating({ ground }: { ground: string }) {
         <ul>
           {TABS.map((t) => (
             <li key={t.label}>
-              <Link href={t.href(ground)} aria-current={here === t.section ? 'page' : undefined}>
+              <Link href={t.href} aria-current={here === t.section ? 'page' : undefined} aria-label={t.name}>
                 <Icon name={t.glyph} />
                 <span>{t.label}</span>
               </Link>

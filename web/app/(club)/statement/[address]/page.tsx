@@ -64,7 +64,7 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
               <div><dt>Basis unknown</dt><dd>The tokens arrived without a visible payment, such as a transfer from another wallet, including another wallet of your own. Their value is shown, their gain or loss is not.</dd></div>
               <div><dt><Term id="share-equivalent">Share equivalent</Term></dt><dd>How many shares&rsquo; worth the tokens track. A token tracks a share; it is not a share.</dd></div>
               <div><dt>Split</dt><dd>Each token now represents more shares. Your total cost doesn&rsquo;t change.</dd></div>
-              <div><dt>Stock dividend</dt><dd>A small rise in the token&rsquo;s <Term id="multiplier">multiplier</Term>. Shown as income, and as new tokens at that day&rsquo;s value.</dd></div>
+              <div><dt>Stock dividend</dt><dd>A small rise in the token&rsquo;s <Term id="multiplier">multiplier</Term>. Its value shows under Income, never as a cost or proceeds, and the new tokens are kept at that day&rsquo;s value.</dd></div>
               <div><dt>Gain or loss</dt><dd>On what you hold: value now minus what you paid. On what you sold: what you got minus what you paid.</dd></div>
             </dl>
           </div>
@@ -77,7 +77,7 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
             </ul>
             <h3>Another wallet</h3>
             <SeatSearchBox label="See its tickets" button="Check wallet" />
-            <p className="muted small">The CSV download is offered only to the wallet’s owner, after sign-in. <Link href="/about#privacy">Privacy</Link></p>
+            <p className="muted small">The CSV download is offered only to the wallet’s owner, after sign-in. In it, a stock-dividend row carries its value in income_usd; its cost_usd is the cost basis of the new tokens, not money paid. <Link href="/about#privacy">Privacy</Link></p>
           </div>
         </div>
       </section>

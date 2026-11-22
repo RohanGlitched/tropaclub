@@ -50,8 +50,11 @@ export const capsPointsLine = (c: { caps: number; rank: number }) => `${c.caps.t
 export const OPENS = utcDay(LAUNCH_AT);
 /** The moment buying opens, "Tue Nov 24, 14:30 UTC". Where the visitor's own time can be shown, use <OpensAt>. */
 export const OPENS_UTC = utcWhen(LAUNCH_AT);
-/** Who cannot buy, in one line. Used wherever buying or clubs are offered. */
-export const REGION_LINE = 'Not available to US persons or in sanctioned regions.';
+/**
+ * The region rule, the one sentence used everywhere it is stated (footer, buy box, clubs, docs).
+ * The docs build reads the same words from rules.json ({{regionLine}}); test/site-facts.test.ts checks both.
+ */
+export const REGION_LINE = "Buying, clubs and call-ups aren't available to US persons or in sanctioned regions. Checking a wallet works everywhere.";
 /** The product in one line: the footer and page descriptions. */
 export const TAGLINE = 'See who really holds each stock token, and buy about $10 a week with your group chat, each from your own wallet.';
 /** The two halves of the product, as the home page and How it works introduce them. */
@@ -85,7 +88,7 @@ export const STREAK_SHORT: string = rules.streakShort;
 export const WEEKLY_RUN_RULE: string = rules.weeklyRunRule;
 export const REAL_FAN_LINE: string = rules.realFanLine;
 /** The indexer recounts at :17 past 00, 06, 12 and 18 UTC. */
-export const COUNT_EVERY = 'every 6 hours';
+export const COUNT_EVERY = 'about every 6 hours';
 export const X_FOLLOW_URL = 'https://x.com/intent/follow?screen_name=tropaclubxyz';
 
 /** Caps, the season scoreboard (clubs/src/caps.ts reads the same values). Cosmetic: no money, no tokens. */
@@ -96,6 +99,8 @@ export const CAPS_COPY: string = rules.caps.copy;
 export const SCOUT_RULES = rules.scouts;
 /** "No prizes, no cash, just your name on the board." */
 export const SCOUT_COPY: string = rules.scouts.copy;
+/** Exactly what the scout funding check looks at (clubs/src/scouts.ts): USDC and WETH senders only. */
+export const SCOUT_FUNDER_RULE: string = rules.scouts.funderRule;
 /** What a scout credit is, in one line. */
 export const SCOUT_COUNTS = `A credit is a friend’s first buy through Tropa Club, made after they arrived through your link, and still held at $${rules.scouts.holdUsd} or more on day 7. Sign-ups and joins earn nothing.`;
 /** A scout's personal invite link. */
@@ -104,6 +109,8 @@ export const scoutUrl = (code: string) => `${SITE_URL}/j/${code}`;
 /** How a weekly fixture is decided, in plain words, as clubs/src/fixtures.ts settles it: by turnout. */
 export const FIXTURE_RULE: string = rules.fixtureRule;
 export const FIXTURE_SHORT: string = rules.fixtureShort;
+/** The fixture rule as an ordered list: who takes the points, then the two tie-breaks. */
+export const FIXTURE_STEPS: { lead: string; steps: string[]; after: string } = rules.fixtureSteps;
 
 export const CHANGELOG: { date: string; text: string }[] = [
   { date: '22 Nov 2026', text: 'Cost-basis statement live for any holder, adjusted for splits and stock dividends.' },

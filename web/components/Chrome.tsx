@@ -8,7 +8,7 @@ import NavHost from './nav/NavHost';
 import HeaderWallet from './nav/HeaderWallet';
 import Floating from './nav/Floating';
 import { fmtDate } from '@/lib/format';
-import { DOCS_URL, REPO_URL, TAGLINE, X_URL } from '@/lib/site';
+import { DOCS_URL, REGION_LINE, REPO_URL, TAGLINE, X_URL } from '@/lib/site';
 import { jumpTokens, type JumpToken } from '@/lib/nav';
 import { getIndex, type Source } from '@/lib/server/data';
 
@@ -29,7 +29,6 @@ export async function SiteHeader({ source, ground = '/ground/NVDAc', end, sample
           <HeaderNav
             links={[
               { label: 'Stock rankings', href: '/attendance', section: 'attendance' },
-              { label: 'Grounds', href: ground, section: 'ground' },
               { label: 'Clubs', href: '/clubs', section: 'clubs' },
               { label: 'League', href: '/league', section: 'league', className: 'nav-wide nav-mid' },
               { label: 'How it works', href: '/about', section: 'about', className: 'nav-wide' },
@@ -69,8 +68,8 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Grounds', href: '/ground/NVDAc' },
       { label: 'Stock rankings', href: '/attendance' },
+      { label: 'Check a wallet', href: '/#find' },
       { label: 'Clubs', href: '/clubs' },
       { label: 'League', href: '/league' },
       { label: 'Stats', href: '/stats' },
@@ -103,7 +102,7 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
   },
 ];
 
-function Footer({ source, asOf, ground }: { source: Source; asOf?: string; block?: number; ground?: string }) {
+function Footer({ source, asOf }: { source: Source; asOf?: string; block?: number; ground?: string }) {
   return (
     <footer className="site-footer">
       <div className="wrap">
@@ -125,7 +124,7 @@ function Footer({ source, asOf, ground }: { source: Source; asOf?: string; block
               <ul>
                 {c.links.map((l) => (
                   <li key={l.label}>
-                    {l.ext ? <a href={l.href} rel="noopener">{l.label}</a> : <Link href={l.label === 'Grounds' && ground ? ground : l.href}>{l.label}</Link>}
+                    {l.ext ? <a href={l.href} rel="noopener">{l.label}</a> : <Link href={l.href}>{l.label}</Link>}
                   </li>
                 ))}
               </ul>
@@ -134,9 +133,9 @@ function Footer({ source, asOf, ground }: { source: Source; asOf?: string; block
         </nav>
         <div className="foot-bar">
           <p className="foot-copy"><Mark size={16} /> <span>© 2026 Tropa Club</span></p>
-          <p>Stock tokens track the share price; they are not shares. Buying through Tropa Club: not available to US persons or in sanctioned regions. Past results don’t predict future results. Nothing here is advice.</p>
+          <p>Stock tokens track the share price; they are not shares. {REGION_LINE} Past results don’t predict future results. Nothing here is advice.</p>
           <p>
-            {asOf ? <>Data as of <time dateTime={asOf}>{fmtDate(asOf, true)}</time>{source === 'mock' ? ' (sample)' : ''}</> : 'Data recounted every 6 hours'}
+            {asOf ? <>Data as of <time dateTime={asOf}>{fmtDate(asOf, true)}</time>{source === 'mock' ? ' (sample)' : ''}</> : 'Data recounted about every 6 hours'}
           </p>
           <p><a href="https://db-ip.com" rel="noopener">IP geolocation by DB-IP</a> (CC BY 4.0)</p>
         </div>
@@ -150,7 +149,7 @@ export function SiteFooter(props: { source: Source; asOf?: string; block?: numbe
   return (
     <>
       <Footer {...props} />
-      <Floating ground={props.ground ?? '/ground/NVDAc'} />
+      <Floating />
     </>
   );
 }

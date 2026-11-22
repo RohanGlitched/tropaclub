@@ -14,7 +14,7 @@
 <ul>
   <li>Matching starts inside your country, widens to your region after 24 hours in the queue, and to the whole world after 48 hours.</li>
   <li>Clubs get a region name and a generated crest. A club never shows a member&rsquo;s country, and the queue keeps only a salted hash of it, deleted once you are matched.</li>
-  <li>Two wallets funded by the same first sender are never put in the same club.</li>
+  <li>Two wallets with the same first USDC or WETH sender are never put in the same club.</li>
   <li>You can opt out of matching at any time.</li>
 </ul>
 
@@ -68,6 +68,13 @@
 <p>A fixture is a weekly pairing. Fixtures start in GW1 (Mon Nov 30 2026). Each week, private and pick-up clubs that have at least three members when the pairs are made are paired with a club of a similar size. {{fixtureShort}} Turnout is the share of a club&rsquo;s members who bought $5 or more through Tropa Club that week. It is for bragging rights only: no prize depends on it, and returns decide nothing. Open clubs are never paired.</p>
 <h3 id="pairing">Pairing</h3>
 <p>Clubs are grouped into size bands of 3 to 5, 6 to 10, 11 to 20 and 21 or more members. Within a band the pairing is a shuffle seeded by the gameweek and the band, so it is reproducible. If a band has an odd club, it moves up into the next band. The last club left gets a bye.</p>
+<h3 id="order">Who takes the points, in order</h3>
+<ol>
+  <li>{{fixtureSteps.steps.0}}</li>
+  <li>{{fixtureSteps.steps.1}}</li>
+  <li>{{fixtureSteps.steps.2}}</li>
+</ol>
+<p>{{fixtureSteps.after}}</p>
 <h3 id="points">Points</h3>
 <table>
   <thead><tr><th>Result</th><th class="num">Points</th></tr></thead>
@@ -129,7 +136,7 @@
 <ul>
   <li><strong>First link counts.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
   <li><strong>Only real buys count.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at ${{scouts.holdUsd}} or more of that token on day 7. Sign-ups and joins earn nothing. (This ${{scouts.holdUsd}} line is not the ${{realFanUsd}} real-fan line.)</li>
-  <li><strong>No credit for wallets you funded.</strong> No credit when the friend was funded by the scout, or both share a first funder (the first USDC or WETH sender in the 30 days before the check).</li>
+  <li><strong>No credit for wallets you funded.</strong> {{scouts.funderRule}} The first sender is the first address that sent the wallet USDC or WETH in the 30 days before the check; exchange and bridge wallets are ignored.</li>
   <li><strong>Limit.</strong> At most {{scouts.creditsPerGw}} credits per scout per gameweek, counted in the gameweek of the friend&rsquo;s first buy.</li>
   <li><strong>Stamps.</strong> A Scout stamp on the ticket at {{scouts.scoutAt}} credited friend, a Captain&rsquo;s armband at {{scouts.captainAt}}. The Top scouts table ranks scouts by credited friends who still hold ${{scouts.holdUsd}} or more.</li>
   <li><strong>First 1,000 stamp.</strong> The first {{scouts.foundersLimit}} wallets whose first verified buy was still held at ${{scouts.holdUsd}} or more at D+7 get a &ldquo;First 1,000&rdquo; stamp on their ticket. It is separate from the Founders&rsquo; Pennant crest below.</li>

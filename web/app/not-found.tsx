@@ -4,6 +4,7 @@ import SeatSearchBox from '@/components/SeatSearchBox';
 import { getIndex } from '@/lib/server/data';
 import { groundPath } from '@/lib/clubs';
 import { Crumbs } from '@/components/nav/Wayfinding';
+import { groundName } from '@/lib/site';
 
 export const metadata = { title: 'Page not found' };
 
@@ -24,7 +25,7 @@ export default async function NotFound() {
           <p className="closing-links">
             <Link href="/">Home</Link>
             <Link href="/attendance">Stock rankings</Link>
-            <Link href={ground}>Grounds</Link>
+            <Link href={ground}>{groundName(data.tokens[0].name, data.tokens[0].symbol)}</Link>
             <Link href="/about">How it works</Link>
           </p>
           <SeatSearchBox label="Or check a wallet" button="Check wallet" />

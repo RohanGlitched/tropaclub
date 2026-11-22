@@ -133,20 +133,21 @@ export default async function AboutPage() {
               <li><h3>Never ranked by size</h3><p>Seats and real-holder numbers use time held. Club rankings use turnout and streaks, never returns and never dollar amounts, so $10 counts the same as $1 million.</p></li>
               <li><h3>No prize depends on returns</h3><p>Fixture points are bragging rights. Nothing of value is ever handed out for a return, and there are no odds or bets.</p></li>
               <li><h3>History doesn&rsquo;t predict the future</h3><p>Every chart with history says it can&rsquo;t predict the future. Nothing here is advice.</p></li>
-              <li><h3>Honest about where buying is offered</h3><p>Buying and clubs: {REGION_LINE} Buying is hidden in the US and its territories. Checking wallets, grounds, tickets and stock rankings stays open everywhere.</p></li>
+              <li><h3>Honest about where buying is offered</h3><p>{REGION_LINE} Grounds, tickets and stock rankings stay open everywhere too.</p></li>
               <li><h3>Public records only</h3><p>Everything shown comes from the public Base chain. No sign-in is needed to look, and lookups are not stored against a wallet.</p></li>
               <li><h3>Attribution in the open</h3><p>From {OPENS}, buys made through Tropa Club carry <Term id="builder-code">Builder Code</Term> <code>{BUILDER_CODE}</code> (a public label Base uses to credit an app), so they can be counted. Founder and test wallets are kept out of every count and listed on the <Link href="/stats">stats page</Link>.</p></li>
             </ul>
 
             <h2 id="privacy">Privacy<Anchor id="privacy" label="Privacy" /></h2>
             <p>
-              Looking is anonymous: no account, no sign-in, and wallet lookups are not stored against you. If you join a club, the link between your wallet and that club is kept on our server so the member list works; other members see your nickname or a shortened address. Signing in sets one cookie that proves the wallet is yours. Your IP address is used once per visit to tell whether you are in the United States, where buying is not offered. If you ask for a pick-up club, a scrambled form of your country is kept only until you are matched; your country itself is never stored with your wallet. IP geolocation by <a href="https://db-ip.com" rel="noopener">DB-IP</a>.
+              Looking is anonymous: no account, no sign-in, and wallet lookups are not stored against you. If you join a club, the link between your wallet and that club is kept on our server so the member list works; other members see your nickname or a shortened address. Signing in sets one cookie that proves the wallet is yours. Your IP address is used once per visit to tell whether you are in the United States or a sanctioned region, where buying is not offered. If you ask for a pick-up club, a scrambled form of your country is kept only until you are matched; your country itself is never stored with your wallet. IP geolocation by <a href="https://db-ip.com" rel="noopener">DB-IP</a>.
             </p>
 
             <h2 id="who">Who builds this<Anchor id="who" label="Who builds this" /></h2>
             <div className="who">
               {BUILDER.name && <p>Tropa Club is built by {BUILDER.name}.</p>}
-              <p>Open source, recounted every 6 hours from public Base data.</p>
+              <p><a href={X_URL} rel="noopener">@tropaclubxyz</a> on X · built for Base&rsquo;s Stocks Maxxing quest</p>
+              <p>Open source, recounted about every 6 hours from public Base data.</p>
               <ul className="who-links">
                 <li><span>Source code</span><a href={REPO_URL} rel="noopener">github.com/RohanGlitched/tropaclub</a></li>
                 <li><span>On X</span><a href={X_URL} rel="noopener">@tropaclubxyz</a></li>

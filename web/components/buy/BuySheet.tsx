@@ -10,6 +10,7 @@ import BuyPaused from './BuyPaused';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useSession } from '@/components/wallet/WalletProvider';
 import { shortAddr } from '@/lib/format';
+import { REGION_LINE } from '@/lib/site';
 
 interface BuyToken { address: string; symbol: string; name: string; buyable: boolean; reason: string | null; referencePrice: boolean; reopenGapRisk: boolean }
 interface Quote {
@@ -379,7 +380,7 @@ export default function BuySheet({ open, onClose, opener, clubId = null, token =
 
         {us ? (
           <div className="buy-body">
-            <p className="notice"><b>Buying isn't available in your region.</b> Not available to US persons or in sanctioned regions. Grounds, tickets and stock rankings stay open to you.</p>
+            <p className="notice"><b>Buying isn't available in your region.</b> {REGION_LINE}</p>
             <button type="button" className="btn" onClick={close}>Close</button>
           </div>
         ) : quote.status === 'paused' && phase === 'form' ? (
@@ -399,7 +400,7 @@ export default function BuySheet({ open, onClose, opener, clubId = null, token =
               <h3>What next</h3>
               <a className="buy-next-row" href={address ? `/ticket/${address.toLowerCase()}` : '/'}>
                 <b>Share your ticket</b>
-                <small>Your ticket, ready to post. A new holding shows on it at the next count, every 6 hours.</small>
+                <small>Your ticket, ready to post. A new holding shows on it at the next count, about every 6 hours.</small>
               </a>
               <a className="buy-next-row" href={clubId ? `/club/${encodeURIComponent(clubId)}#invite` : '/clubs#start'}>
                 <b>{clubId ? 'Invite your group chat' : 'Start a club for your group chat'}</b>
