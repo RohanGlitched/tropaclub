@@ -71,7 +71,7 @@
       {
         "at": "2026-12-04T21:00:00.000Z",
         "title": "Season 1 ends: the snapshot",
-        "text": "At the close on Fri Dec 4 (the end of GW1) the Caps table is snapshotted. Caps that are still being decided then (holding at day 7, friends at day 7, new wallets) are settled from what happened before the snapshot."
+        "text": "At the close on Fri Dec 4 (the end of GW1) the Caps table is snapshotted. Holding at day 7 and credited friends are checked 7 days after each buy, so Season 1 buys made by Dec 4 still add those Caps until Fri Dec 11; provisional new wallets are decided then too. All of it is settled before allocations are published."
       },
       {
         "at": null,
