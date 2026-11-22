@@ -5,12 +5,12 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { KYBER_ROUTER_ADDRESS, poolCandidates, verifyRouterBuy } from '../src/chain/swap';
+import { KYBER_ROUTER_ADDRESS, fillCheck, maxFillDeviation, poolCandidates, verifyRouterBuy } from '../src/chain/swap';
 import { USDC_ADDRESS, type RawLog } from '../src/chain/types';
 import { loadLedger } from '../src/ledger';
 import { StaticPriceSource } from '../src/prices';
 import { MemoryDocStore } from '../src/store/memory';
-import { COL, type BuyDoc, type BuyRejectDoc, type TransferDoc } from '../src/types';
+import { COL, type BuyDoc, type BuyRejectDoc, type PendingBuyDoc, type TransferDoc } from '../src/types';
 import { Clock, ENTRYPOINT, EXECUTOR, FakeChain, POOL, TOK, addr, hash, makeService, swappedLog, transferLog } from './helpers';
 
 const at = (iso: string) => Math.floor(Date.parse(iso) / 1000);
@@ -70,25 +70,66 @@ describe('genuine router buy (real receipt)', () => {
     expect(stats.usdRouted).toBeCloseTo(58.12, 2);
   });
 
-  it('is refused when the fill is more than 3% from the mark at that block', async () => {
-    const { store, chain, svc, t } = setup({ markToken: genuine.token, mark: 140 });
-    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
-    chain.pools.add(genuine.pool);
-    chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
-    expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR' })).toMatchObject({ ok: false, reason: 'price_off_mark' });
+  // genuine fill: 58.117933 USDC for 0.44436138 SPCXc = $130.79 a token
+  const record = async (o: { mark: number; t: number }) => {
+    const env = setup({ markToken: genuine.token, mark: o.mark, t: o.t });
+    env.svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    env.chain.pools.add(genuine.pool);
+    env.chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: o.t });
+    return { ...env, r: await env.svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR' }) };
+  };
+  const SESSION = at('2026-11-24T15:00:00Z'); // Tue 10:00 ET, market open
+  const WEEKEND = at('2026-11-28T15:00:00Z'); // Saturday
+
+  it('counts a fill 6.6% from the mark in market hours, with the mark as its cost basis', async () => {
+    const { r } = await record({ mark: 140, t: SESSION });
+    expect(r).toMatchObject({ ok: true, buy: { priceAtBuy: 140, verified: true } });
+  });
+
+  it('refuses a fill more than 10% from the mark in market hours, and logs why', async () => {
+    const { r, store } = await record({ mark: 150, t: SESSION });
+    expect(r).toMatchObject({ ok: false, reason: 'price_off_mark' });
     const rej = await store.get<BuyRejectDoc>(COL.buyRejects, genuine.txHash);
     expect(rej).toMatchObject({ reason: 'price_off_mark', attributed: true });
-    expect(rej!.detail).toMatch(/-6\.6%/);
+    expect(rej!.detail).toMatch(/-12\.8%, limit 10%/);
     expect(await store.query<BuyDoc>(COL.buys)).toEqual([]);
   });
 
-  it('asks to try again, and records nothing, when no mark is available', async () => {
+  it('allows up to 20% outside market hours, when pools drift from the last close', async () => {
+    expect((await record({ mark: 150, t: WEEKEND })).r).toMatchObject({ ok: true, buy: { priceAtBuy: 150 } });
+    const far = await record({ mark: 170, t: WEEKEND });
+    expect(far.r).toMatchObject({ ok: false, reason: 'price_off_mark' });
+    expect((await far.store.get<BuyRejectDoc>(COL.buyRejects, genuine.txHash))!.detail).toMatch(/limit 20%/);
+  });
+
+  it('keeps a buy with no usable mark, and the sweep records it once a mark exists', async () => {
     const { store, chain, svc, t } = setup({ markToken: TOK.TSLAc });
     svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
     chain.pools.add(genuine.pool);
     chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
     expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR' })).toMatchObject({ ok: false, reason: 'cannot_verify_now', retryable: true });
     expect(await store.query<BuyDoc>(COL.buys)).toEqual([]);
+    expect(await store.get<PendingBuyDoc>(COL.pendingBuys, genuine.txHash)).toMatchObject({ wallet: BUYER, attempts: 1, why: 'no usable mark for that block' });
+    // a sweep with still no mark leaves it waiting
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 1, recorded: 0 });
+    expect((await store.get<PendingBuyDoc>(COL.pendingBuys, genuine.txHash))!.attempts).toBe(2);
+    // the mark arrives: the next sweep records the buy and forgets the pending entry
+    (svc.ctx.prices as StaticPriceSource).add(genuine.token, t - 600, 131);
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 1, recorded: 1 });
+    expect(await store.get<BuyDoc>(COL.buys, genuine.txHash)).toMatchObject({ source: 'sweep', verified: true, priceAtBuy: 131 });
+    expect(await store.get(COL.pendingBuys, genuine.txHash)).toBeNull();
+  });
+
+  it('applies 10% inside NYSE regular hours and 20% outside them', () => {
+    expect(maxFillDeviation(at('2026-11-24T14:30:00Z'))).toBe(0.1); // 09:30 ET open
+    expect(maxFillDeviation(at('2026-11-24T14:29:59Z'))).toBe(0.2);
+    expect(maxFillDeviation(at('2026-11-24T20:59:59Z'))).toBe(0.1);
+    expect(maxFillDeviation(at('2026-11-24T21:00:00Z'))).toBe(0.2); // 16:00 ET close
+    expect(maxFillDeviation(at('2026-11-26T16:00:00Z'))).toBe(0.2); // Thanksgiving, closed
+    expect(maxFillDeviation(at('2026-11-27T17:30:00Z'))).toBe(0.1); // half day, 12:30 ET
+    expect(maxFillDeviation(at('2026-11-27T18:30:00Z'))).toBe(0.2); // half day, after 13:00 ET
+    expect(fillCheck(130, 131, at('2026-11-24T15:00:00Z'))).toMatchObject({ ok: true, limit: 0.1 });
+    expect(fillCheck(100, 131, at('2026-11-28T15:00:00Z')).ok).toBe(false);
   });
 });
 
@@ -164,7 +205,7 @@ describe('forged buys', () => {
     expect(await svc.recordBuy({ txHash: h, wallet: B, clubId: null, country: 'BR' })).toMatchObject({ ok: false, reason: 'price_off_mark' });
     const rej = await store.get<BuyRejectDoc>(COL.buyRejects, h);
     expect(rej).toMatchObject({ reason: 'price_off_mark', attributed: true });
-    expect(rej!.detail).toMatch(/fill \$5\.0000 vs static mark \$131\.0000 \(-96\.2%\)/);
+    expect(rej!.detail).toMatch(/fill \$5\.0000 vs static mark \$131\.0000 \(-96\.2%, limit 10%\)/);
     expect((await svc.getStats()).attributedTx).toBe(0);
   });
 

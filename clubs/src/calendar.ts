@@ -74,6 +74,12 @@ export function closeOf(date: string): number {
 }
 export const openOf = (date: string) => etToUtc(date, 9, 30);
 
+/** Is this moment inside NYSE regular hours (09:30 to the close, ET, on a trading day)? */
+export function inRegularSession(tSec: number): boolean {
+  const date = etDate(tSec);
+  return isTradingDay(date) && tSec >= openOf(date) && tSec < closeOf(date);
+}
+
 export interface Matchday {
   date: string; // ET date
   closeAt: number;

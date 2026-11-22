@@ -31,6 +31,7 @@ export const COL = {
   matchQueue: 'matchQueue', // server only: pick-up opt-ins (salted country hash)
   geoLog: 'geoLog', // server only: buy-gate decisions (no wallet, no IP)
   syncState: 'syncState', // server only: sweep cursors
+  pendingBuys: 'pendingBuys', // server only: real buys that could not be checked yet; retried by the sweep
 } as const;
 export type CollectionName = (typeof COL)[keyof typeof COL];
 
@@ -162,6 +163,17 @@ export interface BuyRejectDoc {
   at: number;
   /** What exactly failed, for whoever reads the log. */
   detail?: string;
+}
+
+/** A buy that went through on chain but could not be checked yet (no usable mark, for one). */
+export interface PendingBuyDoc {
+  txHash: string;
+  wallet: string;
+  clubId: string | null;
+  firstAt: number;
+  lastAt: number;
+  attempts: number;
+  why: string;
 }
 
 export interface TransferDoc {

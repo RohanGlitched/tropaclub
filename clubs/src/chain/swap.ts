@@ -23,14 +23,15 @@
  *
  * The router logs Swapped for any executor a caller names, including one that hands over the
  * caller's own tokens at a made-up price. That is why 4 and 5 pin where the stock came from, and
- * why the caller also compares the fill with the mark at that block (buys.ts): the receipt proves
- * the shape of the trade, the mark proves the price.
+ * why the caller also compares the fill with the mark at that block (fillCheck, used by buys.ts):
+ * the receipt proves the shape of the trade, the mark bounds the price.
  *
  * Checked against real router buys on Base (Nov 2026): in 71 of 71, USDC went buyer -> executor,
  * the executor paid the pool, the pool paid the executor, and the executor paid the buyer.
  */
 import { TRANSFER_TOPIC, USDC_ADDRESS, WETH_ADDRESS, isStockToken, type RawLog } from './types';
 import { type ParsedTransfer, parseTransfers } from './receipt';
+import { inRegularSession } from '../calendar';
 
 /** KyberSwap MetaAggregationRouterV2 on Base: the only contract a Tropa Club buy is sent to. */
 export const KYBER_ROUTER_ADDRESS = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5';
@@ -44,10 +45,23 @@ export const KYBER_SWAPPED_TOPIC = '0xd6d4f5681c246c9f42c203e287975af1601f8df803
 /** KyberSwap's stand-in address for native ETH. */
 export const NATIVE_ETH_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
-/** A fill further than this from the mark at its block is not a market buy. */
-export const MAX_FILL_DEVIATION = 0.03;
+/**
+ * How far a fill may be from the mark at its block. The cost basis is always the mark, so an
+ * off-mark fill cannot inflate a return; the limit is only there to turn away a pool that someone
+ * pushed far off the market. Outside NYSE regular hours the Chainlink mark is the last close and
+ * pools drift from it (9% has been seen on MSTRc), so the limit is wider then.
+ */
+export const MAX_FILL_DEVIATION_SESSION = 0.1;
+export const MAX_FILL_DEVIATION_OFF_HOURS = 0.2;
+export const maxFillDeviation = (tSec: number) => (inRegularSession(tSec) ? MAX_FILL_DEVIATION_SESSION : MAX_FILL_DEVIATION_OFF_HOURS);
 /** How far a fill is from the mark, as a fraction (0.02 = the buyer paid 2% over the mark). */
 export const fillDeviation = (fillUsdPerToken: number, markUsdPerToken: number) => fillUsdPerToken / markUsdPerToken - 1;
+/** The fill rule, shared by recordBuy and the quote shown before signing. */
+export function fillCheck(fillUsdPerToken: number, markUsdPerToken: number, tSec: number): { ok: boolean; off: number; limit: number } {
+  const off = fillDeviation(fillUsdPerToken, markUsdPerToken);
+  const limit = maxFillDeviation(tSec);
+  return { ok: Number.isFinite(off) && Math.abs(off) <= limit, off, limit };
+}
 
 export interface RouterSwap {
   sender: string;

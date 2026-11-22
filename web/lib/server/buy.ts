@@ -16,7 +16,9 @@ import {
   isBuyable,
   type BuyableResult,
 } from '@tropaclub/buy';
+import { fillDeviation, inRegularSession, maxFillDeviation } from '@tropaclub/clubs';
 import { baseClient, within } from './chain';
+import { getClubs } from './clubs';
 import { getIndex } from './data';
 
 export type Pay = 'USDC' | 'ETH';
@@ -141,6 +143,31 @@ function friendly(e: unknown): string {
   return 'The quote could not be made just now. Try again.';
 }
 
+/**
+ * The rule recordBuy applies to the recorded fill (fill within 10% of the mark in NYSE regular hours,
+ * 20% outside them), run on the quote before anything is signed: the quoted amount and the minimum
+ * the router enforces must both pass, at the stricter limit of now and two minutes from now. Returns
+ * the sentence to show when the buy would not count, or null.
+ * Without a mark nothing is refused here: recordBuy keeps such a buy and the sweep checks it later.
+ */
+export async function clubCountCheck(token: string, usd: number, outs: bigint[], nowSec = Math.floor(Date.now() / 1000)): Promise<string | null> {
+  const prices = (await getClubs().catch(() => null))?.ctx.prices;
+  if (!prices) return null;
+  const mark = await within(prices.markAt(token.toLowerCase(), nowSec), 8000, 'market price').catch(() => null);
+  if (!mark || !(mark.usd > 0)) return null;
+  const limit = Math.min(maxFillDeviation(nowSec), maxFillDeviation(nowSec + 120));
+  let worst = 0;
+  for (const raw of outs) {
+    if (raw <= 0n) continue;
+    // USD per whole raw token (raw / 1e8), the unit of the mark: the same sum recordBuy does
+    const off = fillDeviation(usd / (Number(raw) / 1e8), mark.usd);
+    if (Math.abs(off) > Math.abs(worst)) worst = off;
+  }
+  if (Math.abs(worst) <= limit) return null;
+  const pct = Math.round(Math.abs(worst) * 100);
+  return `The pool price is ${pct}% away from the market price right now, so this buy wouldn't count for your club. ${inRegularSession(nowSec) ? 'Try again in a few minutes.' : 'Try again during market hours.'}`;
+}
+
 async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: string }): Promise<QuoteOk | QuoteHold> {
   const client = baseClient();
   const token = p.token as Address;
@@ -168,6 +195,9 @@ async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: strin
   const guard = await guardMinOut({ token, quotedOut: quote.amountOut, sellToken, sellAmount }, { client, info: ok.info, mark: ok.mark });
   if (!guard.unitCheck.ok) return hold('The price check did not pass, so the buy is on hold.');
   if (!guard.quoteOk) return hold('The best price on offer is outside the 1.5% guard right now. Try again in a minute.');
+  // nobody signs a buy their club would then refuse to count
+  const wouldNotCount = await clubCountCheck(p.token, p.usd, [quote.amountOut, guard.amountOutMin]);
+  if (wouldNotCount) return hold(wouldNotCount);
   const swap = await buildSwap(quote, { amountOutMin: guard.amountOutMin });
   const allowance = p.pay === 'USDC' ? await client.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [taker, swap.to] }) : 0n;
   const calls = buildBuyCalls({ quote, swap, currentAllowance: allowance, sellSymbol: p.pay, buySymbol: ok.symbol });
