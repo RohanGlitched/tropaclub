@@ -41,6 +41,18 @@ export default function NavHost({ tokens, ground, wallet }: { tokens: JumpToken[
     if (wallet !== undefined) setKnownWallet(wallet);
   }, [wallet]);
 
+  // Fetch both panels once the page is idle, so the first Ctrl+K opens at once and no typed
+  // character is lost while the code arrives. They are small, and only fetched, not run.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    const go = () => {
+      void loaders.jump().catch(() => {});
+      void loaders.map().catch(() => {});
+    };
+    if (w.requestIdleCallback) w.requestIdleCallback(go, { timeout: 4000 });
+    else setTimeout(go, 2500);
+  }, []);
+
   useEffect(() => {
     if (!panel || mods[panel]) return;
     let live = true;
