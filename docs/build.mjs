@@ -14,7 +14,14 @@ const MAIN_SITE = 'https://tropaclub.xyz';
 const X_URL = 'https://x.com/tropaclubxyz';
 // One set of rule values, shared with the web copy (web/lib/site.ts reads the same file).
 const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'web', 'lib', 'rules.json'), 'utf8'));
-const fillRules = (t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in RULES ? String(RULES[k]) : m));
+// {{playUsd}}, nested keys such as {{caps.played}}, and a fixed number of decimals: {{caps.played:2}} -> 1.00.
+// An unknown key fails the build, so a renamed rule cannot slip through as a literal placeholder.
+const fillRules = (t) =>
+  t.replace(/\{\{([\w.]+)(?::(\d))?\}\}/g, (m, k, dp) => {
+    const v = k.split('.').reduce((o, p) => (o != null && typeof o === 'object' && p in o ? o[p] : undefined), RULES);
+    if (v === undefined || (typeof v === 'object' && v !== null)) throw new Error(`rules.json has no value for ${m}`);
+    return dp != null && typeof v === 'number' ? v.toFixed(Number(dp)) : String(v);
+  });
 
 const NAV = [
   { group: 'Get started', items: ['index'] },

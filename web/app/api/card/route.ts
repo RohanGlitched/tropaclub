@@ -2,6 +2,7 @@ import { fail, ok, rateLimited, readJson } from '@/lib/server/api';
 import { getIndex, getWallet } from '@/lib/server/data';
 import { ensureCard, tryDraw } from '@/lib/server/cardmake';
 import { playedStamps } from '@/lib/server/clubs';
+import { walletHonours } from '@/lib/server/honours';
 import { isAddress } from '@/lib/format';
 
 export const runtime = 'nodejs';
@@ -26,8 +27,8 @@ export async function POST(req: Request) {
   const release = tryDraw();
   if (!release) return fail(503, 'Pictures are busy just now. Try Share again in a moment.');
   try {
-    const played = await playedStamps(address);
-    const input = { address, entry, token, asOf: index.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge };
+    const [played, honours] = await Promise.all([playedStamps(address), walletHonours(address)]);
+    const input = { address, entry, token, asOf: index.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge, scout: honours.scout, founders: honours.founders };
     const [landscape, portrait] = await Promise.all([ensureCard(input, 'landscape'), ensureCard(input, 'portrait')]);
     return ok({ landscape, portrait });
   } catch (e) {

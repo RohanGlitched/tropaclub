@@ -6,5 +6,21 @@
   "payWith": "USDC or ETH",
   "streakRule": "One qualifying buy of $5 or more in any rolling 14 days keeps the payday streak alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
   "streakShort": "One buy of $5 or more in any rolling 14 days keeps a payday streak alive, with one free skip a calendar month (a gap of up to 28 days).",
-  "realFanLine": "A real fan holds $10 or more of the token. That is a different line from the $5 play rule."
+  "realFanLine": "A real fan holds $10 or more of the token. That is a different line from the $5 play rule.",
+  "caps": {
+    "played": 1,
+    "heldD7": 0.5,
+    "scout": 0.25,
+    "scoutPerGw": 4,
+    "perGw": 2.5,
+    "copy": "Caps are a scoreboard, not a currency. They can't be bought, sold, transferred or redeemed. Caps are a scoreboard, not a promise: anything we launch later will be announced separately."
+  },
+  "scouts": {
+    "holdUsd": 5,
+    "creditsPerGw": 20,
+    "scoutAt": 1,
+    "captainAt": 3,
+    "foundersLimit": 1000,
+    "copy": "No prizes, no cash, just your name on the board."
+  }
 }

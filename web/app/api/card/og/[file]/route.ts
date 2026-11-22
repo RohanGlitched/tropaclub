@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { clientIp, rateLimited } from '@/lib/server/api';
 import { getIndex, getWallet } from '@/lib/server/data';
-import { ensureCard, ensureHomeCard, tryDraw } from '@/lib/server/cardmake';
-import { cardName, findCard, storedCardUrl } from '@/lib/server/cardstore';
+import { ensureCard, ensureHomeCard, honoursTagOf, nameOf, tryDraw } from '@/lib/server/cardmake';
+import { findCard, storedCardUrl } from '@/lib/server/cardstore';
+import { walletHonours } from '@/lib/server/honours';
 import { playedStamps } from '@/lib/server/clubs';
 import { isAddress } from '@/lib/format';
 import { SITE_URL } from '@/lib/site';
@@ -57,12 +58,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ file: string }>
   const top = (wallet?.tokens ?? []).filter((e) => e.rank != null && bySymbol.has(e.symbol)).sort((a, b) => a.rank! / Math.max(1, a.of) - b.rank! / Math.max(1, b.of))[0];
   if (!top) return fallback();
   const token = bySymbol.get(top.symbol)!;
-  const played = await playedStamps(address, 1500);
+  const [played, honours] = await Promise.all([playedStamps(address, 1500), walletHonours(address)]);
   const stamp = played.byToken.get(token.address.toLowerCase()) ?? null;
-  const v = ticketOgVersion(index.asOf, stamp);
+  const input = { address, entry: top, token, asOf: index.asOf, stamp, badge: played.badge, scout: honours.scout, founders: honours.founders };
+  const v = ticketOgVersion(index.asOf, stamp, honoursTagOf(input));
   if (asked !== v) return go(`/api/card/og/${address}.jpg?v=${encodeURIComponent(v)}`, SHORT);
-  const input = { address, entry: top, token, asOf: index.asOf, stamp, badge: played.badge };
-  const name = cardName(address, token.symbol, 'landscape', stamp);
+  const name = nameOf(input, 'landscape');
 
   // a recent stored copy: no drawing at all
   const fresh = await findCard(name);

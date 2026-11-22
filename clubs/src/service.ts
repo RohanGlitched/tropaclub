@@ -15,6 +15,8 @@ import * as pickup from './pickup';
 import * as scoring from './scoring';
 import * as callups from './callups';
 import * as stats from './stats';
+import * as scouts from './scouts';
+import * as caps from './caps';
 import * as eas from './eas';
 import { buildStatement, statementCsv, type Statement } from './statement';
 import { paydayStreak } from './streaks';
@@ -171,6 +173,18 @@ export function createClubsService(deps: ClubsDeps) {
     // buys
     recordBuy: (i: Parameters<typeof buys.recordBuy>[1]) => buys.recordBuy(ctx, i),
     recordQuote: (q: Parameters<typeof buys.recordQuote>[1]) => buys.recordQuote(ctx, q),
+    // scouts and Caps (cosmetic: no prizes, no cash)
+    scoutCode: (wallet: string) => scouts.scoutCode(ctx, wallet),
+    scoutOfCode: (code: string) => scouts.scoutOfCode(ctx, code),
+    recordReferral: (i: Parameters<typeof scouts.recordReferral>[1]) => scouts.recordReferral(ctx, i),
+    decideScoutCredits: () => scouts.decideScoutCredits(ctx),
+    scoutTable: () => scouts.scoutTable(ctx),
+    scoutBadgeOf: (wallet: string) => scouts.scoutBadgeOf(ctx, wallet),
+    refreshFoundersPennants: () => scouts.refreshFoundersPennants(ctx),
+    hasFoundersPennant: async (wallet: string) => ((await ctx.store.get<{ wallets: string[] }>(scouts.SCOUT_COL.boards, 'founders'))?.wallets ?? []).includes(normAddr(wallet)),
+    awardCaps: (o?: Parameters<typeof caps.awardCaps>[1]) => caps.awardCaps(ctx, o),
+    capsTable: () => caps.capsTable(ctx),
+    capsOf: (wallet: string) => caps.capsOf(ctx, wallet),
     sweepTransfers: (o?: Parameters<typeof buys.sweepTransfers>[1]) => buys.sweepTransfers(ctx, o),
     // pick-up clubs
     optInPickup: (i: Parameters<typeof pickup.optInPickup>[1]) => pickup.optInPickup(ctx, i),
@@ -242,7 +256,10 @@ export async function createProductionClubs(opts: { indexUrl?: string } = {}): P
   const history = hasEs
     ? new hist.EtherscanHistorySource({ ethUsd: (bn) => chain.ethUsd(BigInt(bn)) })
     : new hist.RpcHistorySource(chain, { tokens: [...tokens.keys()] });
-  const funding = hasEs ? new fund.EtherscanFundingResolver() : undefined;
+  // no explorer key: the first USDC/WETH sender in the last 30 days, read from the chain
+  const funding = hasEs
+    ? new fund.EtherscanFundingResolver()
+    : new fund.RpcFundingResolver({ blockNumber: () => chain.blockNumber(), getTransferLogs: chain.getTransferLogs, nonceOf: async (a) => client.getTransactionCount({ address: a as `0x${string}` }) });
   const { indexerPoolCheck } = await import('./chain/pools');
   return createClubsService({ store, chain, prices, history, funding, poolCheck: indexerPoolCheck(), config: { tokens } });
 }

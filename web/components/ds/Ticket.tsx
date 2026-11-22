@@ -52,9 +52,11 @@ interface Props {
   stamp?: string | null;
   /** Payday streak badge, printed under the stamp. */
   badge?: string | null;
+  /** Cosmetic honours of the wallet ("Scout", "Founders’ Pennant"), stamped small under the seat. */
+  honours?: string[];
 }
 
-export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn, preview, stamp, badge }: Props) {
+export default function Ticket({ address, entry, token, asOf, specimen, headingLevel = 2, printIn, preview, stamp, badge, honours }: Props) {
   const kit = kitFor(token.symbol);
   const seat = ticketSeat(address, entry, token);
   const H = `h${headingLevel}` as 'h2' | 'h3';
@@ -86,6 +88,11 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
           <p className="ticket-stamp" aria-label={`${stamp} with Tropa Club${badge ? `, ${badge}` : ''}`}>
             <b>{stamp}</b>
             {badge && <small>{badge}</small>}
+          </p>
+        )}
+        {honours && honours.length > 0 && !preview && (
+          <p className="ticket-honours" aria-label={`Honours: ${honours.join(', ')}`}>
+            {honours.map((h) => <span key={h}>{h}</span>)}
           </p>
         )}
         <p className="ticket-stat">{preview ? 'Yours after one $10 buy, at the next count' : statSentence(entry.bestStat)}</p>

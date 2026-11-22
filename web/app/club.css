@@ -1240,6 +1240,75 @@ abbr.ref {
     font-size: 0.9375rem;
   }
 }
+/* honours (scout badge, Founders' Pennant): small inked stamps in the flow, under the seat */
+.ticket-honours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: -2px 0 0;
+}
+.ticket-honours span {
+  padding: 3px 8px 2px;
+  border: 2px solid var(--pitch);
+  border-radius: 4px;
+  color: #0a6b4a;
+  font: 700 0.6875rem/1.2 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.ticket-honours span:nth-child(2n) {
+  transform: rotate(1.5deg);
+}
+.caps-line {
+  font: 600 1rem var(--display);
+  font-variant-numeric: tabular-nums;
+}
+/* /league board tabs: links, server-rendered */
+.board-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 20px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.board-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ink-2);
+  font: 600 1rem var(--display);
+  text-decoration: none;
+}
+.board-tabs a:hover {
+  color: var(--ink);
+}
+.board-tabs a[aria-current='page'] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.league-table .board-name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font: 600 1.125rem/1.15 var(--display);
+}
+.board-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 20px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+.board-copy {
+  margin-top: 20px;
+  max-width: 68ch;
+}
 .ticket-fan .about {
   font-size: 0.45em;
   font-weight: 600;

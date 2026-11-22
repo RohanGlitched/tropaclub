@@ -30,4 +30,6 @@ export * from './eas';
 export * from './history';
 export * from './statement';
 export * from './runs';
+export * from './scouts';
+export * from './caps';
 export * from './service';

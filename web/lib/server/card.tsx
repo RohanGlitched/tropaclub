@@ -81,6 +81,25 @@ export interface CardInput {
   asOf?: string;
   stamp?: string | null;
   badge?: string | null;
+  /** Scout badge: "Scout" or "Captain's armband". Cosmetic. */
+  scout?: string | null;
+  /** On the Founders' Pennant list. Cosmetic. */
+  founders?: boolean;
+}
+
+const honoursOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [...(i.scout ? [i.scout] : []), ...(i.founders ? ['Founders’ Pennant'] : [])];
+
+/** Honours as small inked stamps in a row, the same ink as the "Played" stamp. */
+function Honours({ items, size }: { items: string[]; size: number }) {
+  return (
+    <div style={{ display: 'flex' }}>
+      {items.map((h, i) => (
+        <div key={h} style={{ display: 'flex', border: `${Math.max(2, Math.round(size / 7))}px solid ${C.pitch}`, color: C.pitch, borderRadius: 5, padding: `${Math.round(size / 3.5)}px ${Math.round(size / 1.8)}px`, marginRight: Math.round(size * 0.7), fontSize: size, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', lineHeight: 1, transform: `rotate(${i % 2 ? 1.5 : -2}deg)` }}>
+          {h}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** The "Played GW0" stamp: an inked box, slightly turned, like a turnstile stamp. */
@@ -123,6 +142,7 @@ function SeatCells({ entry, token, address, big }: CardInput & { big: number }) 
 
 export async function ticketCard(input: CardInput, variant: 'landscape' | 'portrait') {
   const { address, entry, token, asOf, stamp, badge } = input;
+  const honours = honoursOf(input);
   const kit = kitFor(token.symbol);
   const idx = seatIndexFor(address, entry, token);
   const logo = await lockup(C.chalk);
@@ -153,10 +173,11 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
             </div>
             <SeatCells {...input} big={68} />
             <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              {honours.length ? <div style={{ display: 'flex', marginBottom: 14 }}><Honours items={honours} size={18} /></div> : null}
               <div style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
               <div style={{ fontSize: 16, fontWeight: 500, marginTop: 8, opacity: 0.72 }}>{fine}</div>
               {stamp ? (
-                <div style={{ display: 'flex', position: 'absolute', right: 0, top: -262 }}>
+                <div style={{ display: 'flex', position: 'absolute', right: 0, top: honours.length ? -214 : -262 }}>
                   <Stamp stamp={stamp} badge={badge} size={30} />
                 </div>
               ) : null}
@@ -179,6 +200,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
   }
 
   const plan = uri(groundSvg(token.holdersTotal, token.realFans, kit, idx, C.midnight));
+  const planH = honours.length ? 700 : 782;
   return (
     <div style={{ width: 1080, height: 1350, display: 'flex', flexDirection: 'column', background: C.midnight, color: C.chalk, fontFamily: 'BSC', padding: '48px 56px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -188,7 +210,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={plan} width={968} height={782} alt="" />
+        <img src={plan} width={Math.round((968 * planH) / 782)} height={planH} alt="" />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', marginTop: 20, flex: 1 }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, background: C.chalk, color: C.midnight, padding: '26px 34px' }}>
@@ -198,6 +220,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
             <div style={{ fontSize: 58, fontWeight: 700, lineHeight: 1, marginLeft: 18, letterSpacing: -0.6 }}>{clubName(token.name)}</div>
           </div>
           <SeatCells {...input} big={60} />
+          {honours.length ? <div style={{ display: 'flex', margin: '4px 0' }}><Honours items={honours} size={20} /></div> : null}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
             {stamp ? <Stamp stamp={stamp} badge={badge} size={24} /> : null}

@@ -8,14 +8,37 @@ import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
 import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
-import { DOCS_URL, OPENS, RULE_LINE } from '@/lib/site';
+import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
+import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
+import { CAPS_COPY, CAPS_RULES, DOCS_URL, OPENS, PLAY_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'The league: club standings and the Supporters table',
   description: 'Standings for private and pick-up clubs on Tropa Club, and the Supporters table for stock clubs, ranked on turnout and streaks.',
 };
 
-export default async function LeaguePage() {
+type Tab = 'tables' | 'caps' | 'scouts';
+type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
+const TABS: { id: Tab; label: string; href: string }[] = [
+  { id: 'tables', label: 'Club tables', href: '/league' },
+  { id: 'caps', label: 'Caps', href: '/league?tab=caps' },
+  { id: 'scouts', label: 'Top scouts', href: '/league?tab=scouts' },
+];
+
+export default async function LeaguePage({ searchParams }: Search) {
+  const sp = await searchParams;
+  const tab: Tab = one(sp.tab) === 'caps' ? 'caps' : one(sp.tab) === 'scouts' ? 'scouts' : 'tables';
+  const page = Math.max(1, Math.min(10_000, Math.floor(Number(one(sp.page)) || 1)));
+  const tabs = (
+    <nav className="board-tabs" aria-label="League tables">
+      {TABS.map((t) => (
+        <Link key={t.id} href={t.href} prefetch={false} aria-current={t.id === tab ? 'page' : undefined}>{t.label}</Link>
+      ))}
+    </nav>
+  );
+  if (tab !== 'tables') return <BoardPage tab={tab} page={page} tabs={tabs} />;
+
   const [{ data: index }, data] = await Promise.all([
     getIndex(),
     tryClubs(async (svc) => {
@@ -56,6 +79,8 @@ export default async function LeaguePage() {
               : `The season opens ${OPENS} with gameweek 0, a preseason week. Fixtures start the week after.`}
         </p>
       </section>
+
+      <div className="wrap">{tabs}</div>
 
       {!data ? (
         <section className="wrap section-tight"><p className="notice">The tables could not be loaded just now. Try again in a minute.</p></section>
@@ -135,6 +160,83 @@ export default async function LeaguePage() {
           <h2>Put your club on the table</h2>
           <p>Three members and one gameweek is all it takes.</p>
           <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Found a club</Link><Link href="/stats">Stats</Link></p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/** The Caps and Top scouts tabs. Computed per request (the tables are cached for 60 s), top 50 a page. */
+async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: number; tabs: React.ReactNode }) {
+  const caps = tab === 'caps';
+  const all = caps ? await capsBoard() : await scoutsBoard();
+  const total = all?.length ?? 0;
+  const pages = Math.max(1, Math.ceil(total / BOARD_PAGE));
+  const at = Math.min(page, pages);
+  const slice = (all ?? []).slice((at - 1) * BOARD_PAGE, at * BOARD_PAGE);
+  const names = await boardNames(slice.map((r) => r.wallet));
+  const start = (at - 1) * BOARD_PAGE;
+
+  return (
+    <main id="main">
+      <section className="wrap page-head">
+        <h1>{caps ? 'Caps' : 'Top scouts'}</h1>
+        <p className="lede">
+          {caps
+            ? 'The season scoreboard. A cap is an appearance: you earn them for playing a gameweek and for still holding a week later, never for the size of a buy.'
+            : 'Members who brought a friend who became a real fan. Ranked on credited mates who still hold, then on credited mates.'}
+        </p>
+        <p className="asof">Cosmetic only: nothing here is money or a token.</p>
+      </section>
+      <section className="wrap section-tight" aria-label={caps ? 'Caps table' : 'Top scouts table'}>
+        {tabs}
+        {!all ? (
+          <p className="notice">The table could not be loaded just now. Try again in a minute.</p>
+        ) : !total ? (
+          <p className="notice">
+            {caps
+              ? `No Caps yet. The first are awarded once gameweek 0 buys are recorded, from ${OPENS}.`
+              : 'No scout has a credited mate yet. A credit is decided seven days after a friend’s first buy.'}
+          </p>
+        ) : caps ? (
+          <CapsBoard rows={(slice as { wallet: string; caps: number; rank: number; firstBuyAt: number | null }[]).map((r) => ({ rank: r.rank, name: names.get(r.wallet)!, caps: r.caps, firstBuyAt: r.firstBuyAt }))} />
+        ) : (
+          <ScoutsBoard rows={(slice as { wallet: string; credited: number; stillHolding: number; badge: string | null }[]).map((r, i) => ({ rank: start + i + 1, name: names.get(r.wallet)!, stillHolding: r.stillHolding, credited: r.credited, badge: r.badge }))} />
+        )}
+        <BoardPager tab={tab} page={at} total={total} />
+        {caps ? (
+          <p className="board-copy">{CAPS_COPY}</p>
+        ) : (
+          <>
+            <p className="board-copy">{SCOUT_COPY}</p>
+            <p className="muted">{SCOUT_COUNTS}</p>
+          </>
+        )}
+      </section>
+
+      <section className="band">
+        <div className="wrap">
+          <div className="section-head"><h2>{caps ? 'How Caps are earned' : 'How scouting works'}</h2></div>
+          {caps ? (
+            <ul className="limits">
+              <li><h3>{CAPS_RULES.played.toFixed(2)} for playing</h3><p>A qualifying verified buy of ${PLAY_USD} or more in the gameweek.</p></li>
+              <li><h3>{CAPS_RULES.heldD7.toFixed(2)} for holding on</h3><p>That gameweek&rsquo;s buy still held, ${SCOUT_RULES.holdUsd} or more, seven days later.</p></li>
+              <li><h3>{CAPS_RULES.scout.toFixed(2)} per credited scout</h3><p>Up to {CAPS_RULES.scoutPerGw} a gameweek, for a friend whose first buy still held at seven days.</p></li>
+              <li><h3>{CAPS_RULES.perGw.toFixed(2)} at most</h3><p>A hard cap per wallet per gameweek, whatever happens.</p></li>
+              <li><h3>Nothing for noise</h3><p>No Caps for sign-ups, joins, follows, likes or reposts, and none for history before launch.</p></li>
+              <li><h3>Ties</h3><p>Equal totals are split by the earlier first verified buy.</p></li>
+            </ul>
+          ) : (
+            <ul className="limits">
+              <li><h3>Your link</h3><p>Every member has a personal link, tropaclub.xyz/j/ and a code. Club invites you send carry it too.</p></li>
+              <li><h3>First touch</h3><p>A new wallet that arrives through it is linked to you once, and that never changes. You cannot scout yourself.</p></li>
+              <li><h3>Only a real fan counts</h3><p>The friend&rsquo;s first verified buy, still held at ${SCOUT_RULES.holdUsd} or more seven days later. Nothing for sign-ups or joins.</p></li>
+              <li><h3>Not the same money</h3><p>No credit when the friend was funded by you, or you share a first funder.</p></li>
+              <li><h3>Stamps</h3><p>A Scout stamp on your ticket at {SCOUT_RULES.scoutAt === 1 ? 'one credited mate' : `${SCOUT_RULES.scoutAt} credited mates`}, a Captain&rsquo;s armband at {SCOUT_RULES.captainAt}. The first {fmtInt(SCOUT_RULES.foundersLimit)} wallets whose first buy still held at seven days get the Founders&rsquo; Pennant.</p></li>
+              <li><h3>Nothing to win</h3><p>{SCOUT_COPY}</p></li>
+            </ul>
+          )}
+          <p className="after-table"><a className="btn" href={`${DOCS_URL}/scoring-and-seasons#${caps ? 'caps' : 'scouts'}`} rel="noopener">The rules in the docs</a></p>
         </div>
       </section>
     </main>

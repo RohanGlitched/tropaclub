@@ -1,4 +1,4 @@
-<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, the lineup rule, fixtures and points, the Supporters table, the payday streak and the Founders' Pennant crest. No prize is tied to returns.","updated":"Nov 22 2026"}-->
+<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, the lineup rule, fixtures and points, the Supporters table, the payday streak, Caps, Scouts and the Founders' Pennant crest. No prize is tied to returns.","updated":"Nov 22 2026"}-->
 <p class="lede">Tropa Club keeps score in gameweeks that follow the New York Stock Exchange calendar. You play a gameweek by buying at least ${{playUsd}} inside it. Clubs are scored on who showed up, with one fixture a week from GW1.</p>
 
 <h2 id="clubs">Club types</h2>
@@ -99,6 +99,41 @@
   <li>Same-day buys count once.</li>
 </ul>
 <p>The streak is there for people who earn irregularly: a fixture asks for a buy this gameweek, but the streak only asks for a buy every fortnight or so.</p>
+
+<h2 id="caps">Caps</h2>
+<p><strong>Caps</strong> are the season scoreboard: a cap is an appearance. They are earned only from verified onchain actions, a buy through Tropa Club that passed every check above, at small fixed values with a hard cap per wallet per gameweek. The Caps table is on <a href="https://tropaclub.xyz/league?tab=caps">the league page</a>.</p>
+<table>
+  <thead><tr><th>For</th><th class="num">Caps</th></tr></thead>
+  <tbody>
+    <tr><td>Played the gameweek: a qualifying verified buy of ${{playUsd}} or more in it</td><td class="num">{{caps.played:2}}</td></tr>
+    <tr><td>That gameweek&rsquo;s buy still held, ${{scouts.holdUsd}} or more, seven days after it (D+7)</td><td class="num">{{caps.heldD7:2}}</td></tr>
+    <tr><td>Each credited scout referral (see <a href="#scouts">Scouts</a>), up to {{caps.scoutPerGw}} a gameweek</td><td class="num">{{caps.scout:2}}</td></tr>
+    <tr><td>Hard cap per wallet per gameweek</td><td class="num">{{caps.perGw:2}}</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>Nothing for sign-ups, joins, follows, likes or reposts.</li>
+  <li>None for history before launch: Caps start with GW0.</li>
+  <li>Equal totals are split by the earlier first verified buy. The size of a buy plays no part.</li>
+  <li>Every award is written once to an append-only ledger, so a total is the sum of what was earned and is never recalculated upward.</li>
+</ul>
+<callout title="Not a currency">
+<p>{{caps.copy}}</p>
+</callout>
+
+<h2 id="scouts">Scouts</h2>
+<p>Every member has a personal invite link, <code>tropaclub.xyz/j/</code> followed by a code. Club invite links a member sends carry the same code. A scout gets credit only when a friend really becomes a fan.</p>
+<ul>
+  <li><strong>First touch.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
+  <li><strong>What counts.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at ${{scouts.holdUsd}} or more of that token at D+7. Sign-ups and joins earn nothing.</li>
+  <li><strong>Not the same money.</strong> No credit when the friend was funded by the scout, or both share a first funder (the first USDC or WETH sender in the 30 days before the check).</li>
+  <li><strong>Limit.</strong> At most {{scouts.creditsPerGw}} credits per scout per gameweek, counted in the gameweek of the friend&rsquo;s first buy.</li>
+  <li><strong>Stamps.</strong> A Scout stamp on the ticket at {{scouts.scoutAt}} credited mate, a Captain&rsquo;s armband at {{scouts.captainAt}}. The Top scouts table ranks scouts by credited mates who still hold ${{scouts.holdUsd}} or more.</li>
+  <li><strong>Founders&rsquo; Pennant stamp.</strong> The first {{scouts.foundersLimit}} wallets whose first verified buy was still held at ${{scouts.holdUsd}} or more at D+7 get a Founders&rsquo; Pennant stamp on their ticket.</li>
+</ul>
+<callout title="Nothing to win">
+<p>{{scouts.copy}}</p>
+</callout>
 
 <h2 id="prizes">No prizes tied to returns</h2>
 <callout title="The rule">

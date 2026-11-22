@@ -27,6 +27,19 @@ export const REAL_FAN_LINE: string = rules.realFanLine;
 export const COUNT_EVERY = 'every 6 hours';
 export const X_FOLLOW_URL = 'https://x.com/intent/follow?screen_name=tropaclubxyz';
 
+/** Caps, the season scoreboard (clubs/src/caps.ts reads the same values). Cosmetic: no money, no tokens. */
+export const CAPS_RULES = rules.caps;
+/** "Caps are a scoreboard, not a currency. …" Shown under every Caps table and in the docs. */
+export const CAPS_COPY: string = rules.caps.copy;
+/** Scouts: credit for a friend who became a fan (clubs/src/scouts.ts). */
+export const SCOUT_RULES = rules.scouts;
+/** "No prizes, no cash, just your name on the board." */
+export const SCOUT_COPY: string = rules.scouts.copy;
+/** What a scout credit is, in one line. */
+export const SCOUT_COUNTS = `A credit is a friend’s first verified buy through Tropa Club, made after they arrived through your link and still held at $${rules.scouts.holdUsd} or more seven days later. Sign-ups and joins earn nothing.`;
+/** A scout's personal invite link. */
+export const scoutUrl = (code: string) => `${SITE_URL}/j/${code}`;
+
 export const CHANGELOG: { date: string; text: string }[] = [
   { date: '22 Nov 2026', text: 'Cost-basis statement live for any holder, adjusted for splits and stock dividends.' },
   { date: '22 Nov 2026', text: 'The Ground and The Attendance open, read-only. Matchday tickets for every wallet with a seat.' },

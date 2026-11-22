@@ -12,12 +12,13 @@ export const maxDuration = 300;
 //   POST /api/cron/sweep-transfers      every 30 min
 //   POST /api/cron/match-pickups        hourly
 //   POST /api/cron/schedule-fixtures    Monday open        (?gw=GW1 to name the gameweek)
-//   POST /api/cron/settle-gameweek      Friday after close (?gw=GW1 to name the gameweek)
+//   POST /api/cron/settle-gameweek      Friday after close (?gw=GW1 to name the gameweek); then awards Caps
+//   POST /api/cron/scouts               hourly: decide scout credits, the Founders' Pennant list, Caps
 // Each run claims a run key in Firestore first (gameweek jobs by gameweek, the rest by ten-minute
 // slot). Hosting cuts a request off at 60 s and Scheduler then retries while the first run is still
 // going, so a retry gets the first run's result, or "running", and never a second run.
 // ?force=1 runs a finished key again (never one that is still running).
-const JOBS = new Set(['refresh-matchday', 'capture-marks', 'sweep-transfers', 'match-pickups', 'schedule-fixtures', 'settle-gameweek']);
+const JOBS = new Set(['refresh-matchday', 'capture-marks', 'sweep-transfers', 'match-pickups', 'schedule-fixtures', 'settle-gameweek', 'scouts']);
 
 // Both sides hashed first, so the comparison is constant-time and does not reveal the length.
 const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest();
@@ -57,9 +58,15 @@ export const POST = (req: Request, ctx: { params: Promise<{ job: string }> }) =>
           return { result: await clubs.matchPickups() };
         case 'schedule-fixtures':
           return { gw, fixtures: (await clubs.scheduleFixtures(gw!)).length };
+        case 'scouts': {
+          const credits = await clubs.decideScoutCredits();
+          const founders = (await clubs.refreshFoundersPennants()).length;
+          return { credits, founders, caps: await clubs.awardCaps() };
+        }
         default: {
           const r = await clubs.settleGameweek(gw!);
-          return { gw, results: r.results.length, fixtures: r.fixtures.length };
+          // the D+7 Caps come with the settle (awardCaps is idempotent, so a retry adds nothing)
+          return { gw, results: r.results.length, fixtures: r.fixtures.length, caps: await clubs.awardCaps() };
         }
       }
     };

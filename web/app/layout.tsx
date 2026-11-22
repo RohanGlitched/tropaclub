@@ -5,6 +5,7 @@ import './club.css';
 import { SITE_URL, TAGLINE } from '@/lib/site';
 import { homeOgVersion } from '@/lib/og';
 import { getIndex } from '@/lib/server/data';
+import ScoutCapture from '@/components/ScoutCapture';
 
 const display = localFont({
   src: [
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
+        <ScoutCapture />
         <a className="skip" href="#main">Skip to content</a>
         {children}
       </body>

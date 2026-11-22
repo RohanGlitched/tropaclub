@@ -35,7 +35,16 @@ export interface CardInput {
   stamp?: string | null;
   /** Payday streak badge, shown under the stamp. */
   badge?: string | null;
+  /** Scout badge ("Scout" or "Captain's armband"), stamped small on the ticket. Cosmetic. */
+  scout?: string | null;
+  /** On the Founders' Pennant list: stamped small on the ticket. Cosmetic. */
+  founders?: boolean;
 }
+
+/** Honours on the picture (scout badge, Founders' Pennant), as a short tag in its file name. */
+export const honoursTagOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [i.scout === 'Scout' ? 'sc' : i.scout ? 'cap' : '', i.founders ? 'fp' : ''].filter(Boolean).join('-');
+/** The stored file for this picture: a new stamp or badge is a new file, so it shows at once. */
+export const nameOf = (input: CardInput, variant: Variant) => cardName(input.address, input.token.symbol, variant, input.stamp, honoursTagOf(input));
 
 const inFlight = new Map<string, Promise<string>>();
 /** Names this instance has seen stored, with their URL. Saves a HEAD request per page view. */
@@ -83,7 +92,7 @@ export async function ensureHomeCard(token: TokenSummary, asOf: string): Promise
 }
 
 async function render(input: CardInput, variant: Variant): Promise<string> {
-  const name = cardName(input.address, input.token.symbol, variant, input.stamp);
+  const name = nameOf(input, variant);
   const size = variant === 'landscape' ? { width: 1200, height: 630 } : { width: 1080, height: 1350 };
   const img = new ImageResponse(await ticketCard(input, variant), { ...size, fonts: await cardFonts() });
   // Share pictures are JPEGs under 300 KB so every chat app previews them.
@@ -101,7 +110,7 @@ async function render(input: CardInput, variant: Variant): Promise<string> {
 
 /** The stored picture's URL, drawing and storing it first if there is no recent one. */
 export function ensureCard(input: CardInput, variant: Variant): Promise<string> {
-  const name = cardName(input.address, input.token.symbol, variant, input.stamp);
+  const name = nameOf(input, variant);
   const hit = known.get(name);
   if (hit && Date.now() - hit.at < KNOWN_TTL) return Promise.resolve(hit.url);
   let p = inFlight.get(name);
@@ -125,7 +134,7 @@ export function ensureCard(input: CardInput, variant: Variant): Promise<string> 
  * the real picture and every later one certainly does.
  */
 export async function ogCardUrl(input: CardInput, waitMs = 2500): Promise<string | null> {
-  const name = cardName(input.address, input.token.symbol, 'landscape', input.stamp);
+  const name = nameOf(input, 'landscape');
   const hit = known.get(name);
   if (hit && Date.now() - hit.at < KNOWN_TTL) return hit.url;
   if (!inFlight.has(name)) {

@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import BuyCta from '@/components/buy/BuyCta';
-import { InviteBox, JoinButton, Roster } from '@/components/club/Actions';
+import { JoinButton, Roster } from '@/components/club/Actions';
+import ScoutInviteBox from '@/components/club/ScoutInviteBox';
 import { Crest, Pennant } from '@/components/ds/Pennant';
 import Scoreboard from '@/components/ds/Scoreboard';
 import type { Member } from '@/components/ds/TeamSheet';
@@ -198,7 +199,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
               <h2>Invite the group chat</h2>
               <p>Anyone who opens this link can take a free seat on the Bench. Only members can see it.</p>
             </div>
-            <InviteBox url={me.invite.url} club={club.name} />
+            <ScoutInviteBox url={me.invite.url} club={club.name} wallet={viewer} />
           </div>
         </section>
       )}

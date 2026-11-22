@@ -170,7 +170,7 @@ async function demo(): Promise<ClubsService> {
   };
 
   const squads: { name: string; members: [nick: string, plays: number | null, usd?: number][] }[] = [
-    { name: 'Sunday League Tropa', members: [['Ana', 0, 10], ['Kofi', 1, 25], ['Mei', 2, 10], ['Diego', 0, 10], ['Sam', null]] },
+    { name: 'Sunday League Savers', members: [['Ana', 0, 10], ['Kofi', 1, 25], ['Mei', 2, 10], ['Diego', 0, 10], ['Sam', null]] },
     { name: 'Payday Rovers', members: [['Bia', 3, 10], ['Tunde', 1, 50], ['Lia', null], ['Omar', null]] },
     { name: 'Group Chat United', members: [['Jo', 4, 10], ['Rafa', 2, 10], ['Nia', 5, 25]] },
     { name: 'Tenner Athletic', members: [['Ines', 0, 10], ['Yaw', 6, 10], ['Carla', 1, 10], ['Ben', null], ['Zed', 3, 10], ['Pilar', 2, 10]] },

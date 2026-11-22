@@ -8,12 +8,15 @@ import SeatSearchBox from '@/components/SeatSearchBox';
 import BuyCta from '@/components/buy/BuyCta';
 import { Pennant } from '@/components/ds/Pennant';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
-import { playedStamps } from '@/lib/server/clubs';
+import { playedStamps, tryClubs } from '@/lib/server/clubs';
+import { capsLine, honourStamps, walletHonours } from '@/lib/server/honours';
+import { sessionWallet } from '@/lib/server/session';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
 import { ticketOgVersion } from '@/lib/og';
-import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt, notAffiliated } from '@/lib/site';
+import { honoursTagOf } from '@/lib/server/cardmake';
+import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt, notAffiliated, scoutUrl } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
 export const dynamic = 'force-dynamic';
@@ -46,8 +49,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description = `${statSentence(top.bestStat)}. ${shortAddr(d.address)} has ${d.real.length === 1 ? 'a seat' : `${d.real.length} seats`} in The Ground. Find yours.`;
   // This wallet's own ticket picture, drawn on demand by /api/card/og and stored (see that route).
   // The version changes with each count and with a new "Played" stamp, so each URL can be cached long.
-  const played = await playedStamps(d.address, 1500);
-  const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(ticketOgVersion(d.index.data.asOf, played.byToken.get(token.address.toLowerCase()) ?? null))}`;
+  // (and with a new scout badge or Founders' Pennant: the same version the og route expects)
+  const [played, h] = await Promise.all([playedStamps(d.address, 1500), walletHonours(d.address)]);
+  const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(ticketOgVersion(d.index.data.asOf, played.byToken.get(token.address.toLowerCase()) ?? null, honoursTagOf(h)))}`;
   return {
     title,
     description,
@@ -75,7 +79,23 @@ export default async function TicketPage({ params }: Params) {
   const targetClub = clubName(target.name);
   const top = real[0];
   const topToken = top ? bySymbol.get(top.symbol)! : null;
-  const [neighbours, played] = await Promise.all([top && topToken ? getNeighbours(top.symbol, top.rank!) : null, real.length ? playedStamps(address) : null]);
+  const [neighbours, played, honours, viewer] = await Promise.all([
+    top && topToken ? getNeighbours(top.symbol, top.rank!) : null,
+    real.length ? playedStamps(address) : null,
+    walletHonours(address),
+    sessionWallet().catch(() => null),
+  ]);
+  const stamps = honourStamps(honours);
+  // Your own ticket: the share post carries your scout link, and the shared page keeps ?s=<code>
+  // so the preview stays this ticket. Anyone else's ticket is shared as it is.
+  const code = viewer === address ? await tryClubs((svc) => svc.scoutCode(address), 2500) : null;
+  const shareUrl = code ? `${pageUrl}?s=${code}` : pageUrl;
+  const honoursNote = (stamps.length > 0 || honours.caps) && (
+    <p className="caps-line">
+      {[...stamps, ...(honours.caps ? [capsLine(honours.caps)] : [])].join('. ')}.{' '}
+      {honours.caps && <Link href="/league?tab=caps" prefetch={false}>The Caps table</Link>}
+    </p>
+  );
 
   return (
     <main id="main">
@@ -86,6 +106,11 @@ export default async function TicketPage({ params }: Params) {
             <p className="lede">
               This wallet is a real fan at {real.length === 1 ? clubName(topToken.name) : `${real.length} clubs`}. Each ticket shows its seat and the thing it does better than most of the crowd.
             </p>
+            {honours.caps && (
+              <p className="caps-line">
+                {capsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the Caps table</Link>
+              </p>
+            )}
             <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
           </section>
           <section className="wrap tickets" aria-label="Tickets">
@@ -94,10 +119,10 @@ export default async function TicketPage({ params }: Params) {
               return (
                 <div key={e.symbol} className="ticket-block">
                   <div className="ticket-stage">
-                    <Ticket address={address} entry={e} token={token} asOf={index.data.asOf} headingLevel={2} printIn={i === 0} stamp={played?.byToken.get(token.address.toLowerCase()) ?? null} badge={played?.badge} />
+                    <Ticket address={address} entry={e} token={token} asOf={index.data.asOf} headingLevel={2} printIn={i === 0} stamp={played?.byToken.get(token.address.toLowerCase()) ?? null} badge={played?.badge} honours={stamps} />
                   </div>
                   <div className="ticket-actions">
-                    <ShareBar address={address} symbol={e.symbol} club={clubName(token.name)} line={statSentence(e.bestStat)} pageUrl={pageUrl} />
+                    <ShareBar address={address} symbol={e.symbol} club={clubName(token.name)} line={statSentence(e.bestStat)} pageUrl={shareUrl} scoutLink={code ? scoutUrl(code) : null} />
                     <Link className="btn" href={groundPath(e.symbol)}>See it in the ground</Link>
                     {i === 0 && <Link className="btn" href={`/statement/${address}`} prefetch={false}>Statement</Link>}
                   </div>
@@ -171,6 +196,7 @@ export default async function TicketPage({ params }: Params) {
                   : `This wallet was sent ${target.symbol} in a giveaway but has never bought. One buy of its own makes it a real fan.`
                 : `This wallet holds no stock tokens on Base yet. ${fmtInt(target.realFans)} real fans are in the ground at ${targetClub}. The next seat is yours.`}
             </p>
+            {honoursNote}
             <BuyCta token={target.address} symbol={target.symbol} openAt={openAt} standalone />
             <p className="muted small">Seats are handed out at each count, {COUNT_EVERY}. {target.symbol} is a stock token that tracks the share price; it is not the share. Not advice.</p>
           </div>

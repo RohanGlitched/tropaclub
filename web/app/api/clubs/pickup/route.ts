@@ -1,4 +1,5 @@
-import { fail, guarded, ok, rateLimited } from '@/lib/server/api';
+import { fail, guarded, ok, rateLimited, readJson } from '@/lib/server/api';
+import { maybeRefer } from '@/lib/server/referral';
 import { getClubs } from '@/lib/server/clubs';
 import { countryOf } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
@@ -12,7 +13,9 @@ export const POST = (req: Request) =>
     if (!wallet) return fail(401, 'Sign in with your wallet to join a pick-up club.');
     if (rateLimited('clubs', req, 12)) return fail(429, 'Too many requests. Wait a minute.');
     const clubs = await getClubs();
+    const body = await readJson<{ scout?: string | null }>(req);
     const r = await clubs.optInPickup({ wallet, country: await countryOf(req.headers) });
+    await maybeRefer(clubs, wallet, body?.scout, 'pickup');
     return ok({ queued: r.queued, club: r.seated ? { id: r.seated.id, name: r.seated.name } : null });
   });
 

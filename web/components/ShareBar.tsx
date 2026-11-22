@@ -8,11 +8,13 @@ interface Props {
   club: string;
   line: string; // the best-stat sentence
   pageUrl: string;
+  /** Your own ticket only: your scout link (tropaclub.xyz/j/<code>), put in the share text. */
+  scoutLink?: string | null;
 }
 type Made = { landscape: string; portrait: string };
 
 /** Share a ticket. The picture is made once, when Share is tapped, and stored as a plain file. */
-export default function ShareBar({ address, symbol, club, line, pageUrl }: Props) {
+export default function ShareBar({ address, symbol, club, line, pageUrl, scoutLink }: Props) {
   const [state, setState] = useState<'idle' | 'busy' | 'ready' | 'failed'>('idle');
   const [made, setMade] = useState<Made | null>(null);
   const [copied, setCopied] = useState(false);
@@ -20,7 +22,7 @@ export default function ShareBar({ address, symbol, club, line, pageUrl }: Props
   // Tear the stub: the ticket block shows the stub pulled away once the ticket has been shared.
   const tear = () => root.current?.closest('.ticket-block')?.setAttribute('data-shared', '1');
 
-  const text = `My seat at ${club}: ${line.charAt(0).toLowerCase()}${line.slice(1)}. Find yours. #StocksMaxxing via @tropaclubxyz`;
+  const text = `My seat at ${club}: ${line.charAt(0).toLowerCase()}${line.slice(1)}. ${scoutLink ? `Join me: ${scoutLink}` : 'Find yours.'} #StocksMaxxing via @tropaclubxyz`;
   const enc = encodeURIComponent;
   const targets = [
     { label: 'Post on X', href: `https://x.com/intent/post?text=${enc(text)}&url=${enc(pageUrl)}` },
@@ -57,7 +59,7 @@ export default function ShareBar({ address, symbol, club, line, pageUrl }: Props
         <button type="button" className="btn btn-accent" onClick={make} disabled={state === 'busy'}>
           {state === 'busy' ? 'Printing the ticket…' : 'Share ticket'}
         </button>
-        <span className="share-note">Makes a picture of this ticket and a link that previews it.</span>
+        <span className="share-note">Makes a picture of this ticket and a link that previews it.{scoutLink ? ' The post carries your scout link.' : ''}</span>
       </div>
     );
   }

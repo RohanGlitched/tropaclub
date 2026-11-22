@@ -69,3 +69,30 @@ export class EtherscanFundingResolver implements FundingSourceResolver {
     return funder;
   }
 }
+
+/**
+ * Funding source from the chain, for when no explorer key is set: the earliest sender of USDC or
+ * WETH to the wallet in the last `windowBlocks` blocks (30 days by default). A sender with a very
+ * high nonce (an exchange or bridge hot wallet) is "no signal" (null). Throws when the chain
+ * cannot be read, so the caller decides later instead of on a guess.
+ */
+export class RpcFundingResolver implements FundingSourceResolver {
+  constructor(
+    private chain: Pick<import('./chain/types').ChainReader, 'blockNumber' | 'getTransferLogs'> & { nonceOf?: (a: string) => Promise<number | null> },
+    private opts: { windowBlocks?: bigint; exchangeNonce?: number; commonFunders?: string[] } = {},
+  ) {}
+  async firstFunder(wallet: string): Promise<string | null> {
+    if (!this.chain.getTransferLogs) return null;
+    const w = wallet.toLowerCase();
+    const head = await this.chain.blockNumber();
+    const from = head - (this.opts.windowBlocks ?? 1_296_000n);
+    const logs = await this.chain.getTransferLogs({ tokens: [USDC_ADDRESS, '0x4200000000000000000000000000000000000006'], to: [w], fromBlock: from > 0n ? from : 0n, toBlock: head });
+    const first = logs.filter((l) => l.from !== w && l.from !== '0x0000000000000000000000000000000000000000').sort((a, b) => (a.blockNumber < b.blockNumber ? -1 : a.blockNumber > b.blockNumber ? 1 : a.logIndex - b.logIndex))[0];
+    if (!first) return null;
+    const funder = first.from.toLowerCase();
+    if ((this.opts.commonFunders ?? []).map((x) => x.toLowerCase()).includes(funder)) return null;
+    const nonce = this.chain.nonceOf ? await this.chain.nonceOf(funder).catch(() => null) : null;
+    if (nonce != null && nonce >= (this.opts.exchangeNonce ?? 5_000)) return null;
+    return funder;
+  }
+}

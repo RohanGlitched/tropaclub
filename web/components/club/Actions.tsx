@@ -7,6 +7,7 @@ import ConnectButton from '@/components/wallet/ConnectButton';
 import { useSession } from '@/components/wallet/WalletProvider';
 import TeamSheet, { type Member } from '@/components/ds/TeamSheet';
 import { Crest, type CrestRecipe } from '@/components/ds/Pennant';
+import { readScout } from '@/lib/scout-client';
 
 async function post<T>(url: string, body?: unknown): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   try {
@@ -94,7 +95,7 @@ export function StartClub() {
         if (!gate.ready) return;
         setBusy(true);
         setErr('');
-        const r = await post<{ club: { id: string; name: string; crest: CrestRecipe }; inviteUrl: string }>('/api/clubs', { name, nickname: nick || null });
+        const r = await post<{ club: { id: string; name: string; crest: CrestRecipe }; inviteUrl: string }>('/api/clubs', { name, nickname: nick || null, scout: readScout() });
         setBusy(false);
         if (!r.ok) return setErr(r.error);
         setMade({ ...r.data.club, inviteUrl: r.data.inviteUrl });
@@ -164,7 +165,7 @@ export function JoinButton({ inviteCode, clubId, label = 'Take a seat on the Ben
         onClick={async () => {
           setBusy(true);
           setErr('');
-          const r = await post<{ clubId: string }>('/api/clubs/join', { inviteCode, clubId });
+          const r = await post<{ clubId: string }>('/api/clubs/join', { inviteCode, clubId, scout: readScout() });
           if (!r.ok) {
             setBusy(false);
             return setErr(r.error);
@@ -195,7 +196,7 @@ export function PickupButton() {
         onClick={async () => {
           setBusy(true);
           setMsg('');
-          const r = await post<{ queued: boolean; club: { id: string; name: string } | null }>('/api/clubs/pickup');
+          const r = await post<{ queued: boolean; club: { id: string; name: string } | null }>('/api/clubs/pickup', { scout: readScout() });
           setBusy(false);
           if (!r.ok) return setMsg(r.error);
           if (r.data.club) {
