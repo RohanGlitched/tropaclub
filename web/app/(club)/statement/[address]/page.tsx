@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 // The page itself renders at once. The statement is read in the browser, with progress,
-// because the first read of a wallet's history from public Base nodes takes a while.
+// because a wallet that is not in the published history is read from public Base nodes, which takes a while.
 export default async function StatementPage({ params }: { params: Promise<{ address: string }> }) {
   const { address: raw } = await params;
   const address = raw.toLowerCase();
@@ -23,7 +23,7 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
         <h1>{valid ? <>Statement for <span className="num addr">{shortAddr(address)}</span></> : 'That is not a wallet address'}</h1>
         <p className="lede">
           {valid
-            ? 'Every lot of the stock tokens this wallet holds, with cost basis and results, adjusted for splits and stock dividends. Read straight from Base.'
+            ? 'Every lot of the stock tokens this wallet holds, with cost basis and results, adjusted for splits and stock dividends. Built from every transfer this wallet has made on Base.'
             : 'A wallet address starts with 0x and has 42 characters. Paste it again to see its tickets, then open its statement from there.'}
         </p>
         {!valid && <SeatSearchBox label="Find a wallet" button="Find seat" />}

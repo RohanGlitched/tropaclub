@@ -1,5 +1,13 @@
 // A wallet's cost-basis statement, built without a paid history API.
 //
+// First choice: the indexer's published history (history/<xx>.json and corporate-actions.json).
+// It is one small file, so the statement opens at once. Its prices are day averages, so DEX buys
+// are costed "at the day's price" and marked estimated (see lib/statement-history.ts).
+//   - a wallet the indexer marks tooActive (over 1,000 transfers) has no entries: its statement is
+//     not itemised, and the page shows what it holds now instead. Never zeros.
+//   - a wallet that is not in the published history (under $1, or newer than the last run), or
+//     whose history does not add up to what the index says it holds, is read from the chain:
+//
 //   1. The indexer's wallet file says which tokens this wallet holds, so only those are read.
 //   2. Transfers are read with eth_getLogs in chunks of 50,000 blocks and at most 10 addresses,
 //      three requests at a time (public nodes refuse bursts).
@@ -29,10 +37,12 @@ import {
   type Statement,
   type TransferLog,
 } from '@tropaclub/clubs';
+import type { CorporateActionsFile, WalletHistory, WalletHistoryShard } from '@shared/types';
 import { assertMatchesHoldings, historyFromBlock, openingBalances } from '@/lib/statement-check';
+import { labelDayPrices, multipliersFromFile, netRaw, splitSymbols, transfersFromHistory, walletFromShards } from '@/lib/statement-history';
 import { baseClient } from './chain';
 import { getClubs } from './clubs';
-import { getIndex, getWallet } from './data';
+import { dataBaseUrl, getIndex, getWallet } from './data';
 
 const CHUNK = 50_000n;
 /** Marks the opening lot: tokens held before the readable history begins. Not a real sender. */
@@ -66,9 +76,13 @@ export interface Job {
   step: string;
   done: number;
   total: number;
-  result: Promise<Statement | 'empty'>;
-  state: 'running' | 'ready' | 'empty' | 'failed';
+  result: Promise<Statement | 'empty' | 'holdings'>;
+  state: 'running' | 'ready' | 'empty' | 'holdings' | 'failed';
   value?: Statement;
+  /** Where the history came from: the indexer's published files, or read from the chain. */
+  source?: 'index' | 'chain';
+  /** For a wallet with too many transfers to itemise: what it holds at the last count. */
+  holdings?: { symbol: string; usd: number }[];
   /** The count the prices come from (the index's as-of time). */
   countedAt?: string;
 }
@@ -200,16 +214,132 @@ async function readableFrom(start: bigint, head: bigint, token: string): Promise
   return readable.block;
 }
 
-async function build(wallet: string, job: Job): Promise<Statement | 'empty'> {
+// The indexer's files are gzip with max-age=300. Kept here for five minutes (a miss for one), so a
+// burst of statements for one shard costs one download.
+const files = new Map<string, { at: number; ttl: number; p: Promise<unknown | null> }>();
+function publicJson(path: string): Promise<unknown | null> {
+  const hit = files.get(path);
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.p;
+  const entry = { at: Date.now(), ttl: 5 * 60_000, p: Promise.resolve<unknown | null>(null) };
+  entry.p = (async () => {
+    try {
+      const res = await fetch(`${dataBaseUrl}/${path}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      if (res.ok) return await res.json();
+    } catch {
+      /* fall through */
+    }
+    entry.ttl = 60_000;
+    return null;
+  })();
+  if (files.size > 300) files.clear();
+  files.set(path, entry);
+  return entry.p;
+}
+
+/** This wallet's published history, or null if it is not published (or the files cannot be read). */
+async function publishedHistory(wallet: string): Promise<WalletHistory | null> {
+  const xx = wallet.slice(2, 4);
+  const shard = await publicJson(`history/${xx}.json`);
+  if (!shard || typeof shard !== 'object') return null;
+  const symbols = splitSymbols(shard);
+  if (!symbols) return walletFromShards([shard as WalletHistoryShard], wallet);
+  // split by token: every part is needed, a missing one would leave a hole in the history
+  const parts = await Promise.all(symbols.map((sym) => publicJson(`history/${xx}/${encodeURIComponent(sym)}.json`)));
+  if (parts.some((p) => !p || typeof p !== 'object')) throw new Error(`history shard ${xx} is split and a part could not be read`);
+  return walletFromShards(parts as WalletHistoryShard[], wallet);
+}
+
+const pastMarks = new Map<string, Promise<number | null>>();
+type Held = { token: string; symbol: string; usd: number }[];
+
+/**
+ * The statement from the indexer's published history. Returns null when this wallet is not
+ * published, 'holdings' when it is too active to itemise, and throws when the files are there but
+ * do not add up: the caller then reads the chain instead.
+ */
+async function fromIndex(wallet: string, index: Awaited<ReturnType<typeof getIndex>>, held: Held): Promise<Statement | 'holdings' | null> {
+  if (index.source !== 'live') return null;
+  const history = await publishedHistory(wallet);
+  if (!history) return null;
+  if (history.tooActive) return 'holdings';
+  const { transfers, marks, symbols } = transfersFromHistory(history);
+  if (!transfers.length) return null;
+  for (const [token, net] of netRaw(transfers)) if (net < 0n) throw new Error(`published history of ${symbols.get(token) ?? token} goes below zero`);
+  const actions = (await publicJson('corporate-actions.json')) as CorporateActionsFile | null;
+  if (!actions || !Array.isArray(actions.tokens)) throw new Error('corporate-actions.json could not be read');
+  const all = multipliersFromFile(actions);
+  const seen = [...new Set(transfers.map((t) => t.token))];
+  // a token the corporate-actions file does not list has an unknown multiplier history: do not guess
+  const missing = seen.filter((t) => !(t in all));
+  if (missing.length) throw new Error(`corporate-actions.json does not list ${missing.map((t) => symbols.get(t) ?? t).join(', ')}`);
+  const svc = await getClubs();
+  const prices = svc.ctx.prices;
+  // A past mark that is not in the wallet's own history is the value of a stock dividend on its
+  // day. That is the same for every wallet, so it is looked up once and kept.
+  const pastMark = (token: string, t: number): Promise<number | null> => {
+    const k = `${token}|${t}`;
+    let p = pastMarks.get(k);
+    if (!p) {
+      p = prices ? prices.markAt(token, t).then((m) => m?.usd ?? null, () => null) : Promise.resolve(null);
+      if (pastMarks.size > 2000) pastMarks.clear();
+      pastMarks.set(k, p);
+      void p.then((v) => v == null && pastMarks.delete(k));
+    }
+    return p;
+  };
+  const mine = await svc.ctx.store.query<BuyDoc>(COL.buys, { where: [['wallet', '==', wallet]] }).catch(() => [] as BuyDoc[]);
+  const now = Math.floor(Date.now() / 1000);
+  const live = new Map(index.data.tokens.map((t) => [t.address.toLowerCase(), t.priceUsd]));
+  const statement = await buildStatement({
+    wallet,
+    transfers,
+    multipliers: Object.fromEntries(seen.map((t) => [t, all[t]])),
+    // a movement is priced at its own day mark; today's value comes from the index
+    markAt: async (token, t) =>
+      marks.get(`${token}|${t}`) ?? (now - t < 6 * 3600 ? live.get(token) ?? null : null) ?? (await pastMark(token, t)) ?? live.get(token) ?? null,
+    now,
+    symbols: new Map([...index.data.tokens.map((t) => [t.address.toLowerCase(), t.symbol] as const), ...symbols]),
+    tropaBuys: new Map(mine.filter((b) => b.usdIn != null).map((b) => [b.txHash.toLowerCase(), b.usdIn!])),
+  });
+  assertMatchesHoldings(held, statement.lots);
+  return labelDayPrices(statement);
+}
+
+async function build(wallet: string, job: Job): Promise<Statement | 'empty' | 'holdings'> {
   const [index, held] = await Promise.all([getIndex(), getWallet(wallet)]);
-  const kept = await cacheGet<{ statement: Statement; countedAt: string }>(`w_${wallet}`, 60 * 60_000);
+  const kept = await cacheGet<{ statement: Statement; countedAt: string; source?: 'index' | 'chain' }>(`w2_${wallet}`, 60 * 60_000);
   if (kept && kept.countedAt === index.data.asOf) {
     job.countedAt = kept.countedAt;
+    job.source = kept.source;
     return kept.statement;
   }
   const bySymbol = new Map(index.data.tokens.map((t) => [t.symbol, t]));
   const tokens = (held.data?.tokens ?? []).map((t) => bySymbol.get(t.symbol)?.address.toLowerCase()).filter((a): a is string => !!a && /^0x[0-9a-f]{40}$/.test(a));
   if (!tokens.length) return 'empty';
+  const heldNow: Held = (held.data?.tokens ?? []).map((t) => ({ token: bySymbol.get(t.symbol)?.address ?? '', symbol: t.symbol, usd: t.usd })).filter((t) => t.token);
+
+  job.step = 'Reading this wallet’s history';
+  const started = Date.now();
+  const published = await fromIndex(wallet, index, heldNow).catch((e) => {
+    console.warn('[statement] published history not used, reading the chain:', (e as Error).message?.slice(0, 200));
+    return null;
+  });
+  if (published === 'holdings') {
+    job.countedAt = index.data.asOf;
+    job.source = 'index';
+    job.holdings = (held.data?.tokens ?? []).filter((t) => t.usd >= 0.01).map((t) => ({ symbol: t.symbol, usd: t.usd })).sort((a, b) => b.usd - a.usd);
+    console.info(`[statement] ${wallet.slice(0, 10)} too active to itemise: holdings shown`);
+    return 'holdings';
+  }
+  if (published) {
+    job.countedAt = index.data.asOf;
+    job.source = 'index';
+    console.info(`[statement] ${wallet.slice(0, 10)} from the published history in ${Date.now() - started} ms`);
+    void cachePut(`w2_${wallet}`, { statement: published, countedAt: index.data.asOf, source: 'index' });
+    return published;
+  }
+  console.info(`[statement] ${wallet.slice(0, 10)} is not in the published history: reading the chain`);
+  job.source = 'chain';
 
   const svc = await getClubs();
   const chain = svc.ctx.chain;
@@ -275,10 +405,7 @@ async function build(wallet: string, job: Job): Promise<Statement | 'empty'> {
     tropaBuys: new Map(mine.filter((b) => b.usdIn != null).map((b) => [b.txHash, b.usdIn!])),
   });
   // The index says this wallet holds these tokens. A statement without them is a failed read, not an empty one.
-  assertMatchesHoldings(
-    (held.data?.tokens ?? []).map((t) => ({ token: bySymbol.get(t.symbol)?.address ?? '', symbol: t.symbol, usd: t.usd })).filter((t) => t.token),
-    statement.lots,
-  );
+  assertMatchesHoldings(heldNow, statement.lots);
   if (opening.size) {
     const since = new Date(startTime * 1000).toISOString().slice(0, 10);
     statement.warnings.unshift(
@@ -286,7 +413,7 @@ async function build(wallet: string, job: Job): Promise<Statement | 'empty'> {
     );
   }
   job.countedAt = index.data.asOf;
-  void cachePut(`w_${wallet}`, { statement, countedAt: index.data.asOf });
+  void cachePut(`w2_${wallet}`, { statement, countedAt: index.data.asOf, source: 'chain' });
   return statement;
 }
 
@@ -298,8 +425,8 @@ export function statementJob(address: string): Job {
   const job: Job = { startedAt: Date.now(), step: 'Looking up what this wallet holds', done: 0, total: 0, state: 'running', result: Promise.resolve('empty') };
   job.result = build(w, job).then(
     (v) => {
-      job.state = v === 'empty' ? 'empty' : 'ready';
-      if (v !== 'empty') job.value = v;
+      job.state = v === 'empty' || v === 'holdings' ? v : 'ready';
+      if (v !== 'empty' && v !== 'holdings') job.value = v;
       return v;
     },
     (e) => {

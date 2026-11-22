@@ -55,9 +55,9 @@ describe('opening lot when the oldest blocks cannot be read', () => {
 describe.skipIf(!process.env.STATEMENT_URL)('live: the reported wallet', () => {
   it.each([WALLET, process.env.STATEMENT_WALLET_2].filter(Boolean) as string[])('%s has an open NVDAc lot and a market value above zero', async (wallet) => {
     let j: { status: string; statement?: { lots: { symbol: string; marketValueUsd: number | null }[]; totals: { marketValueUsd: number } } } = { status: 'pending' };
-    for (let i = 0; i < 90 && j.status === 'pending'; i++) j = await (await fetch(`${process.env.STATEMENT_URL}/api/statement/${wallet}`)).json();
+    for (let i = 0; i < 6 && j.status === 'pending'; i++) j = await (await fetch(`${process.env.STATEMENT_URL}/api/statement/${wallet}`)).json();
     expect(j.status).toBe('ready');
     expect(j.statement!.lots.some((l) => l.symbol === 'NVDAc')).toBe(true);
     expect(j.statement!.totals.marketValueUsd).toBeGreaterThan(1);
-  }, 480_000);
+  }, 60_000);
 });

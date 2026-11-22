@@ -11,7 +11,7 @@ const LINE: Record<string, string> = {
   buy: 'Buy', transfer_in: 'Received', mint: 'Mint', sell: 'Sell', transfer_out: 'Sent', redeem: 'Redeem', split: 'Split', dividend: 'Stock dividend', unclassified: 'Multiplier change', pending_action: 'Pending change',
 };
 const OPENING = /^0x0{60}/;
-const ORIGIN: Record<string, string> = { buy: 'Bought', buy_estimated: 'Bought (estimated)', dividend: 'Stock dividend', transfer_in: 'Received', mint: 'Minted' };
+const ORIGIN: Record<string, string> = { buy: 'Bought', buy_estimated: 'Bought, cost estimated at the day’s price', dividend: 'Stock dividend', transfer_in: 'Received', mint: 'Minted' };
 const money = (n: number | null | undefined) => (n == null ? '—' : fmtUsd(n));
 const plain = (n: number | null | undefined) => (n == null ? '—' : `${n < 0 ? '−' : ''}${fmtUsd(Math.abs(n))}`);
 const shares = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 6 });
@@ -111,6 +111,7 @@ type State =
   | { status: 'pending'; step: string; done: number; total: number; seconds: number }
   | { status: 'ready'; statement: Statement; countedAt?: string | null }
   | { status: 'empty' }
+  | { status: 'holdings'; holdings: { symbol: string; usd: number }[]; countedAt?: string | null }
   | { status: 'failed' };
 
 /** How long to wait for a statement before saying its history is being prepared. */
@@ -173,6 +174,32 @@ export default function StatementView({ address }: { address: string }) {
         <div className="statement-actions"><CsvButton address={address} /><Link className="btn" href={`/ticket/${address}`}>Its tickets</Link></div>
         <div className="programme-stage"><Programme s={state.statement} countedAt={state.countedAt} /></div>
       </>
+    );
+  }
+  if (state.status === 'holdings') {
+    const total = state.holdings.reduce((sum, h) => sum + h.usd, 0);
+    return (
+      <div className="statement-state">
+        <h2 className="h3">Too many transfers to itemise</h2>
+        <p>This wallet has made more than 1,000 stock-token transfers, so its lots and cost basis are not worked out here. What it holds now is shown instead{state.countedAt ? `, as counted ${fmtDate(state.countedAt, true)}` : ''}.</p>
+        {state.holdings.length > 0 && (
+          <div className="programme-stage">
+            <article className="programme" aria-label="Current holdings">
+              <table className="programme-table">
+                <caption className="sr">Stock tokens this wallet holds now</caption>
+                <thead><tr><th scope="col">Token</th><th scope="col" className="r">Value now</th></tr></thead>
+                <tbody>
+                  {state.holdings.map((h) => (
+                    <tr key={h.symbol}><th scope="row" data-label="Token">{h.symbol}</th><td className="r num" data-label="Value now">{fmtUsd(h.usd)}</td></tr>
+                  ))}
+                </tbody>
+                <tfoot><tr><th scope="row">Total</th><td className="r num">{fmtUsd(total)}</td></tr></tfoot>
+              </table>
+            </article>
+          </div>
+        )}
+        <p className="closing-links"><Link className="btn" href={`/ticket/${address}`}>See this wallet</Link></p>
+      </div>
     );
   }
   if (state.status === 'empty') {
