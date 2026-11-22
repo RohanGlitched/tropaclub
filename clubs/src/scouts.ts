@@ -59,6 +59,8 @@ export interface ScoutCreditDoc {
   token: string;
   gw: string;
   decidedAt: number;
+  /** The friend's first USDC/WETH sender when decided (null: none found or an exchange). */
+  funder?: string | null;
 }
 
 export const SCOUT_COL = { codes: 'scoutCodes', referrals: 'referrals', credits: 'scoutCredits', boards: 'boards' } as const;
@@ -160,6 +162,9 @@ export async function decideScoutCredits(ctx: ClubsContext): Promise<{ decided: 
   const ex = new Set(exclusions.map((e) => e.wallet));
   const perScoutGw = new Map<string, number>();
   for (const d of decided) if (d.status === 'credited') perScoutGw.set(`${d.referrer}|${d.gw}`, (perScoutGw.get(`${d.referrer}|${d.gw}`) ?? 0) + 1);
+  // first senders already behind each scout's credited friends: two friends funded by one sender count once
+  const scoutFunders = new Map<string, Set<string>>();
+  for (const d of decided) if (d.status === 'credited' && d.funder) (scoutFunders.get(d.referrer) ?? scoutFunders.set(d.referrer, new Set()).get(d.referrer)!).add(d.funder);
 
   const candidates: { r: ReferralDoc; buy: BuyDoc }[] = [];
   for (const r of referrals) {
@@ -178,6 +183,7 @@ export async function decideScoutCredits(ctx: ClubsContext): Promise<{ decided: 
     const gw = gameweekForBuy(buy.blockTime)?.id ?? 'S0';
     let status: ScoutCreditStatus;
     let reason: string | null = null;
+    let funder: string | null = null;
     if (ex.has(r.wallet) || ex.has(r.referrer) || buy.excluded || buy.wash) {
       status = 'not_held';
       reason = buy.wash ? 'wash pattern' : 'on the exclusion list';
@@ -192,18 +198,22 @@ export async function decideScoutCredits(ctx: ClubsContext): Promise<{ decided: 
       } catch {
         continue; // cannot tell now: decided on a later run
       }
+      funder = fRef;
       if (fRef && fRef === r.referrer) {
         status = 'sybil';
         reason = 'funded by the scout';
       } else if (fRef && fScout && fRef === fScout) {
         status = 'sybil';
         reason = 'same first funder as the scout';
+      } else if (fRef && scoutFunders.get(r.referrer)?.has(fRef)) {
+        status = 'sybil';
+        reason = "same first funder as another of this scout's credited friends";
       } else if ((perScoutGw.get(`${r.referrer}|${gw}`) ?? 0) >= SCOUT_CREDITS_PER_GW) {
         status = 'cap';
         reason = `${SCOUT_CREDITS_PER_GW} credits this gameweek already`;
       } else status = 'credited';
     }
-    const doc: ScoutCreditDoc = { referred: r.wallet, referrer: r.referrer, status, reason, buyTx: buy.txHash, buyAt: buy.blockTime, token: buy.token, gw, decidedAt: now };
+    const doc: ScoutCreditDoc = { referred: r.wallet, referrer: r.referrer, status, reason, buyTx: buy.txHash, buyAt: buy.blockTime, token: buy.token, gw, decidedAt: now, funder };
     try {
       await ctx.store.create<ScoutCreditDoc>(SCOUT_COL.credits, r.wallet, doc);
     } catch (e) {
@@ -213,6 +223,7 @@ export async function decideScoutCredits(ctx: ClubsContext): Promise<{ decided: 
     n++;
     if (status === 'credited') {
       credited++;
+      if (funder) (scoutFunders.get(r.referrer) ?? scoutFunders.set(r.referrer, new Set()).get(r.referrer)!).add(funder);
       perScoutGw.set(`${r.referrer}|${gw}`, (perScoutGw.get(`${r.referrer}|${gw}`) ?? 0) + 1);
     }
   }
@@ -230,7 +241,10 @@ export const scoutBadge = (credited: number) => (credited >= CAPTAIN_BADGE_AT ? 
 
 /** Top scouts: credited mates still holding $5 or more now, then credited mates, then first credit. */
 export async function scoutTable(ctx: ClubsContext): Promise<ScoutRow[]> {
-  const credits = (await ctx.store.query<ScoutCreditDoc>(SCOUT_COL.credits, { where: [['status', '==', 'credited']] })).sort((a, b) => a.decidedAt - b.decidedAt);
+  const ex = new Set((await ctx.store.query<ExclusionDoc>(COL.exclusions)).map((e) => e.wallet));
+  const credits = (await ctx.store.query<ScoutCreditDoc>(SCOUT_COL.credits, { where: [['status', '==', 'credited']] }))
+    .filter((c) => !ex.has(c.referrer) && !ex.has(c.referred))
+    .sort((a, b) => a.decidedAt - b.decidedAt);
   const by = new Map<string, { credited: number; holding: number; first: number }>();
   const now = ctx.now();
   for (const c of credits) {

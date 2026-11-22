@@ -1,12 +1,17 @@
 // The pattern every API route follows: validate, rate-limit, call a server-only module, answer with ok() or fail().
 import 'server-only';
 import { NextResponse } from 'next/server';
+import { clientIp as trustedIp } from './geo';
 
 export const ok = <T>(data: T, cache = 'private, no-store') => NextResponse.json(data, { headers: { 'Cache-Control': cache } });
 export const fail = (status: number, error: string, cache = 'private, no-store') => NextResponse.json({ error }, { status, headers: { 'Cache-Control': cache } });
 
+/**
+ * The caller's address for rate limits: the same trusted-hop rule as the region gate (lib/server/
+ * geo.ts), never the first X-Forwarded-For entry, which a client can write itself.
+ */
 export function clientIp(req: Request): string {
-  return (req.headers.get('x-forwarded-for') || 'local').split(',')[0].trim();
+  return trustedIp(req.headers) ?? 'local';
 }
 
 const buckets = new Map<string, number[]>();
@@ -17,7 +22,14 @@ export function rateLimited(bucket: string, req: Request, perMinute: number): bo
   const list = (buckets.get(key) ?? []).filter((t) => now - t < 60_000);
   list.push(now);
   buckets.set(key, list);
-  if (buckets.size > 5000) buckets.clear();
+  // too many callers: drop the oldest keys (a Map keeps insertion order), never all of them at once
+  if (buckets.size > 5000) {
+    let n = 0;
+    for (const k of buckets.keys()) {
+      if (n++ >= 1000) break;
+      buckets.delete(k);
+    }
+  }
   return list.length > perMinute;
 }
 

@@ -45,7 +45,12 @@ export interface CapDoc {
   at: number;
 }
 
-export const capId = (wallet: string, gw: string, reason: CapReason, sourceRef: string) => `${wallet}__${gw}__${reason}__${sourceRef.toLowerCase()}`;
+/**
+ * The ledger key. Played and held-at-D+7 are once per wallet per gameweek whatever buy earned them
+ * (wallet__gw__reason); a scout cap is once per credited friend (…__friend).
+ */
+export const capId = (wallet: string, gw: string, reason: CapReason, sourceRef: string) =>
+  reason === 'scout' ? `${wallet}__${gw}__${reason}__${sourceRef.toLowerCase()}` : `${wallet}__${gw}__${reason}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Append one award, unless it is already there or the gameweek's cap is reached. Returns the amount added. */
@@ -120,9 +125,10 @@ export interface CapsRow {
 
 /** The season table: total Caps, ties broken by the earliest first verified buy. */
 export async function capsTable(ctx: ClubsContext): Promise<CapsRow[]> {
-  const [caps, buys] = await Promise.all([ctx.store.query<CapDoc>(CAPS_COL), ctx.store.query<BuyDoc>(COL.buys)]);
+  const [caps, buys, exclusions] = await Promise.all([ctx.store.query<CapDoc>(CAPS_COL), ctx.store.query<BuyDoc>(COL.buys), ctx.store.query<ExclusionDoc>(COL.exclusions)]);
+  const ex = new Set(exclusions.map((e) => e.wallet));
   const totals = new Map<string, number>();
-  for (const c of caps) totals.set(c.wallet, round2((totals.get(c.wallet) ?? 0) + c.amount));
+  for (const c of caps) if (!ex.has(c.wallet)) totals.set(c.wallet, round2((totals.get(c.wallet) ?? 0) + c.amount));
   const first = new Map<string, number>();
   for (const b of buys) if (b.verified === true && (!first.has(b.wallet) || b.blockTime < first.get(b.wallet)!)) first.set(b.wallet, b.blockTime);
   const rows = [...totals]

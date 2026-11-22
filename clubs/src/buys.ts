@@ -177,6 +177,8 @@ export async function recordBuy(
     source?: 'client' | 'sweep';
     /** Sweep only: the buyer recorded this buy through the site before (it passed the region gate then). */
     clientRecorded?: boolean;
+    /** Buying is paused (BUY_PAUSED): nothing is recorded; a real buy is kept in pendingBuys for later. */
+    paused?: boolean;
   },
 ): Promise<RecordBuyResult> {
   const chain = need(ctx.chain, 'chain reader');
@@ -204,6 +206,8 @@ export async function recordBuy(
   const tx = await chain.getTransaction(txHash);
   const signer = (attribution.from ?? tx?.from ?? receipt.from).toLowerCase();
   if (signer !== wallet) return reject(ctx, txHash, wallet, 'not_from_wallet', true);
+  // while paused nothing is decided: the buy waits in pendingBuys and is checked once buying resumes
+  if (input.paused) return retryLater(ctx, txHash, wallet, input.clubId, 'buying paused', source);
 
   // The receipt must show our swap. Everything scored below comes from the router's own log.
   const transfers = parseTransfers(receipt.logs);
@@ -387,7 +391,7 @@ export async function refreshSeats(ctx: ClubsContext, wallet: string): Promise<{
  */
 export async function sweepTransfers(
   ctx: ClubsContext,
-  opts: { fromBlock?: bigint; toBlock?: bigint; tokens?: string[]; maxBlocks?: bigint } = {},
+  opts: { fromBlock?: bigint; toBlock?: bigint; tokens?: string[]; maxBlocks?: bigint; paused?: boolean } = {},
 ): Promise<{ fromBlock: number; toBlock: number; inbound: number; outbound: number; recorded: number; retried: number }> {
   const chain = need(ctx.chain, 'chain reader');
   if (!chain.getTransferLogs) throw new Error('chain reader has no getTransferLogs');
@@ -405,7 +409,8 @@ export async function sweepTransfers(
   // A transaction that is real is never dropped just because its mark came late.
   let retried = 0;
   // least recently tried first, and only those whose backoff has passed, so one stuck buy never blocks the rest
-  const due = (await ctx.store.query<PendingBuyDoc>(COL.pendingBuys)).filter((p) => (p.nextAt ?? 0) <= ctx.now()).sort((x, y) => x.lastAt - y.lastAt);
+  // (while buying is paused nothing waiting is tried: it stays pending)
+  const due = opts.paused ? [] : (await ctx.store.query<PendingBuyDoc>(COL.pendingBuys)).filter((p) => (p.nextAt ?? 0) <= ctx.now()).sort((x, y) => x.lastAt - y.lastAt);
   for (const p of due.slice(0, 50)) {
     retried++;
     const r = await recordBuy(ctx, { txHash: p.txHash, wallet: p.wallet, clubId: p.clubId, source: 'sweep', clientRecorded: p.source === 'client' });
@@ -426,7 +431,7 @@ export async function sweepTransfers(
         seenTx.add(l.txHash);
         const att = await chain.verifyAttribution(l.txHash, l.to).catch(() => null);
         if (att?.attributed) {
-          const r = await recordBuy(ctx, { txHash: l.txHash, wallet: l.to, clubId: null, source: 'sweep' });
+          const r = await recordBuy(ctx, { txHash: l.txHash, wallet: l.to, clubId: null, source: 'sweep', paused: opts.paused });
           if (r.ok) {
             recorded++;
             continue;

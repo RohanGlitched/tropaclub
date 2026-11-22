@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { cronRunKey, currentGameweek, lastSettledGameweek, runOnce } from '@tropaclub/clubs';
 import { fail, guarded, ok } from '@/lib/server/api';
 import { getClubs } from '@/lib/server/clubs';
+import { buyPaused } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -53,7 +54,7 @@ export const POST = (req: Request, ctx: { params: Promise<{ job: string }> }) =>
         case 'capture-marks':
           return { marks: await clubs.captureCutMarks() };
         case 'sweep-transfers':
-          return { result: await clubs.sweepTransfers() };
+          return { result: await clubs.sweepTransfers({ paused: buyPaused() }) };
         case 'match-pickups':
           return { result: await clubs.matchPickups() };
         case 'schedule-fixtures':

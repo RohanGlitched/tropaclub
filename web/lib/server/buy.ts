@@ -125,8 +125,8 @@ export interface QuoteHold {
 
 const hold = (message: string, retry = true): QuoteHold => ({ ok: false, message, retry });
 
-export function quoteBuy(p: { token: string; pay: Pay; usd: number; taker: string }, opts: { fresh?: boolean } = {}): Promise<QuoteOk | QuoteHold> {
-  const key = `q:${p.token.toLowerCase()}:${p.pay}:${p.usd}:${p.taker.toLowerCase()}`;
+export function quoteBuy(p: { token: string; pay: Pay; usd: number; taker: string; remember?: boolean }, opts: { fresh?: boolean } = {}): Promise<QuoteOk | QuoteHold> {
+  const key = `q:${p.token.toLowerCase()}:${p.pay}:${p.usd}:${p.taker.toLowerCase()}:${p.remember ? 1 : 0}`;
   if (opts.fresh) memo.delete(key);
   const p2 = cached(key, 12_000, () => within(makeQuote(p), 30_000, 'quote').catch((e) => hold(friendly(e))));
   // "not enough USDC/ETH" is never kept: the visitor is adding funds right now, and the next quote
@@ -175,7 +175,7 @@ export async function clubCountCheck(token: string, usd: number, outs: bigint[],
   return `The pool price is ${pct}% away from the market price right now, so this buy wouldn't count for your club. ${inRegularSession(nowSec) ? 'Try again in a few minutes.' : 'Try again during market hours.'}`;
 }
 
-async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: string }): Promise<QuoteOk | QuoteHold> {
+async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: string; remember?: boolean }): Promise<QuoteOk | QuoteHold> {
   const client = baseClient();
   const token = p.token as Address;
   const taker = p.taker as Address;
@@ -207,9 +207,12 @@ async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: strin
   if (wouldNotCount) return hold(wouldNotCount);
   const swap = await buildSwap(quote, { amountOutMin: guard.amountOutMin, executors: (process.env.KYBER_EXECUTORS ?? '').split(',').map((a) => a.trim()).filter(Boolean) });
   // the sweep counts a buy it finds only when the site quoted it (region gate and not-a-US-person passed)
-  await getClubs()
+  // only a quote for the signed-in wallet is kept: the sweep counts a found buy against it
+  if (p.remember) {
+    await getClubs()
     .then((svc) => svc.recordQuote({ wallet: taker, token: p.token, usd: p.usd }))
     .catch((e) => console.warn('[buy] quote not remembered:', (e as Error).message?.slice(0, 120)));
+  }
   const allowance = p.pay === 'USDC' ? await client.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [taker, swap.to] }) : 0n;
   const calls = buildBuyCalls({ quote, swap, currentAllowance: allowance, sellSymbol: p.pay, buySymbol: ok.symbol });
 

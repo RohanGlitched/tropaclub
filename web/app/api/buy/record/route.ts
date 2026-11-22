@@ -5,6 +5,7 @@ import { getClubs } from '@/lib/server/clubs';
 import { regionOf } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { isAddress } from '@/lib/format';
+import { buyPaused } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,8 @@ export const POST = (req: Request) =>
     const region = await regionOf(req.headers);
     // Every buyer ticks "I am not a US person" before the first buy. The answer is stored on the buy record.
     const certified = body?.notUsPerson === true;
-    const result = await clubs.recordBuy({ txHash, wallet, clubId: body?.clubId ?? null, country: region.country, selfCertifiedUsPerson: !certified, certifiedNotUsPerson: certified, source: 'client' });
+    // paused: the buy is kept and checked once buying resumes (recordBuy routes it to pendingBuys)
+    const result = await clubs.recordBuy({ txHash, wallet, clubId: body?.clubId ?? null, country: region.country, selfCertifiedUsPerson: !certified, certifiedNotUsPerson: certified, source: 'client', paused: buyPaused() });
     return ok({
       attributed: attribution?.attributed ?? null,
       via: attribution?.via ?? null,

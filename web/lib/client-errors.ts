@@ -36,9 +36,15 @@ export function reloadOnceForChunk(): boolean {
 let sent = 0;
 const seen = new Set<string>();
 
+/** A wallet saying no (the visitor closed or rejected a prompt) is not an error worth reporting. */
+const userRejected = (e: unknown) => {
+  const x = e as { code?: number; name?: string; message?: string; shortMessage?: string };
+  return x?.code === 4001 || x?.name === 'UserRejectedRequestError' || /user (rejected|denied|cancel)|rejected the request|request rejected|ACTION_REJECTED/i.test(`${x?.message ?? ''} ${x?.shortMessage ?? ''}`);
+};
+
 export function reportClientError(kind: 'error' | 'rejection' | 'boundary', e: unknown, extra?: { digest?: string }): void {
   try {
-    if (sent >= 5) return;
+    if (sent >= 5 || userRejected(e)) return;
     const err = e as { message?: string; stack?: string; name?: string };
     const message = String(err?.message ?? e ?? 'unknown').slice(0, 500);
     const key = `${kind}:${message}`;

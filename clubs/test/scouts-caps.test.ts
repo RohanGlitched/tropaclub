@@ -99,6 +99,24 @@ describe('scouts', () => {
     expect(await store.get<ScoutCreditDoc>(SCOUT_COL.credits, clean)).toMatchObject({ status: 'credited' });
   });
 
+  it("two friends of one scout funded by the same sender count once", async () => {
+    const F = addr(0xf0f);
+    const a = addr(0x351);
+    const b = addr(0x352);
+    const { svc, clock, buy, store } = world({ [a]: F, [b]: F, [S]: addr(0xf02) });
+    const code = await svc.scoutCode(S);
+    for (const w of [a, b]) {
+      await svc.createClub({ name: `Club ${w.slice(-3)}`, createdBy: w });
+      await svc.recordReferral({ wallet: w, code, via: 'create' });
+    }
+    clock.set(T0 + 60);
+    await buy(a, T0);
+    await buy(b, T0 + 60);
+    clock.set(T0 + 8 * DAY);
+    expect(await svc.decideScoutCredits()).toEqual({ decided: 2, credited: 1 });
+    expect(await store.get<ScoutCreditDoc>(SCOUT_COL.credits, b)).toMatchObject({ status: 'sybil', reason: "same first funder as another of this scout's credited friends" });
+  });
+
   it('credits at most 20 mates per scout per gameweek; three make a Captain', async () => {
     const { svc, clock, buy, store } = world();
     const code = await svc.scoutCode(S);
@@ -173,6 +191,20 @@ describe('caps', () => {
     await svc.awardCaps();
     const total = (await store.query<CapDoc>(CAPS_COL, { where: [['wallet', '==', P]] })).reduce((s, c) => s + c.amount, 0);
     expect(Math.round(total * 100) / 100).toBe(2.5);
+  });
+
+  it('keys played and held once per wallet per gameweek, and leaves excluded wallets off the table', async () => {
+    const { svc, clock, buy, store } = world();
+    const P = addr(0x901);
+    clock.set(T0 + 60);
+    await buy(P, T0);
+    await buy(P, T0 + 120);
+    clock.set(T0 + 8 * DAY);
+    await svc.awardCaps();
+    const ids = (await store.query<CapDoc>(CAPS_COL, { where: [['wallet', '==', P]] })).map((c) => c.id).sort();
+    expect(ids).toEqual([`${P}__GW0__held_d7`, `${P}__GW0__played`]);
+    await svc.addExclusion({ wallet: P, label: 'test', reason: 'test wallet' });
+    expect(await svc.capsOf(P)).toBeNull();
   });
 
   it('ranks the season table by Caps, then by the earliest first verified buy', async () => {

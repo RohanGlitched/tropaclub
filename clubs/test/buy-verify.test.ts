@@ -160,6 +160,19 @@ describe('genuine router buy (real receipt)', () => {
     expect(pendingBackoffSec(20)).toBe(6 * 3600);
   });
 
+  it('while buying is paused nothing is recorded: the buy waits in pendingBuys', async () => {
+    const { store, chain, svc, t, clock } = setup({ markToken: genuine.token, mark: 131 });
+    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    chain.pools.add(genuine.pool);
+    chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
+    expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR', paused: true })).toMatchObject({ ok: false, reason: 'cannot_verify_now' });
+    expect(await store.query<BuyDoc>(COL.buys)).toEqual([]);
+    expect(await store.get<PendingBuyDoc>(COL.pendingBuys, genuine.txHash)).toMatchObject({ why: 'buying paused', source: 'client' });
+    clock.add(400);
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n, paused: true })).toMatchObject({ retried: 0, recorded: 0 });
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 1, recorded: 1 });
+  });
+
   it('the sweep counts a buy it finds only if the site quoted it, or the buyer recorded it', async () => {
     const { store, chain, svc, t } = setup({ markToken: genuine.token, mark: 131 });
     svc.ctx.config.tokens.set(genuine.token, 'SPCXc');

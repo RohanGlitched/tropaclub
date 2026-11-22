@@ -15,17 +15,30 @@ export interface Honours {
 }
 export const NO_HONOURS: Honours = { scout: null, founders: false, caps: null };
 
-export async function walletHonours(wallet: string, ms = 2500): Promise<Honours> {
+/**
+ * One wallet's honours. A ticket view reads the 60 s Caps board (one full read a minute per
+ * instance, never one per view) and two single-document lookups, and the answer is kept 60 s, so
+ * the page, its metadata and its share picture all use the same one.
+ */
+const honoursMemo = new Map<string, { at: number; p: Promise<Honours> }>();
+export function walletHonours(wallet: string, ms = 2500): Promise<Honours> {
   const w = wallet.toLowerCase();
-  const r = await tryClubs(async (svc) => {
-    const [scout, founders, caps] = await Promise.all([
-      svc.scoutBadgeOf(w).catch(() => null),
-      svc.hasFoundersPennant(w).catch(() => false),
-      svc.capsOf(w).catch(() => null),
+  const hit = honoursMemo.get(w);
+  if (hit && Date.now() - hit.at < 60_000) return hit.p;
+  const p = (async () => {
+    const [extra, board] = await Promise.all([
+      tryClubs(async (svc) => {
+        const [scout, founders] = await Promise.all([svc.scoutBadgeOf(w).catch(() => null), svc.hasFoundersPennant(w).catch(() => false)]);
+        return { scout, founders };
+      }, ms),
+      capsBoard().catch(() => null),
     ]);
-    return { scout, founders, caps };
-  }, ms);
-  return r ?? NO_HONOURS;
+    const row = board?.find((r) => r.wallet === w) ?? null;
+    return { scout: extra?.scout ?? null, founders: extra?.founders ?? false, caps: row && board ? { caps: row.caps, rank: row.rank, of: board.length } : null };
+  })().catch(() => NO_HONOURS);
+  if (honoursMemo.size > 2000) honoursMemo.clear();
+  honoursMemo.set(w, { at: Date.now(), p });
+  return p;
 }
 
 /** The stamps printed on a ticket and its share picture, in order. */

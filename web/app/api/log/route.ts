@@ -16,21 +16,22 @@ export async function POST(req: Request) {
   } catch {
     return new Response(null, { status: 204 });
   }
-  // a route is a path only; anything that looks like a wallet address is shortened
-  const route = (cut(j.route, 200) ?? '').split('?')[0]!.replace(/0x[0-9a-fA-F]{40}/g, (a) => `${a.slice(0, 6)}…`);
+  // a route is a path only; wallet addresses and transaction hashes are shortened everywhere
+  const redact = (s: string) => s.replace(/0x[0-9a-fA-F]{64}/g, (h) => `${h.slice(0, 8)}…`).replace(/0x[0-9a-fA-F]{40}/g, (a) => `${a.slice(0, 6)}…`);
+  const route = redact((cut(j.route, 200) ?? '').split('?')[0]!);
   const entry = {
-    severity: 'ERROR',
-    message: `[client] ${cut(j.kind, 12) ?? 'error'}: ${cut(j.message, 500) ?? ''}`,
+    severity: 'WARNING',
+    message: redact(`[client] ${cut(j.kind, 12) ?? 'error'}: ${cut(j.message, 500) ?? ''}`),
     kind: cut(j.kind, 12),
-    name: cut(j.name, 80),
+    name: redact(cut(j.name, 80) ?? ''),
     route,
     build: cut(j.build, 40),
     digest: cut(j.digest, 64),
     chunk: j.chunk === true,
-    stack: (cut(j.stack, 2000) ?? '').replace(/0x[0-9a-fA-F]{40}/g, (a) => `${a.slice(0, 6)}…`),
+    stack: redact(cut(j.stack, 2000) ?? ''),
     ua: (req.headers.get('user-agent') ?? '').slice(0, 160),
     'logging.googleapis.com/labels': { source: 'client' },
   };
-  console.error(JSON.stringify(entry));
+  console.warn(JSON.stringify(entry));
   return new Response(null, { status: 204 });
 }

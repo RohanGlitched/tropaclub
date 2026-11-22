@@ -12,6 +12,8 @@ steps:
           cid=$$(docker create us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:current)
           docker cp "$$cid:/srv/web/.next/static/." web/.prev-static/ && echo "kept $$(find web/.prev-static -type f | wc -l) earlier static files"
           docker container rm "$$cid" >/dev/null
+          # files of builds older than 14 days are not kept: no page names them any more
+          find web/.prev-static -type f -mtime +14 -print -delete | wc -l | xargs -I{} echo "dropped {} static files older than 14 days"
         else
           echo "no previous image: nothing to keep"
         fi
