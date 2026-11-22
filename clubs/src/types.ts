@@ -280,6 +280,8 @@ export interface GwClubResultDoc {
   lineup: LineupEntry[];
   /** Active payday streaks among members (Supporters table input). */
   activeStreaks: number;
+  /** Members still holding ($5 or more) at D+7 the buy they played the previous gameweek with: the fixture tie-break. */
+  heldD7Prev?: number;
   cutAt: number;
   /** True once the gameweek's final cut has been scored. */
   final: boolean;

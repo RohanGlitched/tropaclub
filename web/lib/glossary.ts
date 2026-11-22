@@ -61,7 +61,7 @@ export const GLOSSARY = {
   },
   fixture: {
     term: 'Fixture',
-    def: 'From week 1, your club is paired each week with a club of a similar size. The one whose buyers had the higher middle (median) return, in percent, takes 3 points. Bragging rights only.',
+    def: 'From week 1, your club is paired each week with a club of a similar size: 3 points if more of your club played than theirs. Returns decide nothing. Bragging rights only.',
   },
   caps: {
     term: 'Caps',

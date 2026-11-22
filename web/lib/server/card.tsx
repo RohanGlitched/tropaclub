@@ -251,9 +251,8 @@ export async function defaultCard(token: TokenSummary) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} width={202} height={56} alt="" />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 30, fontWeight: 600, color: C.label }}>{`${shortName(token.name, token.symbol)}’s stock token`}</div>
-          <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8 }}>{`${fmtInt(token.holdersTotal)} wallets hold it.`}</div>
-          <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8, color: C.marigold, marginTop: 6 }}>{`Only ${fmtInt(token.realFans)} are real holders.`}</div>
+          <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.06, letterSpacing: -0.8 }}>{`${fmtInt(token.holdersTotal)} wallets hold ${shortName(token.name, token.symbol)}’s stock token.`}</div>
+          <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.06, letterSpacing: -0.8, color: C.marigold, marginTop: 10 }}>{`Only ${fmtInt(token.realFans)} are real holders.`}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', fontSize: 24, fontWeight: 500, color: C.label, lineHeight: 1.3 }}>
           <div>Real holders of every stock token on Base.</div>

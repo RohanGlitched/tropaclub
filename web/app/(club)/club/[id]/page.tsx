@@ -35,11 +35,11 @@ const FIXTURE: Record<string, string> = {
   preseason: 'Week 0 is a practice week: no pairings yet, clubs are listed by turnout.',
   bye: 'No paired club this week (a bye). The 80% bonus point still counts.',
   none: 'Not paired this week. Clubs need 3 members to be paired.',
-  leading: 'Higher return so far in this week’s pairing',
-  trailing: 'Lower return so far in this week’s pairing',
+  leading: 'More of your club has played so far in this week’s pairing',
+  trailing: 'Fewer of your club have played so far in this week’s pairing',
   level: 'Level so far in this week’s pairing',
-  won: 'Higher return this week: 3 points',
-  lost: 'Lower return this week: 0 points',
+  won: 'More of your club played this week: 3 points',
+  lost: 'Fewer of your club played this week: 0 points',
   drawn: 'Level this week: 1 point each',
 };
 
@@ -159,7 +159,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
               {md.fixture.opponent && (
                 <>
                   {' '}paired with <Link href={`/club/${md.fixture.opponent.id}`}>{md.fixture.opponent.name}</Link>
-                  {md.fixture.opponentScore != null && md.score != null && <> ({signed(md.score)} to {signed(md.fixture.opponentScore)})</>}
+                  {md.fixture.opponentScore != null && <> ({Math.round(md.participationPct)}% of your club played, {Math.round(md.fixture.opponentScore)}% of theirs)</>}
                 </>
               )}
             </p>

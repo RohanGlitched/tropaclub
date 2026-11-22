@@ -11,7 +11,7 @@ import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, FIXTURE_RULE, PLAY_USD, REGION_LINE, RULE_LINE, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
+import { DOCS_URL, FIXTURE_RULE, HABIT_USD, PLAY_USD, REGION_LINE, RULE_LINE, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: buy stock tokens with your group chat',
@@ -92,8 +92,8 @@ export default async function ClubsPage() {
             <p>Name it and we&rsquo;ll draw a crest for it. You get an invite link for the group chat. Anyone who opens the link can join for free. They don&rsquo;t need to buy.</p>
             <ul className="ticks">
               <li>Up to 50 members. One wallet can start up to 5 clubs and be in up to 12.</li>
-              <li>Joining is free and needs no buy. {RULE_LINE}</li>
-              <li>Clubs with 3 or more members are paired each week with a club of a similar size, to compare results. Bragging rights only.</li>
+              <li>Joining is free and needs no buy. About ${HABIT_USD} a week is the habit. Buying ${PLAY_USD} or more through Tropa Club in a <Term id="gameweek">gameweek</Term> counts as played.</li>
+              <li>Clubs with 3 or more members are paired each week with a club of a similar size, and get 3 points if more of the club played than theirs. Bragging rights only.</li>
             </ul>
           </div>
           <StartClub />
@@ -130,7 +130,7 @@ export default async function ClubsPage() {
       <section className="wrap section">
         <div className="section-head">
           <h2>What happens each week</h2>
-          <p>A <Term id="gameweek">gameweek</Term> runs from the first US stock market session of the week to the last close. Week 0 starts with buying, <OpensAt at={openAt} />, and is a practice week.</p>
+          <p>A gameweek runs from the first US stock market session of the week to the last close. Week 0 starts with buying, <OpensAt at={openAt} />, and is a practice week.</p>
         </div>
         <ul className="limits">
           <li><h3>Buy, and you&rsquo;ve played</h3><p>Buy ${PLAY_USD} or more of any stock token through Tropa Club before the US stock market closes on the last trading day of the week. That counts as played.</p></li>

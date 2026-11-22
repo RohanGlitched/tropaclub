@@ -48,6 +48,8 @@ export const REAL_FAN_USD: number = rules.realFanUsd;
 /** What a buy can be paid in (matches the buy box). */
 export const PAY_WITH: string = rules.payWith;
 /** The one sentence used wherever $5 or $10 is mentioned as a rule. */
+/** About $10 a week is the habit (not a rule). */
+export const HABIT_USD: number = rules.habitUsd;
 export const RULE_LINE = `About $${rules.habitUsd} a week is the habit. Buying $${rules.playUsd} or more through Tropa Club in a gameweek counts as played.`;
 /** The buying streak, as clubs/src/streaks.ts implements it. */
 export const STREAK_RULE: string = rules.streakRule;
@@ -70,12 +72,9 @@ export const SCOUT_COUNTS = `A credit is a friend’s first buy through Tropa Cl
 /** A scout's personal invite link. */
 export const scoutUrl = (code: string) => `${SITE_URL}/j/${code}`;
 
-/**
- * How a weekly fixture is decided, in plain words, as clubs/src/fixtures.ts settles it.
- * (It is decided on the median return of the members who bought, not on turnout.)
- */
-export const FIXTURE_RULE =
-  'Each week from Mon Nov 30, clubs of 3 or more are paired with a club of a similar size. The pair compare the middle (median) percentage return of the members who bought that week: 3 points to the higher one, 1 point each if they are within 0.05 percentage points, and 3 points to the other club if nobody in yours bought. Separately, any club where 80% or more of members bought gets 1 bonus point.';
+/** How a weekly fixture is decided, in plain words, as clubs/src/fixtures.ts settles it: by turnout. */
+export const FIXTURE_RULE: string = rules.fixtureRule;
+export const FIXTURE_SHORT: string = rules.fixtureShort;
 
 export const CHANGELOG: { date: string; text: string }[] = [
   { date: '22 Nov 2026', text: 'Cost-basis statement live for any holder, adjusted for splits and stock dividends.' },

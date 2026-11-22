@@ -22,5 +22,7 @@
     "captainAt": 3,
     "foundersLimit": 1000,
     "copy": "No prizes, no cash, just your name on the board."
-  }
+  },
+  "fixtureRule": "Each week from Mon Nov 30, clubs of 3 or more are paired with a club of a similar size. 3 points if more of your club played than theirs: the share of members who bought $5 or more that week. If the two are within 1 percentage point, the club with more members still holding last week's buy at day 7 takes the 3 points, and if that is level too it is 1 point each. Any club where 80% or more of members bought also gets 1 bonus point. Returns decide nothing.",
+  "fixtureShort": "3 points if more of your club played than theirs."
 }

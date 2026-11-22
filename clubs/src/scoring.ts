@@ -4,7 +4,8 @@
  * - A member PLAYS a gameweek only with a qualifying buy (>= $5) inside that gameweek's buy window.
  * - Member GW return = time-weighted % return of their Tropa lots over (GW buy window start, cut],
  *   FIFO, valued at the token mark (Chainlink round at the cut, else stored DEX marks).
- * - Club GW score = median playing-member return. Stock clubs get no score (Supporters table only).
+ * - Club GW score = median playing-member return, shown on the Matchday card as status only. It
+ *   decides nothing: fixtures and every table go by turnout (fixtures.ts).
  * Returns are status only: no prize ever depends on them.
  */
 import { type Gameweek, SEASON, currentGameweek, gameweekById, latestMatchdayCut, lastSettledGameweek } from './calendar';
@@ -26,7 +27,9 @@ import { tropaTwr } from './lots';
 import { paydayStreak } from './streaks';
 import { AlreadyExistsError, queryIn } from './store/docstore';
 import { COL, type ClubDoc, type FixtureDoc, type GwClubResultDoc, type LineupEntry, type MemberDoc } from './types';
-import { median, round, shortAddr } from './util';
+import { DAY, median, round, shortAddr } from './util';
+import { decide } from './fixtures';
+import { holdsUsdAt } from './scouts';
 
 export interface MemberGw {
   wallet: string;
@@ -67,9 +70,16 @@ export async function computeClubGameweek(ctx: ClubsContext, club: ClubDoc, gw: 
   const members = (await clubMembers(ctx, club.id)).filter((m) => m.joinedAt <= cut);
   const lineup: (LineupEntry & { wallet: string })[] = [];
   let activeStreaks = 0;
+  let heldD7Prev = 0;
+  const prev = SEASON[gw.index - 1] ?? null;
   for (const m of members) {
     const ledger = await loadLedger(ctx, m.wallet);
     const token = club.kind === 'stock' ? club.stockToken : null;
+    // the tie-break: did the buy this member played the previous gameweek with still stand at D+7?
+    if (prev) {
+      const first = ledger.qualifying.filter((b) => b.gw === prev.id && (!token || b.token === token)).sort((a, b) => a.blockTime - b.blockTime)[0];
+      if (first && first.blockTime + 7 * DAY <= cut && (await holdsUsdAt(ctx, m.wallet, first.token, first.blockTime + 7 * DAY, 5, first.priceAtBuy))) heldD7Prev++;
+    }
     const mg = await memberGameweek(ctx, m.wallet, gw, cut, { token, withReturn: club.kind !== 'stock', ledger });
     const streak = paydayStreak(
       ledger.qualifying.filter((b) => !token || b.token === token).map((b) => b.blockTime),
@@ -97,6 +107,7 @@ export async function computeClubGameweek(ctx: ClubsContext, club: ClubDoc, gw: 
     topScorer: top ? { who: top.who, nickname: top.nickname, returnPct: top.returnPct! } : null,
     lineup: lineup.map(({ wallet: _w, ...rest }) => rest),
     activeStreaks,
+    heldD7Prev,
     cutAt: cut,
     final: cut >= gw.cutAt,
     computedAt: ctx.now(),
@@ -248,12 +259,11 @@ export async function getMatchdayCard(ctx: ClubsContext, clubId: string, at = ct
         const opp = await getClub(ctx, oppId);
         let or = await ctx.store.get<GwClubResultDoc>(COL.gwResults, `${gw.id}__${oppId}`);
         if (opp && (!or || or.cutAt !== cut)) or = await computeClubGameweek(ctx, opp, gw, cut);
-        const mine = r.score;
-        const theirs = or?.score ?? null;
-        const d = mine == null && theirs == null ? 0 : (mine ?? -Infinity) - (theirs ?? -Infinity);
+        // by turnout, the same rule settleFixture applies (returns decide nothing)
+        const d = decide(r, or ?? null);
         const final = cut >= gw.cutAt;
-        const status = Math.abs(d) < 0.05 || (mine == null && theirs == null) ? (final ? 'drawn' : 'level') : d > 0 ? (final ? 'won' : 'leading') : final ? 'lost' : 'trailing';
-        fixture = { opponent: opp ? { id: opp.id, name: opp.name, crestSeed: opp.crestSeed } : null, opponentScore: theirs, status };
+        const status = d === 'draw' || d === 'void' ? (final ? 'drawn' : 'level') : d === 'home' ? (final ? 'won' : 'leading') : final ? 'lost' : 'trailing';
+        fixture = { opponent: opp ? { id: opp.id, name: opp.name, crestSeed: opp.crestSeed } : null, opponentScore: or?.participationPct ?? null, status };
       }
     }
   }

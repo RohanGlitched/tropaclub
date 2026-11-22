@@ -157,8 +157,10 @@ export async function planChampionPennants(ctx: ClubsContext, scope: string): Pr
   }
   const gw = gameweekById(scope);
   if (ctx.now() < gw.cutAt) throw new Error(`${scope} is not settled yet`);
-  const results = (await ctx.store.query<GwClubResultDoc>(COL.gwResults, { where: [['gw', '==', scope]] })).filter((r) => r.final && r.kind !== 'stock' && r.members >= 3 && r.score != null);
-  results.sort((a, b) => b.score! - a.score! || b.participationPct - a.participationPct || (a.clubId < b.clubId ? -1 : 1));
+  // by turnout, never by returns: the club where the largest share of members played, then the
+  // previous gameweek's D+7 holders, then the most members who played
+  const results = (await ctx.store.query<GwClubResultDoc>(COL.gwResults, { where: [['gw', '==', scope]] })).filter((r) => r.final && r.kind !== 'stock' && r.members >= 3 && r.played > 0);
+  results.sort((a, b) => b.participationPct - a.participationPct || (b.heldD7Prev ?? 0) - (a.heldD7Prev ?? 0) || b.played - a.played || (a.clubId < b.clubId ? -1 : 1));
   const champ = results[0];
   if (!champ) return out;
   const club = (await ctx.store.get<ClubDoc>(COL.clubs, champ.clubId))!;
@@ -166,7 +168,7 @@ export async function planChampionPennants(ctx: ClubsContext, scope: string): Pr
   for (const m of members) {
     const l = await loadLedger(ctx, m.wallet);
     if (!l.qualifying.some((b) => b.blockTime > gw.buyFrom && b.blockTime <= gw.cutAt)) continue;
-    const d = await queue(ctx, 'champion', scope, m.wallet, { pennant: `${scope} Champions`, kind: 'champion', club: club.name, clubId: club.id, gameweek: scope, earnedAt: gw.cutAt, note: 'Best club median of the gameweek. Status only, no money in it.' });
+    const d = await queue(ctx, 'champion', scope, m.wallet, { pennant: `${scope} Champions`, kind: 'champion', club: club.name, clubId: club.id, gameweek: scope, earnedAt: gw.cutAt, note: 'Highest turnout of the gameweek. Status only, no money in it.' });
     if (d) out.push(d);
   }
   return out;

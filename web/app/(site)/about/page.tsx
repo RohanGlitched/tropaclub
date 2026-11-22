@@ -124,7 +124,7 @@ export default async function AboutPage() {
             <ul className="rules">
               <li><h3>No advice</h3><p>Nothing here says what to buy, sell or hold. No stock is picked, tipped or scored.</p></li>
               <li><h3>Plain words about what a token is</h3><p>A stock token tracks the share price and gives economic exposure. It is not the share, and holding one carries no vote.</p></li>
-              <li><h3>Never ranked by size</h3><p>Seats and real-holder numbers use time held. Club rankings use turnout, streaks and percentage returns, never dollar amounts, so $10 counts the same as $1 million.</p></li>
+              <li><h3>Never ranked by size</h3><p>Seats and real-holder numbers use time held. Club rankings use turnout and streaks, never returns and never dollar amounts, so $10 counts the same as $1 million.</p></li>
               <li><h3>No prize depends on returns</h3><p>Fixture points are bragging rights. Nothing of value is ever handed out for a return, and there are no odds or bets.</p></li>
               <li><h3>History doesn&rsquo;t predict the future</h3><p>Every chart with history says it can&rsquo;t predict the future. Nothing here is advice.</p></li>
               <li><h3>Honest about where buying is offered</h3><p>Buying and clubs: {REGION_LINE} Buying is hidden in the US and its territories. Checking wallets, grounds, tickets and stock rankings stays open everywhere.</p></li>

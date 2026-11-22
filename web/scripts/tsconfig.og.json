@@ -1,0 +1,48 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "../shared/*"
+      ],
+      "@tropaclub/buy": [
+        "../buy/src/index.ts"
+      ],
+      "@buy/*": [
+        "../buy/src/*"
+      ],
+      "@tropaclub/clubs": [
+        "../clubs/src/index.ts"
+      ],
+      "@clubs/*": [
+        "../clubs/src/*"
+      ],
+      "viem": [
+        "./node_modules/viem"
+      ],
+      "viem/*": [
+        "./node_modules/viem/*"
+      ],
+      "ox": [
+        "./node_modules/ox"
+      ],
+      "ox/*": [
+        "./node_modules/ox/*"
+      ],
+      "firebase-admin": [
+        "./node_modules/firebase-admin"
+      ],
+      "firebase-admin/*": [
+        "./node_modules/firebase-admin/lib/*"
+      ],
+      "server-only": [
+        "./scripts/empty-module.ts"
+      ]
+    },
+    "jsx": "react-jsx"
+  }
+}

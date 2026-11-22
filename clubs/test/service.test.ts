@@ -236,19 +236,20 @@ describe.each(stores)('clubs engine on $name store', ({ make }) => {
     expect(Bb).toMatchObject({ played: 3, participationPct: 100, bonus: true });
     expect(Bb.score!).toBeCloseTo((460 / (25 / 0.055) - 1) * 100, 3);
     const f1 = s1.fixtures[0]!;
+    // by turnout, not returns: Berlin had 3 of 3 playing, Lagos 1 of 3 (Lagos's return was higher)
     const lagosHome = f1.home === lagos.id;
-    expect(lagosHome ? f1.homePoints : f1.awayPoints).toBe(3);
-    expect(lagosHome ? f1.awayPoints : f1.homePoints).toBe(1); // loss + participation bonus
+    expect(lagosHome ? f1.homePoints : f1.awayPoints).toBe(0);
+    expect(lagosHome ? f1.awayPoints : f1.homePoints).toBe(4); // more played + the 80% turnout bonus
     const table = await svc.getLeagueTable();
     expect(table.rows.map((r) => [r.clubId, r.points])).toEqual([
-      [lagos.id, 3],
-      [berlin.id, 1],
+      [berlin.id, 4],
+      [lagos.id, 0],
     ]);
     const card1 = await svc.getMatchdayCard(berlin.id);
-    expect(card1.fixture).toMatchObject({ status: 'lost', opponent: { id: lagos.id } });
+    expect(card1.fixture).toMatchObject({ status: 'won', opponent: { id: lagos.id }, opponentScore: L.participationPct });
     expect(card1.final).toBe(true);
     const champs = await svc.planChampionPennants('GW1');
-    expect(champs.map((p) => p.recipient)).toEqual([A]);
+    expect(champs.map((p) => p.recipient).sort()).toEqual([D, E, F].sort());
 
     // ---------------------------------------------------------------- stats (exclusion list applied)
     await svc.addExclusion({ wallet: F, label: 'test', reason: 'founder test wallet' });

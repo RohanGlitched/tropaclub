@@ -1008,3 +1008,66 @@ html:has(dialog.smap[open]) {
   text-transform: uppercase;
   opacity: 0.78;
 }
+
+/* Narrow phones (480 px and under, down to 320): three stands across do not fit their words, so the
+   stadium folds into two columns around a wide pitch. Nothing is cut and nothing scrolls sideways. */
+@media (max-width: 480px) {
+  .smap-plan {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'pitch pitch'
+      'attendance ground'
+      'clubs league'
+      'stats statement'
+      'about docs'
+      'home home';
+  }
+  .smap-area {
+    min-width: 0;
+  }
+  .smap-go {
+    min-height: 76px;
+    padding: 10px 10px;
+  }
+  .smap-stats .smap-go,
+  .smap-statement .smap-go,
+  .smap-about .smap-go,
+  .smap-docs .smap-go {
+    border-radius: 10px;
+    padding-left: 10px;
+  }
+  .smap-about .smap-go { border-bottom-left-radius: 22px; }
+  .smap-docs .smap-go { border-bottom-right-radius: 22px; }
+  .smap-name {
+    font-size: 1rem;
+  }
+  .smap-name,
+  .smap-sub {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .smap-here,
+  .smap-statement .smap-here,
+  .smap-docs .smap-here {
+    position: static;
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+  /* a short, wide pitch on top: the plate with the focused stand's line sits on it */
+  .smap-pitch {
+    aspect-ratio: 105 / 52;
+    background: repeating-linear-gradient(90deg, rgba(18, 168, 116, 0.2) 0 8.333%, rgba(18, 168, 116, 0.145) 8.333% 16.666%);
+  }
+  .smap-lines-l {
+    display: block;
+  }
+  .smap-lines-p {
+    display: none;
+  }
+  .smap-home .smap-go {
+    min-height: 52px;
+    padding: 10px;
+  }
+}

@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start -p 3055",
     "typecheck": "tsc --noEmit",
-    "prebuild": "node scripts/refresh-google-ranges.mjs",
-    "test": "vitest run test"
+    "prebuild": "node scripts/refresh-google-ranges.mjs && node scripts/refresh-og-default.mjs",
+    "test": "vitest run test",
+    "og:default": "npx tsx --tsconfig scripts/tsconfig.og.json scripts/make-og-default.mts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.14.0",

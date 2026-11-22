@@ -127,19 +127,21 @@
 
 <h2 id="returns">Member return and the club score<a class="anchor" href="#returns" aria-label="Link to Member return and the club score">#</a></h2>
 <p>A member&rsquo;s <strong>gameweek return</strong> is the time-weighted percentage return of the stock tokens they bought through Tropa Club, measured over the gameweek&rsquo;s window. Lots are matched first in, first out, and valued at the token&rsquo;s mark at the cut: the Chainlink round at the cut, or else the stored DEX marks. A return is a percentage, never a dollar amount.</p>
-<p>A club&rsquo;s gameweek score is the <strong>median return of the members who bought that gameweek</strong>. The median is used on purpose: one member&rsquo;s lucky pick or a larger buy cannot carry the club, and a larger bankroll earns no advantage. Open clubs get no score.</p>
+<p>A club&rsquo;s Matchday card also shows the <strong>median return of the members who bought that gameweek</strong>, as a status only. It decides no fixture and no table: those go by turnout (below). Open clubs show no return.</p>
 
 <h2 id="fixtures">Fixtures<a class="anchor" href="#fixtures" aria-label="Link to Fixtures">#</a></h2>
-<p>A fixture is a weekly pairing. Fixtures start in GW1 (Mon Nov 30 2026). Each week, private and pick-up clubs that have at least three members when the pairs are made are paired with a club of a similar size. The pair compare the median percentage return of the members who bought that week. It is for bragging rights only: no prize depends on it. Open clubs are never paired.</p>
+<p>A fixture is a weekly pairing. Fixtures start in GW1 (Mon Nov 30 2026). Each week, private and pick-up clubs that have at least three members when the pairs are made are paired with a club of a similar size. 3 points if more of your club played than theirs. Turnout is the share of a club&rsquo;s members who bought $5 or more through Tropa Club that week. It is for bragging rights only: no prize depends on it, and returns decide nothing. Open clubs are never paired.</p>
 <h3 id="pairing">Pairing<a class="anchor" href="#pairing" aria-label="Link to Pairing">#</a></h3>
 <p>Clubs are grouped into size bands of 3 to 5, 6 to 10, 11 to 20 and 21 or more members. Within a band the pairing is a shuffle seeded by the gameweek and the band, so it is reproducible. If a band has an odd club, it moves up into the next band. The last club left gets a bye.</p>
 <h3 id="points">Points<a class="anchor" href="#points" aria-label="Link to Points">#</a></h3>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
   <thead><tr><th>Result</th><th class="num">Points</th></tr></thead>
   <tbody>
-    <tr><td>Higher median return of the members who bought</td><td class="num">3</td></tr>
-    <tr><td>Level: medians less than 0.05 percentage points apart (each club)</td><td class="num">1</td></tr>
-    <tr><td>Lower median return</td><td class="num">0</td></tr>
+    <tr><td>More of your club played than theirs (higher turnout)</td><td class="num">3</td></tr>
+    <tr><td>Turnouts within 1 percentage point: the club with more members still holding last week&rsquo;s buy at day 7</td><td class="num">3</td></tr>
+    <tr><td>Level on both (each club)</td><td class="num">1</td></tr>
+    <tr><td>Fewer of your club played</td><td class="num">0</td></tr>
+    <tr><td>Nobody in either club bought (void, each club)</td><td class="num">0</td></tr>
     <tr><td>Bonus point: 80% or more of the club&rsquo;s members bought that gameweek</td><td class="num">+1</td></tr>
   </tbody>
 </table></div>
@@ -202,7 +204,7 @@
 
 <h2 id="prizes">No prizes tied to returns<a class="anchor" href="#prizes" aria-label="Link to No prizes tied to returns">#</a></h2>
 <div class="callout note" role="note"><p class="callout-title">The rule</p>
-<p>Returns can appear as a status on a Matchday card or in a fixture. <strong>Nothing of value depends on them.</strong> No prize, rebate, fee or access is given for a higher return, and the brand never uses odds, bets, jackpots or &ldquo;win&rdquo; language around money: a fixture is described as a higher or lower return and the points it takes. Fixtures compare the median return of members who bought, and the bonus point rewards turnout.</p>
+<p>Returns can appear as a status on a Matchday card. <strong>Nothing depends on them</strong>: no fixture, no table, no prize, rebate, fee or access. Fixtures, the bonus point and every table go by turnout. The brand never uses odds, bets, jackpots or &ldquo;win&rdquo; language around money: a fixture is described as more or fewer of a club playing, and the points it takes.</p>
 </div>
 
 <h2 id="pennant">Founders&rsquo; Pennant<a class="anchor" href="#pennant" aria-label="Link to Founders’ Pennant">#</a></h2>

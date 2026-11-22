@@ -5,14 +5,18 @@
  *   fixtures; they are ranked in the Supporters table on participation and streaks only.
  * - Pairing: by size band, deterministic seeded shuffle (seed = gameweek id + band). An odd club out
  *   moves up to the next band; the last one left gets a bye.
- * - Result: higher median playing-member return wins. |diff| < 0.05 percentage points is a draw.
- *   Win 3, draw 1, loss 0, +1 bonus when >= 80% of members played. A club nobody played for scores
- *   null and loses to any club that has a score; two null clubs = void (0 points each).
+ * - Result: by turnout, never by returns. 3 points if more of your club played than theirs: the
+ *   share of members with a verified buy of $5 or more that gameweek. Turnouts within 1 percentage
+ *   point are level: the club with more members still holding at D+7 from the previous gameweek
+ *   takes the 3 points, and if that is level too it is a draw, 1 point each. +1 bonus for a turnout
+ *   of 80% or more. If nobody played for either club the fixture is void (0 points each).
+ * - Returns decide no fixture and no table, anywhere.
  */
 import type { ClubDoc, FixtureDoc, GwClubResultDoc } from './types';
 import { seededShuffle } from './util';
 
-export const DRAW_EPSILON_PCT = 0.05;
+/** Turnouts this close (percentage points) are level; the D+7 tie-break, then a draw. */
+export const DRAW_EPSILON_PCT = 1;
 export const BONUS_PARTICIPATION_PCT = 80;
 export const MIN_FIXTURE_MEMBERS = 3;
 export const POINTS = { win: 3, draw: 1, loss: 0, bonus: 1 } as const;
@@ -67,32 +71,37 @@ function newFixture(gw: string, band: string, home: string, away: string | null)
   };
 }
 
-export function decide(home: number | null, away: number | null): 'home' | 'away' | 'draw' | 'void' {
-  if (home == null && away == null) return 'void';
-  if (home == null) return 'away';
-  if (away == null) return 'home';
-  const d = home - away;
-  if (Math.abs(d) < DRAW_EPSILON_PCT) return 'draw';
-  return d > 0 ? 'home' : 'away';
+/** One side of a fixture: its turnout and the D+7 tie-break count. */
+export type FixtureSide = Pick<GwClubResultDoc, 'participationPct' | 'played'> & { heldD7Prev?: number };
+
+export function decide(home: FixtureSide | null, away: FixtureSide | null): 'home' | 'away' | 'draw' | 'void' {
+  const hp = home?.played ?? 0;
+  const ap = away?.played ?? 0;
+  if (hp === 0 && ap === 0) return 'void';
+  const d = (home?.participationPct ?? 0) - (away?.participationPct ?? 0);
+  if (Math.abs(d) > DRAW_EPSILON_PCT) return d > 0 ? 'home' : 'away';
+  const t = (home?.heldD7Prev ?? 0) - (away?.heldD7Prev ?? 0);
+  return t > 0 ? 'home' : t < 0 ? 'away' : 'draw';
 }
 
 export function settleFixture(
   f: FixtureDoc,
-  home: Pick<GwClubResultDoc, 'score' | 'participationPct'> | null,
-  away: Pick<GwClubResultDoc, 'score' | 'participationPct'> | null,
+  home: FixtureSide | null,
+  away: FixtureSide | null,
   at: number,
 ): FixtureDoc {
   const hb = (home?.participationPct ?? 0) >= BONUS_PARTICIPATION_PCT;
   const ab = (away?.participationPct ?? 0) >= BONUS_PARTICIPATION_PCT;
   if (!f.away) {
-    return { ...f, homeScore: home?.score ?? null, result: 'bye', homePoints: hb ? POINTS.bonus : 0, homeBonus: hb, settled: true, settledAt: at };
+    return { ...f, homeScore: home?.participationPct ?? null, result: 'bye', homePoints: hb ? POINTS.bonus : 0, homeBonus: hb, settled: true, settledAt: at };
   }
-  const r = decide(home?.score ?? null, away?.score ?? null);
+  const r = decide(home, away);
   const base = (side: 'home' | 'away') => (r === 'draw' ? POINTS.draw : r === side ? POINTS.win : POINTS.loss);
   return {
     ...f,
-    homeScore: home?.score ?? null,
-    awayScore: away?.score ?? null,
+    // the fixture's "score" is each club's turnout (percent of members who played)
+    homeScore: home?.participationPct ?? null,
+    awayScore: away?.participationPct ?? null,
     result: r,
     homePoints: base('home') + (hb ? POINTS.bonus : 0),
     awayPoints: base('away') + (ab ? POINTS.bonus : 0),
@@ -115,7 +124,7 @@ export interface LeagueRow {
   byes: number;
   bonus: number;
   points: number;
-  /** Sum of own GW scores minus opponents' (percentage points). */
+  /** Sum of own turnouts minus opponents' (percentage points). */
   diff: number;
   form: ('W' | 'D' | 'L' | 'B')[];
   position: number;
@@ -179,19 +188,18 @@ export interface PreseasonRow {
   clubId: string;
   name: string;
   crestSeed: string;
-  score: number | null;
   played: number;
   members: number;
   participationPct: number;
   position: number;
 }
 
-/** GW0 (preseason) table: ranked on median return, then participation. Status only. */
+/** GW0 (preseason) table: ranked on turnout, then members who played, then name. Never on returns. */
 export function preseasonTable(results: GwClubResultDoc[], clubs: Map<string, Pick<ClubDoc, 'name' | 'crestSeed' | 'kind'>>): PreseasonRow[] {
   const rows = results
     .filter((r) => r.kind !== 'stock' && r.members >= MIN_FIXTURE_MEMBERS)
-    .map((r) => ({ clubId: r.clubId, name: clubs.get(r.clubId)?.name ?? r.clubId, crestSeed: clubs.get(r.clubId)?.crestSeed ?? '', score: r.score, played: r.played, members: r.members, participationPct: r.participationPct, position: 0 }));
-  rows.sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity) || b.participationPct - a.participationPct || (a.name < b.name ? -1 : 1));
+    .map((r) => ({ clubId: r.clubId, name: clubs.get(r.clubId)?.name ?? r.clubId, crestSeed: clubs.get(r.clubId)?.crestSeed ?? '', played: r.played, members: r.members, participationPct: r.participationPct, position: 0 }));
+  rows.sort((a, b) => b.participationPct - a.participationPct || b.played - a.played || (a.name < b.name ? -1 : 1));
   rows.forEach((r, i) => (r.position = i + 1));
   return rows;
 }

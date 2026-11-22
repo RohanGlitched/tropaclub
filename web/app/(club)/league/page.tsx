@@ -170,7 +170,7 @@ export default async function LeaguePage({ searchParams }: Search) {
           <li><h3>Points from the weekly pairing</h3><p>{FIXTURE_RULE}</p></li>
           <li><h3>1 bonus point for turnout</h3><p>Any club where 80% or more of members bought that week gets a bonus point, whatever the pairing shows.</p></li>
           <li><h3>Paired by size</h3><p>Clubs need three members to be paired, and they meet clubs in the same size band.</p></li>
-          <li><h3>The middle member counts, not the total</h3><p>The middle (median) member&rsquo;s percentage decides it, so one big wallet cannot carry a club and small buys count in full.</p></li>
+          <li><h3>Turnout counts, not money</h3><p>What decides a pairing is how many of your club played, as a share of members. A $5 buy counts as much as a $500 one, and returns decide nothing.</p></li>
           <li><h3>Bragging rights only</h3><p>No prize, perk or payout ever depends on a return. Open clubs ignore returns altogether.</p></li>
         </ul>
         <p className="after-table"><a className="btn" href={DOCS_URL} rel="noopener">Scoring rules in the docs</a></p>

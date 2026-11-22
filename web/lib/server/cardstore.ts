@@ -17,9 +17,9 @@ export const cardName = (address: string, symbol: string, variant: 'landscape' |
   `${address.toLowerCase()}-${symbol.replace(/[^A-Za-z0-9.]/g, '')}-v5${honours ? `-h${honours.replace(/[^a-z-]/g, '').slice(0, 12)}` : ''}${stamp ? `-${stamp.replace(/[^A-Za-z0-9]/g, '').toLowerCase().slice(0, 12)}` : ''}${variant === 'portrait' ? '-portrait' : ''}.jpg`;
 export const publicCardUrl = (name: string) => `https://storage.googleapis.com/${BUCKET}/${PREFIX}/${encodeURIComponent(name)}`;
 export const localCardUrl = (name: string) => `/api/card/file/${encodeURIComponent(name)}`;
-export const isCardName = (name: string) => /^0x[0-9a-f]{40}-[A-Za-z0-9.]{1,12}-v5(-h[a-z-]{1,12})?(-[a-z0-9]{1,12})?(-portrait)?\.jpg$/.test(name) || /^home-v2-\d{12}\.jpg$/.test(name);
+export const isCardName = (name: string) => /^0x[0-9a-f]{40}-[A-Za-z0-9.]{1,12}-v5(-h[a-z-]{1,12})?(-[a-z0-9]{1,12})?(-portrait)?\.jpg$/.test(name) || /^home-v3-\d{12}\.jpg$/.test(name);
 /** The site's own share picture for one count of the index (asOf to the minute). */
-export const homeCardName = (asOf: string) => `home-v2-${asOf.replace(/[^0-9]/g, '').slice(0, 12)}.jpg`;
+export const homeCardName = (asOf: string) => `home-v3-${asOf.replace(/[^0-9]/g, '').slice(0, 12)}.jpg`;
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);

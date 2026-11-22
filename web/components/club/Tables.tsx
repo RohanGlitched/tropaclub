@@ -30,13 +30,12 @@ export function ClubLeagueTable({ rows }: { rows: LeagueRowView[] }) {
   return <LeagueTable rows={rows} columns={columns} rowKey={(r) => r.clubId} lead={lead} leadLabel="Club" leadText={(r) => r.name} initialSort="points" caption="Club rankings: private and pick-up clubs" searchPlaceholder="Club name" controls={rows.length > 8} />;
 }
 
-export interface PreseasonRowView extends Base { score: number | null; played: number; members: number; participationPct: number }
+export interface PreseasonRowView extends Base { played: number; members: number; participationPct: number }
 export function PreseasonTable({ rows }: { rows: PreseasonRowView[] }) {
   const columns: LeagueColumn<PreseasonRowView>[] = [
     { key: 'members', label: 'Members', value: (r) => r.members },
     { key: 'played', label: 'Bought', value: (r) => r.played },
     { key: 'participationPct', label: 'Turnout', strong: true, value: (r) => r.participationPct, render: (r) => pct(r.participationPct) },
-    { key: 'score', label: 'Middle return', value: (r) => r.score, render: (r) => signed(r.score) },
   ];
   return <LeagueTable rows={rows} columns={columns} rowKey={(r) => r.clubId} lead={lead} leadLabel="Club" leadText={(r) => r.name} initialSort="participationPct" caption="Practice week (gameweek 0) rankings, by turnout" searchPlaceholder="Club name" controls={rows.length > 8} />;
 }

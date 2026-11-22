@@ -75,7 +75,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
   const [blocked, setBlocked] = useState(false);
   const seq = useRef(0);
 
-  // Everyone confirms "I am not a US person" before their first buy. The tick is remembered on this device.
+  // Everyone confirms "I’m not a US person and I’m not in a sanctioned region" before their first buy. The tick is remembered on this device.
   useEffect(() => {
     try {
       if (localStorage.getItem(NOT_US_KEY) === '1') setNotUs(true);
@@ -284,7 +284,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
     : !session.signedIn
       ? 'Sign in with one free signature, so the buy is recorded for your wallet.'
       : !notUs
-        ? 'Tick “I am not a US person” to see a live quote.'
+        ? 'Tick “I’m not a US person and I’m not in a sanctioned region” to see a live quote.'
         : blocked
           ? ''
           : !sel
@@ -385,7 +385,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
 
             <label className="buy-check">
               <input type="checkbox" checked={notUs} onChange={(e) => tickNotUs(e.target.checked)} disabled={phase !== 'form'} />
-              <span>I am not a US person.</span>
+              <span>I&rsquo;m not a US person and I&rsquo;m not in a sanctioned region.</span>
             </label>
 
             <div className="buy-quote" aria-live="polite">
