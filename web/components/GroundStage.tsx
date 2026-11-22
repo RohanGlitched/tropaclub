@@ -5,7 +5,9 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 import type { TokenSummary, WalletSummary } from '@shared/types';
 import Ground, { type Emphasis, type GroundHandle } from './Ground';
 import { Pennant } from './ds/Pennant';
-import { clubName, groundPath, kitFor } from '@/lib/clubs';
+import { groundPath, kitFor, shortName } from '@/lib/clubs';
+import { groundName } from '@/lib/site';
+import Term from './nav/Term';
 import { fmtInt, fmtPct, shortAddr } from '@/lib/format';
 import { fetchWallet, resolveInput, useSeats } from '@/lib/client';
 import { seatLabel } from '@/lib/stadium';
@@ -21,8 +23,10 @@ interface Props {
   examples?: string[];
   /** Hero only: the paragraph under the headline. */
   lede?: ReactNode;
-  /** The product line, shown above the analytics headline (hero only). */
-  pitch?: string;
+  /** The eyebrow over the headline (hero only). With it, the hero shows its two buttons. */
+  pitch?: ReactNode;
+  /** Hero only: the small print under the buttons. */
+  note?: ReactNode;
   /** Live data: where the seat files are (the public bucket). */
   seatsBase?: string | null;
 }
@@ -30,7 +34,7 @@ interface Props {
 type Focus = { index: number; address?: string; mine: boolean; rank?: number | null; of?: number; kind?: string };
 type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: string; links?: { href: string; label: string }[] };
 
-export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, pitch, seatsBase }: Props) {
+export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, pitch, note, seatsBase }: Props) {
   const [symbol, setSymbol] = useState(initial);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [emphasis, setEmphasis] = useState<Emphasis>('all');
@@ -46,6 +50,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
   const club = useMemo(() => clubs.find((c) => c.symbol === symbol) ?? clubs[0], [clubs, symbol]);
   const kit = useMemo(() => kitFor(club.symbol), [club.symbol]);
   const seats = useSeats(club.symbol, mode === 'ground', seatsBase);
+  const gname = groundName(club.name, club.symbol);
   const tabClubs = useMemo(() => (tabs ?? []).map((s) => clubs.find((c) => c.symbol === s)).filter((c): c is Club => !!c), [tabs, clubs]);
 
   // fly after the club (and its layout) has switched
@@ -106,20 +111,20 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
   );
 
   async function onSubmit(raw: string) {
-    setStatus({ tone: 'busy', text: 'Checking the gate…' });
+    setStatus({ tone: 'busy', text: 'Checking the wallet…' });
     const r = await resolveInput(raw);
     if (!r.ok) return setStatus({ tone: 'warn', text: r.message });
     let w: WalletSummary | null = null;
     try {
       w = (await fetchWallet(r.address)).wallet;
     } catch {
-      return setStatus({ tone: 'warn', text: 'The seat list did not load. Check your connection and try again.' });
+      return setStatus({ tone: 'warn', text: 'The holder list did not load. Check your connection and try again.' });
     }
     const ticket = `/ticket/${r.address}`;
     const held = (w?.tokens ?? []).filter((t) => clubs.some((c) => c.symbol === t.symbol));
     if (!w || !held.length) {
       setFocus(null);
-      return setStatus({ tone: 'warn', text: `${shortAddr(r.address)} holds no stock tokens on Base, so it has no seat yet.`, links: [{ href: ticket, label: 'See what a seat needs' }] });
+      return setStatus({ tone: 'warn', text: `${shortAddr(r.address)} holds no stock tokens on Base, so it is not in any ground yet.`, links: [{ href: ticket, label: 'What makes a real holder' }] });
     }
     let target = club;
     if (mode === 'hero' || !held.some((t) => t.symbol === club.symbol)) {
@@ -129,17 +134,17 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
         setFocus(null);
         return setStatus({
           tone: 'warn',
-          text: `${shortAddr(r.address)} has no seat at ${clubName(club.name)}. It has ${held.length === 1 ? 'a seat' : 'seats'} elsewhere.`,
+          text: `${shortAddr(r.address)} does not hold ${club.symbol}. It holds ${held.length === 1 ? 'another stock token' : 'other stock tokens'}.`,
           links: [
-            ...held.slice(0, 3).map((t) => ({ href: groundPath(t.symbol), label: clubName(clubs.find((c) => c.symbol === t.symbol)?.name ?? t.symbol) })),
-            { href: ticket, label: 'All tickets' },
+            ...held.slice(0, 3).map((t) => ({ href: groundPath(t.symbol), label: groundName(clubs.find((c) => c.symbol === t.symbol)?.name ?? t.symbol, t.symbol) })),
+            { href: ticket, label: 'All its tickets' },
           ],
         });
       }
       target = clubs.find((c) => c.symbol === bestSym) ?? club;
     }
     const f = seatFor(r.address, w, target);
-    if (!f) return setStatus({ tone: 'warn', text: 'That seat could not be placed. Try again in a minute.' });
+    if (!f) return setStatus({ tone: 'warn', text: 'That wallet could not be placed in the drawing. Try again in a minute.' });
     const lbl = seatLabel(target.holdersTotal, f.index);
     setArrivalKey(false);
     // on a phone the field sits under the ground: bring the ground back into view before the camera moves
@@ -155,8 +160,8 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
     setStatus({
       tone: 'ok',
       text: f.rank != null
-        ? `Found it at ${clubName(target.name)}: block ${lbl?.block}, row ${lbl?.row}, seat ${lbl?.seat}.`
-        : `Found a ghost seat at ${clubName(target.name)}: this wallet holds under $10, was only sent tokens, or is a contract.`,
+        ? `Found it in the ${groundName(target.name, target.symbol)}: a real holder, at block ${lbl?.block}, row ${lbl?.row}, seat ${lbl?.seat}.`
+        : `Found it in the ${groundName(target.name, target.symbol)} as a ghost seat: this wallet holds under $10, only received a giveaway, or is a contract.`,
       links: [{ href: ticket, label: f.rank != null ? (held.length > 1 ? 'See all its tickets' : 'See the ticket') : 'See this wallet' }],
     });
   }
@@ -178,7 +183,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
         <span><b>{lbl.seat}</b>Seat</span>
       </div>
       <p className="pin-line">
-        {focus.rank != null ? `Real fan ${fmtInt(focus.rank)} of ${fmtInt(focus.of ?? club.realFans)}` : focus.kind === 'ghost' ? 'Ghost seat' : KIND_LABEL[focus.kind ?? 'dust'] ?? 'Ghost seat'}
+        {focus.rank != null ? `Real holder ${fmtInt(focus.rank)} of ${fmtInt(focus.of ?? club.realFans)}` : focus.kind === 'ghost' ? 'Ghost seat' : KIND_LABEL[focus.kind ?? 'dust'] ?? 'Ghost seat'}
         {picked && !focus.mine ? `, held ${fmtInt(picked.holdDays)} days` : ''}
       </p>
       {focus.address && (
@@ -190,9 +195,9 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
   ) : null;
 
   const legend: { key: Emphasis; label: string; n: number }[] = [
-    { key: 'real', label: 'Real fans', n: club.realFans },
-    { key: 'dust', label: 'Dust', n: club.ghosts.dust },
-    { key: 'farmer', label: 'Farmer-only', n: club.ghosts.farmerOnly },
+    { key: 'real', label: 'Real holders', n: club.realFans },
+    { key: 'dust', label: 'Under $10', n: club.ghosts.dust },
+    { key: 'farmer', label: 'Airdrop-only', n: club.ghosts.farmerOnly },
     { key: 'contract', label: 'Contracts', n: club.ghosts.contracts },
   ];
 
@@ -204,7 +209,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
         void onSubmit(value);
       }}
     >
-      <label htmlFor={inputId}>Find your seat</label>
+      <label htmlFor={inputId}>Check a wallet</label>
       <div className="find-row">
         <input
           id={inputId}
@@ -220,12 +225,12 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           aria-invalid={status.tone === 'warn' ? true : undefined}
         />
         <button className="btn btn-accent" type="submit" disabled={status.tone === 'busy'}>
-          {status.tone === 'busy' ? 'Looking…' : 'Find seat'}
+          {status.tone === 'busy' ? 'Looking…' : 'Check wallet'}
         </button>
       </div>
       {examples.length > 0 && (
         <p className="find-eg">
-          <span>No wallet to hand? Try a fan:</span>
+          <span>No wallet handy? Try one of these real holders:</span>
           {examples.map((a) => (
             <button key={a} type="button" className="chip chip-eg num" onClick={() => { setValue(a); void onSubmit(a); }}>
               {shortAddr(a)}
@@ -239,7 +244,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           <Link key={l.href} href={l.href}>{l.label}</Link>
         ))}
       </p>
-      <p className="find-note">Read-only. Nothing to connect or sign: seats come from public Base data.</p>
+      <p className="find-note">Read-only. Nothing to connect or sign. We use public Base data.</p>
     </form>
   );
 
@@ -259,18 +264,18 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
         arrival={arrivalKey}
         onPick={onPick}
         onZoomChange={setZoomed}
-        label={`Seating plan of ${clubName(club.name)}: ${fmtInt(club.holdersTotal)} seats, ${fmtInt(club.realFans)} lit for real fans.`}
+        label={`The ${gname}: ${fmtInt(club.holdersTotal)} holders drawn as seats, ${fmtInt(club.realFans)} lit for real holders.`}
       />
       {mode === 'ground' && (
         <div className="stage-tools">
           <button type="button" className="tool" onClick={() => ground.current?.zoom(1 / 1.8)} aria-label="Zoom out" disabled={!zoomed}>−</button>
           <button type="button" className="tool" onClick={() => ground.current?.zoom(1.8)} aria-label="Zoom in">+</button>
-          <button type="button" className="tool tool-wide" onClick={() => { ground.current?.reset(); }} disabled={!zoomed}>Whole ground</button>
+          <button type="button" className="tool tool-wide" onClick={() => { ground.current?.reset(); }} disabled={!zoomed}>Show whole stadium</button>
         </div>
       )}
       {mode === 'hero' && (zoomed || focus) && (
         <div className="stage-tools">
-          <button type="button" className="tool tool-wide" onClick={() => { ground.current?.reset(); setFocus(null); setStatus({ tone: 'idle', text: '' }); }}>Whole ground</button>
+          <button type="button" className="tool tool-wide" onClick={() => { ground.current?.reset(); setFocus(null); setStatus({ tone: 'idle', text: '' }); }}>Show whole stadium</button>
         </div>
       )}
     </div>
@@ -282,34 +287,38 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
         <div className="hero-head">
           {pitch && <p className="hero-pitch">{pitch}</p>}
           <h1>
-            {clubName(club.name)} sold <span className="num">{fmtInt(club.holdersTotal)}</span> tickets.{' '}
-            <span className="h1-fans"><span className="num">{fmtInt(club.realFans)}</span> fans showed up.</span>
+            <span className="num">{fmtInt(club.holdersTotal)}</span> wallets hold {shortName(club.name, club.symbol)}&rsquo;s stock token.{' '}
+            <span className="h1-fans">Only <span className="num">{fmtInt(club.realFans)}</span> are real holders.</span>
           </h1>
           <p className="lede">
-            {lede ?? <>Every wallet holding a stock token on Base is a seat in that stock&rsquo;s ground. Tropa Club counts the fans who are really there, across all {clubs.length} tokens.</>}
+            {lede ?? <>Tropa Club shows who really holds each stock token, across all {clubs.length} on Base.</>}
           </p>
           {pitch && (
             <p className="hero-cta">
-              <Link className="btn btn-accent" href="/clubs#start">Start a club</Link>
-              <a className="btn" href="#hero-find">Find your seat</a>
+              <a className="btn btn-accent" href="#hero-find">Check my wallet</a>
+              <Link className="btn" href="/clubs#start">Start a club with friends</Link>
             </p>
           )}
+          {note && <p className="muted small hero-note">{note}</p>}
         </div>
         <div className="hero-stage">
           {stage}
           <div className="hero-under">
-            <div className="tabs" role="group" aria-label="Choose a club">
+            <p className="caption hero-caption">
+              <span className="num">{fmtInt(club.holdersTotal)}</span> seats in the <Term id="ground">{gname}</Term>. <span className="num">{fmtInt(club.realFans)}</span> fans showed up. Each seat is one wallet; the lit ones are real holders.
+            </p>
+            <div className="tabs" role="group" aria-label="Choose a stock token">
               {tabClubs.map((c) => (
-                <button key={c.symbol} type="button" className="tab" aria-pressed={c.symbol === symbol} onClick={() => pickClub(c.symbol)} title={clubName(c.name)}>
+                <button key={c.symbol} type="button" className="tab" aria-pressed={c.symbol === symbol} onClick={() => pickClub(c.symbol)} title={groundName(c.name, c.symbol)}>
                   <Pennant kit={kitFor(c.symbol)} width={20} />
-                  <span>{c.symbol.replace(/c$/, '')}</span>
+                  <span>{c.symbol}</span>
                 </button>
               ))}
             </div>
             <p className="hero-key">
-              <span><i className="sw" style={{ background: kit.primary }} /><i className="sw" style={{ background: kit.secondary }} />Real fans, {fmtPct(club.attendancePct)} attendance</span>
-              <span><i className="sw sw-ghost" />Ghost seats</span>
-              <Link className="tap" href={groundPath(club.symbol)}>Walk the ground</Link>
+              <span><i className="sw" style={{ background: kit.primary }} /><i className="sw" style={{ background: kit.secondary }} />Real holders ({fmtPct(club.attendancePct)} of all holders)</span>
+              <span><i className="sw sw-ghost" />Other holders: under $10, airdrop-only or contracts</span>
+              <Link className="tap" href={groundPath(club.symbol)}>Open the {gname}</Link>
             </p>
           </div>
         </div>
@@ -321,7 +330,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
   return (
     <div className="explore">
       <div className="explore-bar">
-        <div className="legend" role="group" aria-label="Pick out a kind of seat">
+        <div className="legend" role="group" aria-label="Pick out a kind of holder">
           {legend.map((l) => (
             <button key={l.key} type="button" className="chip" aria-pressed={emphasis === l.key} onClick={() => setEmphasis(emphasis === l.key ? 'all' : l.key)}>
               <i className={`sw ${l.key === 'real' ? '' : 'sw-ghost'}`} style={l.key === 'real' ? { background: kit.primary } : undefined} />
@@ -330,7 +339,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           ))}
         </div>
         <p className="explore-hint">
-          {seats.status === 'missing' ? 'The seat-by-seat list is not out yet. The plan is drawn from the club totals.' : 'Tap a seat to see who sits there. Pinch or double-tap to zoom, drag to move.'}
+          {seats.status === 'missing' ? 'The wallet-by-wallet list is not out yet. The drawing uses the token’s totals.' : 'Each seat is one wallet. Tap one to see which. Pinch or double-tap to zoom, drag to move.'}
         </p>
       </div>
       {stage}

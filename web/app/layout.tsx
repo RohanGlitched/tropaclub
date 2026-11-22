@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import './club.css';
+import '@/components/nav/nav.css';
 import { SITE_URL, TAGLINE } from '@/lib/site';
 import { homeOgVersion } from '@/lib/og';
 import { getIndex } from '@/lib/server/data';
@@ -22,7 +23,7 @@ const display = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const asOf = await getIndex().then((i) => i.data.asOf).catch(() => null);
   const image = asOf ? `${SITE_URL}/api/card/og/home.jpg?v=${encodeURIComponent(homeOgVersion(asOf))}` : '/og-default.png';
-  return { ...base, openGraph: { ...base.openGraph, images: [{ url: image, width: 1200, height: 630, alt: 'Tropa Club: the seating plan of a stock token, with real fans lit' }] }, twitter: { ...base.twitter, images: [image] } };
+  return { ...base, openGraph: { ...base.openGraph, images: [{ url: image, width: 1200, height: 630, alt: 'Tropa Club: a stock token’s holders drawn as a stadium, with real holders lit' }] }, twitter: { ...base.twitter, images: [image] } };
 }
 
 const base: Metadata = {
@@ -30,12 +31,12 @@ const base: Metadata = {
   // every page names its own address on tropaclub.xyz as the canonical one (the *.web.app copy is a duplicate)
   alternates: { canonical: './' },
   manifest: '/manifest.webmanifest',
-  title: { default: 'Tropa Club: tickets sold vs fans who showed up', template: '%s · Tropa Club' },
-  description: `Every stock token on Base is a football club, and every holder wallet is a seat. See who really showed up, and find your own seat. Tropa Club: ${TAGLINE}`,
+  title: { default: 'Tropa Club: who really holds each stock token', template: '%s · Tropa Club' },
+  description: `Tropa Club shows who really holds each Coinbase stock token on Base, and helps your group chat each buy about $10 a week from your own wallets. ${TAGLINE}`,
   openGraph: {
     siteName: 'Tropa Club',
     type: 'website',
-    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Tropa Club: the seating plan of a stock token, with real fans lit' }],
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Tropa Club: a stock token’s holders drawn as a stadium, with real holders lit' }],
   },
   twitter: { card: 'summary_large_image', site: '@tropaclubxyz' },
 };

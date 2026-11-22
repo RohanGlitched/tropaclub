@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Public data feed · Tropa Club Docs</title>
-<meta name="description" content="The free JSON files behind The Ground and The Attendance: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
+<meta name="description" content="The free JSON files behind the grounds and stock rankings: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
 <meta name="theme-color" content="#121037">
 <link rel="canonical" href="https://docs.tropaclub.xyz/data-feed">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="Tropa Club Docs">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Public data feed · Tropa Club Docs">
-<meta property="og:description" content="The free JSON files behind The Ground and The Attendance: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
+<meta property="og:description" content="The free JSON files behind the grounds and stock rankings: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
 <meta property="og:url" content="https://docs.tropaclub.xyz/data-feed">
 <meta property="og:image" content="https://docs.tropaclub.xyz/assets/og.png">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@tropaclubxyz">
 <meta name="twitter:title" content="Public data feed · Tropa Club Docs">
-<meta name="twitter:description" content="The free JSON files behind The Ground and The Attendance: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
+<meta name="twitter:description" content="The free JSON files behind the grounds and stock rankings: URLs, full schema with field descriptions, caching, an example fetch and the licence.">
 <meta name="twitter:image" content="https://docs.tropaclub.xyz/assets/og.png">
 <script>try{var t=localStorage.getItem('tropa-docs-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <link rel="preload" href="assets/fonts/bsc-700.woff2" as="font" type="font/woff2" crossorigin>
@@ -62,7 +62,7 @@
   <main class="doc" id="main">
     <article class="article">
       <h1>Public data feed</h1>
-      <p class="lede">Everything on The Ground and The Attendance is read from four kinds of static JSON file. They are public, need no key and are refreshed every six hours.</p>
+      <p class="lede">Everything on the grounds and stock rankings is read from four kinds of static JSON file. They are public, need no key and are refreshed every six hours.</p>
       <p class="page-meta">Updated Nov 22 2026</p>
       <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#urls">Base URL and files</a></li><li class=""><a href="#example">Example fetch</a></li><li class=""><a href="#caching">Caching and freshness</a></li><li class=""><a href="#schema">Schema</a></li><li class="sub"><a href="#index-fields">index.json fields</a></li><li class="sub"><a href="#seat-fields">tokens/&lt;symbol&gt;.json fields</a></li><li class="sub"><a href="#wallet-fields">wallets/&lt;2hex&gt;.json fields</a></li><li class="sub"><a href="#stats-fields">stats.json fields</a></li><li class="sub"><a href="#sample">Sample shapes</a></li><li class=""><a href="#stability">Versioning and stability</a></li><li class=""><a href="#licence">Licence</a></li></ol></nav>
       
@@ -76,7 +76,7 @@
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
   <thead><tr><th>File</th><th>What it holds</th><th>Typical size</th></tr></thead>
   <tbody>
-    <tr><td><code>index.json</code></td><td>The league table: one summary per stock token, sorted by real fans.</td><td>Small</td></tr>
+    <tr><td><code>index.json</code></td><td>The stock rankings: one summary per stock token, sorted by real fans.</td><td>Small</td></tr>
     <tr><td><code>tokens/&lt;symbol&gt;.json</code></td><td>Every seat of one token, real fans first in rank order, then ghosts. Symbols keep their case, for example <code>tokens/NVDAc.json</code>.</td><td>Up to a few MB for the largest grounds</td></tr>
     <tr><td><code>wallets/&lt;2hex&gt;.json</code></td><td>A shard of the wallet lookup. The two hex digits are the first two after <code>0x</code> in the lowercase address, so there are 256 shards.</td><td>Small</td></tr>
     <tr><td><code>stats.json</code></td><td>Global numbers: unique holders, real wallets, weekly buyers by week.</td><td>Small</td></tr>
@@ -119,8 +119,8 @@
   priceUsd: <span class="tk-k">number</span> | <span class="tk-k">null</span>;   <span class="tk-c">// DEX price used for $ values</span>
   navUsd: <span class="tk-k">number</span> | <span class="tk-k">null</span>;     <span class="tk-c">// Coinbase API nav_price if present</span>
   multiplier: <span class="tk-k">number</span>;        <span class="tk-c">// ERC-8056 uiMultiplier</span>
-  holdersTotal: <span class="tk-k">number</span>;      <span class="tk-c">// nonzero balances (&quot;tickets sold&quot;)</span>
-  realFans: <span class="tk-k">number</span>;          <span class="tk-c">// &gt;= $10, EOA/smart wallet, not farmer-only (&quot;fans in the ground&quot;)</span>
+  holdersTotal: <span class="tk-k">number</span>;      <span class="tk-c">// nonzero balances (all holders)</span>
+  realFans: <span class="tk-k">number</span>;          <span class="tk-c">// &gt;= $10, EOA/smart wallet, not airdrop-only (farmer): the real holders</span>
   ghosts: { dust: <span class="tk-k">number</span>; farmerOnly: <span class="tk-k">number</span>; contracts: <span class="tk-k">number</span> };
   attendancePct: <span class="tk-k">number</span>;     <span class="tk-c">// realFans / holdersTotal * 100</span>
   top10SharePct: <span class="tk-k">number</span>;
@@ -197,8 +197,8 @@
     <tr><td><code>priceSource</code></td><td><code>"dex"</code>: the deepest DEX pair with at least $1,000 of liquidity. <code>"reference"</code>: no such pair, so the underlying stock&rsquo;s last price times the multiplier (else Coinbase&rsquo;s <code>nav_price</code>). <code>null</code>: unpriced, all seats show <code>usd: 0</code>.</td></tr>
     <tr><td><code>navUsd</code></td><td>Coinbase&rsquo;s <code>nav_price</code> where the API publishes one (only a minority of tokens do).</td></tr>
     <tr><td><code>multiplier</code></td><td>The ERC-8056 <code>uiMultiplier</code>. Dividends are paid as shares through increases of this number. Above 1 means the token has had a split or stock dividend.</td></tr>
-    <tr><td><code>holdersTotal</code></td><td>Wallets with a nonzero balance: &ldquo;tickets sold&rdquo;. It includes pools and contracts.</td></tr>
-    <tr><td><code>realFans</code></td><td>Real fans as defined in <a href="the-ground.html#thresholds">thresholds</a>: &ldquo;fans in the ground&rdquo;.</td></tr>
+    <tr><td><code>holdersTotal</code></td><td>Wallets with a nonzero balance: all holders, the number a block explorer shows. It includes pools and contracts.</td></tr>
+    <tr><td><code>realFans</code></td><td>Real fans as defined in <a href="the-ground.html#thresholds">thresholds</a>: the real holders.</td></tr>
     <tr><td><code>ghosts</code></td><td><code>dust</code>: people&rsquo;s wallets under $10. <code>farmerOnly</code>: wallets that only ever received giveaways. <code>contracts</code>: pools plus other contracts. With <code>realFans</code> these add up to <code>holdersTotal</code>.</td></tr>
     <tr><td><code>attendancePct</code></td><td><code>realFans / holdersTotal * 100</code>, one decimal.</td></tr>
     <tr><td><code>top10SharePct</code>, <code>top10ShareExPoolsPct</code></td><td>The share of supply held by the ten largest balances, with and without liquidity pools.</td></tr>
@@ -319,17 +319,17 @@
   </g>
 </svg>
 
-      <p>Tropa Club: $10 a week in stocks with your group chat. A free investing club on Coinbase&rsquo;s stock tokens on Base.</p>
+      <p>Tropa Club shows who really holds each Coinbase stock token on Base, and helps your group chat each buy about $10 a week from your own wallets. It never holds your money.</p>
     </div>
     <div class="footer-cols">
-      <div><h2>Tropa Club</h2><ul><li><a href="https://tropaclub.xyz">tropaclub.xyz</a></li><li><a href="https://tropaclub.xyz/attendance">The Attendance</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
-      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">The Ground</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
+      <div><h2>Tropa Club</h2><ul><li><a href="https://tropaclub.xyz">tropaclub.xyz</a></li><li><a href="https://tropaclub.xyz/attendance">Stock rankings</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
+      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">Grounds and real holders</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
       <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
       <div><h2>Work with us</h2><ul><li><a href="partners.html">For partners</a></li><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">DM @tropaclubxyz</a></li></ul></div>
     </div>
     <div class="footer-fine">
-      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. Club names such as &ldquo;NVIDIA FC&rdquo; are nicknames for a token&rsquo;s holders and are not affiliated with the companies.</p>
-      <p>The buy flow is not available to US persons. &copy; 2026 Tropa Club.</p>
+      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. A ground such as the &ldquo;NVIDIA ground&rdquo; is a drawing of a token&rsquo;s holders. Tropa Club is not affiliated with or endorsed by the companies.</p>
+      <p>Buying: not available to US persons or in sanctioned regions. &copy; 2026 Tropa Club.</p>
     </div>
   </div>
 </footer>

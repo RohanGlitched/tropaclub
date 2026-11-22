@@ -96,7 +96,7 @@ export default function LeagueTable<T>({ rows, columns, rowKey, lead, leadLabel,
         <caption className="sr">{caption}</caption>
         <thead>
           <tr>
-            <th scope="col" className="c-pos">Pos</th>
+            <th scope="col" className="c-pos">Rank</th>
             <th scope="col" className="c-club" aria-sort={aria('_lead')}>
               {controls ? <button type="button" onClick={() => sortBy('_lead')}>{leadLabel}</button> : leadLabel}
             </th>

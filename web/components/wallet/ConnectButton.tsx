@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useSession } from './WalletProvider';
@@ -10,8 +11,12 @@ const LABELS: Record<string, { name: string; note: string }> = {
   injected: { name: 'Browser wallet', note: 'MetaMask, Rabby or another wallet in this browser.' },
 };
 
-/** Connect, then sign in. Shows which step is next and why. */
-export default function ConnectButton({ compact = false, prompt }: { compact?: boolean; prompt?: string }) {
+/**
+ * Connect, then sign in. Shows which step is next and why.
+ * `header`: the header's one action. Signed out it reads "Check my wallet" (the read-only lookup);
+ * once a wallet is connected it shows the short address, and signing in moves into its menu.
+ */
+export default function ConnectButton({ compact = false, prompt, header = false }: { compact?: boolean; prompt?: string; header?: boolean }) {
   const { address, isConnected } = useAccount();
   const { connectors, connectAsync, isPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -54,11 +59,13 @@ export default function ConnectButton({ compact = false, prompt }: { compact?: b
 
   return (
     <div className={`connect${compact ? ' connect-compact' : ''}`} ref={box}>
-      {!connected ? (
+      {!connected && header ? (
+        <Link href="/#find" className="btn btn-accent btn-sm header-cta">Check my wallet</Link>
+      ) : !connected ? (
         <button type="button" className="btn btn-accent btn-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
           {isPending ? 'Connecting…' : prompt ?? 'Connect wallet'}
         </button>
-      ) : !session.signedIn ? (
+      ) : !session.signedIn && !header ? (
         <button type="button" className="btn btn-accent btn-sm" onClick={() => void session.signIn()} disabled={session.busy}>
           {session.busy ? 'Check your wallet…' : compact ? 'Sign in' : `Sign in as ${shortAddr(address!)}`}
         </button>
@@ -88,8 +95,14 @@ export default function ConnectButton({ compact = false, prompt }: { compact?: b
           ) : (
             <>
               <p className="connect-title num">{shortAddr(address!)}</p>
-              <a className="connect-opt" href={`/statement/${address!.toLowerCase()}`}><b>My statement</b><small>Cost basis and records</small></a>
-              <a className="connect-opt" href={`/ticket/${address!.toLowerCase()}`}><b>My tickets</b><small>Seats in The Ground</small></a>
+              {!session.signedIn && (
+                <button type="button" className="connect-opt" onClick={() => void session.signIn()} disabled={session.busy}>
+                  <b>{session.busy ? 'Check your wallet…' : 'Sign in'}</b>
+                  <small>One free signature proves the wallet is yours. It moves no funds.</small>
+                </button>
+              )}
+              <a className="connect-opt" href={`/statement/${address!.toLowerCase()}`}><b>My statement</b><small>Cost-basis statement (estimate)</small></a>
+              <a className="connect-opt" href={`/ticket/${address!.toLowerCase()}`}><b>My tickets</b><small>Where this wallet ranks as a real holder</small></a>
               <button
                 type="button"
                 className="connect-opt"

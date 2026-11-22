@@ -223,17 +223,17 @@ function shell(pages, p, content, toc) {
   <div class="footer-in">
     <div class="footer-brand">
       ${LOCKUP_FOOT}
-      <p>Tropa Club: $10 a week in stocks with your group chat. A free investing club on Coinbase&rsquo;s stock tokens on Base.</p>
+      <p>Tropa Club shows who really holds each Coinbase stock token on Base, and helps your group chat each buy about $10 a week from your own wallets. It never holds your money.</p>
     </div>
     <div class="footer-cols">
-      <div><h2>Tropa Club</h2><ul><li><a href="${MAIN_SITE}">tropaclub.xyz</a></li><li><a href="${MAIN_SITE}/attendance">The Attendance</a></li><li><a href="${X_URL}" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
-      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">The Ground</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
+      <div><h2>Tropa Club</h2><ul><li><a href="${MAIN_SITE}">tropaclub.xyz</a></li><li><a href="${MAIN_SITE}/attendance">Stock rankings</a></li><li><a href="${X_URL}" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
+      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">Grounds and real holders</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
       <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
       <div><h2>Work with us</h2><ul><li><a href="partners.html">For partners</a></li><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="${X_URL}" rel="noopener">DM @tropaclubxyz</a></li></ul></div>
     </div>
     <div class="footer-fine">
-      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. Club names such as &ldquo;NVIDIA FC&rdquo; are nicknames for a token&rsquo;s holders and are not affiliated with the companies.</p>
-      <p>The buy flow is not available to US persons. &copy; 2026 Tropa Club.</p>
+      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. A ground such as the &ldquo;NVIDIA ground&rdquo; is a drawing of a token&rsquo;s holders. Tropa Club is not affiliated with or endorsed by the companies.</p>
+      <p>Buying: not available to US persons or in sanctioned regions. &copy; 2026 Tropa Club.</p>
     </div>
   </div>
 </footer>

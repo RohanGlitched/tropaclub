@@ -37,12 +37,12 @@ export interface CardInput {
   badge?: string | null;
   /** Scout badge ("Scout" or "Captain's armband"), stamped small on the ticket. Cosmetic. */
   scout?: string | null;
-  /** On the Founders' Pennant list: stamped small on the ticket. Cosmetic. */
+  /** Among the First 1,000: stamped small on the ticket. Cosmetic. */
   founders?: boolean;
 }
 
-/** Honours on the picture (scout badge, Founders' Pennant), as a short tag in its file name. */
-export const honoursTagOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [i.scout === 'Scout' ? 'sc' : i.scout ? 'cap' : '', i.founders ? 'fp' : ''].filter(Boolean).join('-');
+/** Honours on the picture (scout badge, First 1,000), as a short tag in its file name. */
+export const honoursTagOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [i.scout === 'Scout' ? 'sc' : i.scout ? 'cap' : '', i.founders ? 'first' : ''].filter(Boolean).join('-');
 /** The stored file for this picture: a new stamp or badge is a new file, so it shows at once. */
 export const nameOf = (input: CardInput, variant: Variant) => cardName(input.address, input.token.symbol, variant, input.stamp, honoursTagOf(input));
 

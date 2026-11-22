@@ -62,20 +62,23 @@
   <main class="doc" id="main">
     <article class="article">
       <h1>The Ground and the Real Holders method</h1>
-      <p class="lede">A holder count is not a crowd. Stock tokens on Base report tens of thousands of holders, and most of those wallets hold cents. The Ground counts the wallets that are really there and gives each one a seat.</p>
+      <p class="lede">A holder count is not a crowd. Stock tokens on Base report tens of thousands of holders, and most of those wallets hold cents. Tropa Club counts the real holders of every token and draws each token&rsquo;s holders as a ground, one seat per wallet.</p>
       <p class="page-meta">Updated Nov 22 2026</p>
-      <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Find your seat</a></li></ol></nav>
+      <nav class="toc-inline" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Check your wallet</a></li></ol></nav>
       
 <h2 id="idea">The Ground<a class="anchor" href="#idea" aria-label="Link to The Ground">#</a></h2>
-<p>Every stock token is treated as a club, and every club plays in a ground. Each wallet that holds the token is one seat. <strong>Real fans</strong> are lit in the club&rsquo;s colours. <strong>Ghosts</strong> are faint: dust balances, farmer-only wallets and contracts. The whole table of grounds is <strong>The Attendance</strong>, a league table of real attendance for all minted tokens.</p>
-<p>The picture makes one point with numbers behind it. At the Nov 21 2026 count, NVIDIA&rsquo;s token had 17,685 holders and 1,613 real fans. The Ground draws that as 17,685 tickets sold and 1,613 fans showing up.</p>
+<p>Each stock token gets a <strong>ground</strong>: a drawing of its holders as a football stadium, such as the NVIDIA ground. Each wallet that holds the token is one seat. <strong>Real fans</strong> (real holders) are lit in the token&rsquo;s colours. <strong>Ghost seats</strong> are faint: under $10 (dust), airdrop-only (farmer) wallets and contracts. The ranking of all minted tokens by real holders is the <strong>stock rankings</strong> page (also called The Attendance).</p>
+<p>The picture makes one point with numbers behind it. At the Nov 21 2026 count, 17,685 wallets held NVIDIA&rsquo;s token, and only 1,613 were real fans. The NVIDIA ground draws that as 17,685 seats with 1,613 lit.</p>
 
 <h2 id="example">Worked example: 17,685 against 1,613<a class="anchor" href="#example" aria-label="Link to Worked example: 17,685 against 1,613">#</a></h2>
+<div class="callout note" role="note"><p class="callout-title">Example from the 21 Nov count</p>
+<p>Example from the 21 Nov count. Live numbers differ.</p>
+</div>
 <p>This is the count for NVDAc (NVIDIA) from the full replay on Nov 21 2026, Base block 60,439,800. The numbers move every six hours, but the shape of the funnel does not.</p>
 <div class="figures">
-  <div class="figure"><b>17,685</b><span>wallets with a nonzero balance (&ldquo;tickets sold&rdquo;)</span></div>
+  <div class="figure"><b>17,685</b><span>wallets with a nonzero balance (all holders)</span></div>
   <div class="figure"><b>1,934</b><span>of them hold $10 or more</span></div>
-  <div class="figure"><b>1,613</b><span>are real fans (&ldquo;showed up&rdquo;)</span></div>
+  <div class="figure"><b>1,613</b><span>are real fans (real holders)</span></div>
   <div class="figure"><b>9.1%</b><span>attendance: real fans divided by holders</span></div>
 </div>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
@@ -86,8 +89,8 @@
     <tr><td>Hold $10 or more</td><td class="num">1,934</td><td>The starting point for real fans.</td></tr>
     <tr><td>Liquidity pools</td><td class="num">&minus;12</td><td>Contracts that make the market, not fans.</td></tr>
     <tr><td>Other contracts</td><td class="num">&minus;219</td><td>Vaults, routers, multisigs and the like, found by checking for contract code.</td></tr>
-    <tr><td>Farmer-only wallets</td><td class="num">&minus;90</td><td>Every incoming transfer came from a giveaway distributor and the wallet never bought.</td></tr>
-    <tr><td><strong>Real fans</strong></td><td class="num"><strong>1,613</strong></td><td>$10 or more, a person&rsquo;s wallet, not farmer-only.</td></tr>
+    <tr><td>Airdrop-only (farmer) wallets</td><td class="num">&minus;90</td><td>Every incoming transfer came from a giveaway distributor and the wallet never bought.</td></tr>
+    <tr><td><strong>Real fans</strong></td><td class="num"><strong>1,613</strong></td><td>$10 or more, a person&rsquo;s wallet, not airdrop-only.</td></tr>
   </tbody>
 </table></div>
 <p>Across all 90 minted tokens at that count, 39,746 wallets held something. 4,968 of them were real fans of at least one token, and 2,117 of those held $100 or more.</p>
@@ -97,19 +100,19 @@
   <li><strong>Replay every transfer.</strong>The indexer reads all <code>Transfer</code> logs of every minted Coinbase stock token on Base, from the first mint on Aug 12 2026 (block 49,860,000), and replays them into balances. The first full run replayed 21.8 million transfers across 90 tokens. After the first run it continues from the last block it applied, staying about 150 blocks behind the chain head so that it never records a block that could still be reorganised.</li>
   <li><strong>Check the totals.</strong>Replayed balances are compared with the total supply each token reports. In the Nov 21 run they matched within 0.6% for every token, with no negative balances.</li>
   <li><strong>Price each balance.</strong>A balance is valued at the DEX price of the token&rsquo;s deepest pool with at least $1,000 of liquidity. That price already contains the token&rsquo;s split and dividend multiplier. If there is no such pool, the underlying stock&rsquo;s last price times the multiplier is used and the token is marked <code>priceSource: "reference"</code>. If neither exists the token is unpriced and every seat shows $0.</li>
-  <li><strong>Tell people from code.</strong>Each address is checked for contract code. Plain wallets, EIP-7702 delegated wallets and smart wallets (Coinbase Smart Wallet and Safe style proxies, the kind wallet apps create) count as people. Liquidity pools and every other contract are ghosts.</li>
-  <li><strong>Set giveaways aside.</strong>Some contracts send small amounts to thousands of wallets. A wallet is <em>farmer-only</em> if every incoming transfer came from one of those distributors, with no DEX purchase, no router delivery and no mint of its own.</li>
+  <li><strong>Tell people from code.</strong>Each address is checked for contract code. Plain wallets, EIP-7702 delegated wallets and smart wallets (Coinbase Smart Wallet and Safe style proxies, the kind wallet apps create) count as people. Liquidity pools and every other contract are ghost seats.</li>
+  <li><strong>Set giveaways aside.</strong>Some contracts send small amounts to thousands of wallets. A wallet is <em>airdrop-only</em> (<code>farmer</code> in the feed) if every incoming transfer came from one of those distributors, with no DEX purchase, no router delivery and no mint of its own.</li>
   <li><strong>Count the fans.</strong>A wallet that clears all the tests is a real fan. Attendance is real fans divided by holders.</li>
 </ol>
 
 <h2 id="thresholds">Thresholds and classification order<a class="anchor" href="#thresholds" aria-label="Link to Thresholds and classification order">#</a></h2>
-<p>Every seat gets exactly one kind. The tests run in this order, and the first one that matches wins.</p>
+<p>Every seat gets exactly one kind. The tests run in this order, and the first one that matches decides the kind.</p>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways on small screens"><table>
   <thead><tr><th>Order</th><th>Kind in the feed</th><th>Rule</th></tr></thead>
   <tbody>
     <tr><td>1</td><td><code>pool</code></td><td>A labelled liquidity pool or venue address.</td></tr>
     <tr><td>2</td><td><code>contract</code></td><td>The address has contract code and is not a smart wallet or a delegated wallet.</td></tr>
-    <tr><td>3</td><td><code>farmer</code></td><td>The farmer-only test below, whatever the balance.</td></tr>
+    <tr><td>3</td><td><code>farmer</code></td><td>The airdrop-only (farmer) test below, whatever the balance.</td></tr>
     <tr><td>4</td><td><code>real</code></td><td>Balance worth <strong>$10 or more</strong> at the token&rsquo;s current price.</td></tr>
     <tr><td>5</td><td><code>dust</code></td><td>Everything else: a person&rsquo;s wallet holding under $10.</td></tr>
   </tbody>
@@ -127,16 +130,16 @@
   <li>it sends out at least twice what it takes in;</li>
   <li>its median transfer is under $15.</li>
 </ul>
-<p>Contracts with a pass-through ratio of 0.4 or more are treated as <strong>routers</strong>, which deliver purchases, and a delivery from a router counts as the wallet&rsquo;s own buy. Two named gift-box contracts are added to the distributor list by hand. A wallet is farmer-only when all of its incoming transfers across every token came from distributors. In the Nov 21 count 11,597 wallets met that test for at least one token.</p>
+<p>Contracts with a pass-through ratio of 0.4 or more are treated as <strong>routers</strong>, which deliver purchases, and a delivery from a router counts as the wallet&rsquo;s own buy. Two named gift-box contracts are added to the distributor list by hand. A wallet is airdrop-only when all of its incoming transfers across every token came from distributors. In the Nov 21 count 11,597 wallets met that test for at least one token.</p>
 <div class="callout note" role="note"><p class="callout-title">Why a heuristic</p>
 <p>A giveaway recipient is a real person, and some of them later buy for themselves. That is why the rule is about <em>every</em> incoming transfer: one purchase of their own makes a wallet a normal wallet, and it can become a real fan.</p>
 </div>
 
 <h3 id="dust">Dust<a class="anchor" href="#dust" aria-label="Link to Dust">#</a></h3>
-<p>The research behind the method called dust anything under $1, which was 66% of all holders. The feed uses the simpler line that matters for fans: a person&rsquo;s wallet under $10 and not otherwise classified is <code>dust</code>. If you want the under-$1 slice, read each seat&rsquo;s <code>usd</code> field.</p>
+<p>Earlier research used $1 as the dust line (66% of all holders were under it). We use $10: a person&rsquo;s wallet under $10 and not otherwise classified is <code>dust</code>. If you want the under-$1 slice, read each seat&rsquo;s <code>usd</code> field.</p>
 
 <h2 id="ranking">Ranking rules<a class="anchor" href="#ranking" aria-label="Link to Ranking rules">#</a></h2>
-<p>Real fans are ranked. The seat on a ticket, the fan number and the &ldquo;best stat&rdquo; all come from this ranking.</p>
+<p>Real fans are ranked. The seat on a ticket, the real-fan number and the &ldquo;best stat&rdquo; all come from this ranking.</p>
 <ol>
   <li><strong>Unbroken hold time</strong> in days, longest first. A hold is unbroken while the balance stays above zero.</li>
   <li><strong>Earliest first buy</strong>, earliest first, breaking ties between equal hold times.</li>
@@ -148,7 +151,7 @@
 <p>A wallet&rsquo;s <strong>best stat</strong> is the one where it sits highest among real fans of that token, shown as &ldquo;top N%&rdquo;. The candidates are earliest buyer, longest unbroken hold, entry price against the median real fan&rsquo;s entry, held through a weekend reopen gap, and weekly buy streak.</p>
 
 <h3 id="weekly">Buyer counts<a class="anchor" href="#weekly" aria-label="Link to Buyer counts">#</a></h3>
-<p>A <strong>weekly buyer</strong> is a person&rsquo;s wallet that ends up with a token from a DEX purchase in the last seven days. Wallets with more than 50 swap events across all stock tokens in that week are treated as bots and left out. A <strong>new buyer</strong> made their first DEX buy of that token inside the window. The median weekly buy in the first full count was about $5 to $10.</p>
+<p>A <strong>weekly buyer</strong> is a person&rsquo;s wallet that ends up with a token from a DEX purchase in the last seven days. Wallets with more than 50 swap events across all stock tokens in that week are treated as bots and left out. A <strong>new buyer</strong> made their first DEX buy of that token inside the window. In the first full count (Nov 21 2026) the median weekly buy was about $5 to $10. Later counts publish the median for each week, so a figure on the site can differ.</p>
 
 <h2 id="cadence">Update cadence<a class="anchor" href="#cadence" aria-label="Link to Update cadence">#</a></h2>
 <p>The indexer runs <strong>every six hours</strong>, at 17 minutes past 00:00, 06:00, 12:00 and 18:00 UTC. Each run publishes the files described in the <a href="data-feed.html">data feed</a> and stamps them with <code>asOf</code> (the time of the snapshot) and <code>block</code> (the last Base block applied). The files are cached for five minutes, so a page can be up to six hours and five minutes behind the chain.</p>
@@ -159,18 +162,18 @@
   <li><strong>A wallet is not a person.</strong> One person with several wallets is several seats, and a shared wallet is one. We do not cluster wallets by owner.</li>
   <li><strong>Prices are spot prices.</strong> A seat&rsquo;s <code>usd</code> value is the balance at the current DEX price, not what the wallet paid. A wallet at $9.80 today is dust and may be a fan tomorrow. DEX prices trade around the clock and can sit a little off the underlying stock when the market is closed.</li>
   <li><strong>Unpriced tokens have no fans.</strong> A token with no liquid pool and no reference price has no dollar line. At the Nov 21 count, 38 of the 90 minted tokens were unpriced.</li>
-  <li><strong>The farmer rule is a label, not a verdict.</strong> It is built from observed behaviour. A wallet that received only giveaways and never bought is set aside. A wallet that hides a purchase inside a transfer from a friend is counted as a normal wallet.</li>
+  <li><strong>The airdrop-only (farmer) rule is a label, not a verdict.</strong> It is built from observed behaviour. A wallet that received only giveaways and never bought is set aside. A wallet that hides a purchase inside a transfer from a friend is counted as a normal wallet.</li>
   <li><strong>Hold time resets when a wallet empties or moves.</strong> Moving tokens to a fresh wallet starts a new hold in that wallet and ends the old one.</li>
   <li><strong>Entry price is estimated.</strong> Entry is the daily average DEX price on the day of each buy, weighted by size. Transfers in and giveaways have no entry price.</li>
   <li><strong>Counts lag by design.</strong> The six-hour cadence and the 150-block lag mean a purchase made a minute ago will not be visible yet.</li>
 </ul>
 
-<h2 id="find-seat">Find your seat<a class="anchor" href="#find-seat" aria-label="Link to Find your seat">#</a></h2>
-<p>Paste a wallet at <a href="https://tropaclub.xyz">tropaclub.xyz</a> and the camera flies to your seat. Your holder card is a matchday ticket: club, block, row and seat from your rank, your best true stat, and a barcode drawn from the address bytes. A ticket never prints a dollar amount. Everything on it is also in the <a href="data-feed.html">public data feed</a>.</p>
+<h2 id="find-seat">Check your wallet<a class="anchor" href="#find-seat" aria-label="Link to Check your wallet">#</a></h2>
+<p>Paste a wallet at <a href="https://tropaclub.xyz">tropaclub.xyz</a> and the camera flies to its seat. A real fan gets a ticket for each token: the ground, block, row and seat from its rank, its best stat, and a barcode drawn from the address bytes. A ticket is a picture to share, not an NFT, and it never prints a dollar amount. Everything on it is also in the <a href="data-feed.html">public data feed</a>.</p>
 
       <nav class="pager" aria-label="Previous and next page"><a class="prev" href="index.html" rel="prev"><small>Previous</small><strong>Overview</strong></a><a class="next" href="data-feed.html" rel="next"><small>Next</small><strong>Public data feed</strong></a></nav>
     </article>
-    <aside class="toc-side" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Find your seat</a></li></ol></aside>
+    <aside class="toc-side" aria-label="On this page"><h2>On this page</h2><ol><li class=""><a href="#idea">The Ground</a></li><li class=""><a href="#example">Worked example: 17,685 against 1,613</a></li><li class=""><a href="#method">The method, step by step</a></li><li class=""><a href="#thresholds">Thresholds and classification order</a></li><li class="sub"><a href="#contracts">Contract detection</a></li><li class="sub"><a href="#farmers">The farmer-distributor heuristic</a></li><li class="sub"><a href="#dust">Dust</a></li><li class=""><a href="#ranking">Ranking rules</a></li><li class="sub"><a href="#weekly">Buyer counts</a></li><li class=""><a href="#cadence">Update cadence</a></li><li class=""><a href="#limits">Known approximations</a></li><li class=""><a href="#find-seat">Check your wallet</a></li></ol></aside>
   </main>
 </div>
 <footer class="site-footer">
@@ -185,17 +188,17 @@
   </g>
 </svg>
 
-      <p>Tropa Club: $10 a week in stocks with your group chat. A free investing club on Coinbase&rsquo;s stock tokens on Base.</p>
+      <p>Tropa Club shows who really holds each Coinbase stock token on Base, and helps your group chat each buy about $10 a week from your own wallets. It never holds your money.</p>
     </div>
     <div class="footer-cols">
-      <div><h2>Tropa Club</h2><ul><li><a href="https://tropaclub.xyz">tropaclub.xyz</a></li><li><a href="https://tropaclub.xyz/attendance">The Attendance</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
-      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">The Ground</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
+      <div><h2>Tropa Club</h2><ul><li><a href="https://tropaclub.xyz">tropaclub.xyz</a></li><li><a href="https://tropaclub.xyz/attendance">Stock rankings</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
+      <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">Grounds and real holders</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
       <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
       <div><h2>Work with us</h2><ul><li><a href="partners.html">For partners</a></li><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="https://x.com/tropaclubxyz" rel="noopener">DM @tropaclubxyz</a></li></ul></div>
     </div>
     <div class="footer-fine">
-      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. Club names such as &ldquo;NVIDIA FC&rdquo; are nicknames for a token&rsquo;s holders and are not affiliated with the companies.</p>
-      <p>The buy flow is not available to US persons. &copy; 2026 Tropa Club.</p>
+      <p>Not investment advice. Stock tokens track the share price. They are not shares, carry no vote and give no claim on the company. Past performance does not predict future results. A ground such as the &ldquo;NVIDIA ground&rdquo; is a drawing of a token&rsquo;s holders. Tropa Club is not affiliated with or endorsed by the companies.</p>
+      <p>Buying: not available to US persons or in sanctioned regions. &copy; 2026 Tropa Club.</p>
     </div>
   </div>
 </footer>

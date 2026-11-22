@@ -5,27 +5,27 @@ import { useMemo } from 'react';
 import type { TokenSummary } from '@shared/types';
 import LeagueTable, { type LeagueColumn } from './ds/LeagueTable';
 import { Pennant } from './ds/Pennant';
-import { clubName, groundPath, kitFor } from '@/lib/clubs';
+import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtInt, fmtPct } from '@/lib/format';
 
 export type Row = Pick<TokenSummary, 'symbol' | 'name' | 'holdersTotal' | 'realFans' | 'attendancePct' | 'weeklyBuyers' | 'newBuyers7d' | 'priceUsd'> & Pick<Partial<TokenSummary>, 'priceSource'>;
 
-/** The Attendance: the league table of real holders. */
+/** Stock rankings (The Attendance): every stock token, ranked by real holders. */
 export default function AttendanceTable({ rows, controls = true }: { rows: Row[]; controls?: boolean }) {
   const columns = useMemo<LeagueColumn<Row>[]>(() => {
     const maxAtt = Math.max(1, ...rows.map((r) => r.attendancePct));
     return [
-      { key: 'holdersTotal', label: 'Tickets sold', value: (r) => r.holdersTotal, render: (r) => fmtInt(r.holdersTotal) },
+      { key: 'holdersTotal', label: 'All holders', value: (r) => r.holdersTotal, render: (r) => fmtInt(r.holdersTotal) },
       {
         key: 'realFans',
-        label: 'Real fans',
+        label: 'Real holders',
         strong: true,
         value: (r) => (r.priceUsd == null ? null : r.realFans),
         render: (r) => (r.priceUsd == null ? <span className="na" title="No price yet, so no $10 line">no price yet</span> : fmtInt(r.realFans)),
       },
       {
         key: 'attendancePct',
-        label: 'Attendance',
+        label: 'Real share',
         value: (r) => (r.priceUsd == null ? null : r.attendancePct),
         render: (r) =>
           r.priceUsd == null ? '—' : (
@@ -45,21 +45,21 @@ export default function AttendanceTable({ rows, controls = true }: { rows: Row[]
       rows={rows}
       columns={columns}
       rowKey={(r) => r.symbol}
-      leadLabel="Ground"
-      noun="grounds"
-      searchPlaceholder="Ground or ticker"
+      leadLabel="Stock token"
+      noun="tokens"
+      searchPlaceholder="Company or ticker"
       leadText={(r) => `${r.name} ${r.symbol}`}
       lead={(r) => (
         <Link href={groundPath(r.symbol)} prefetch={false}>
           <Pennant kit={kitFor(r.symbol)} width={18} />
           <span>
-            {clubName(r.name)}
-            <small>{r.symbol}{r.priceSource === 'reference' && <abbr className="ref" title="No liquid DEX pool: valued at the share's last price times the token multiplier"> · ref. price</abbr>}</small>
+            {shortName(r.name, r.symbol)}
+            <small>{r.symbol}{r.priceSource === 'reference' && <abbr className="ref" title="No active market: valued at the share's last price times the token's split multiplier, so the $10 line is approximate"> · reference price</abbr>}</small>
           </span>
         </Link>
       )}
       initialSort="realFans"
-      caption="The Attendance: real holders of each stock token on Base"
+      caption="Stock rankings: real holders of each stock token on Base"
       controls={controls}
     />
   );

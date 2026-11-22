@@ -1,0 +1,1010 @@
+/* Navigation: header tools and active state, stadium map, quick jump, phone bottom bar,
+   back-to-top, breadcrumbs, the Next strip and glossary terms. Tokens come from globals.css. */
+
+/* header: the current section */
+.site-header nav a {
+  position: relative;
+}
+.site-header nav a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 3px;
+  height: 3px;
+  background: var(--ink);
+}
+
+/* header: quick jump and the map */
+.nav-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 1rem/1 var(--display);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nav-tool:hover {
+  border-color: var(--ink);
+}
+.nav-tool-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  font: 600 0.8125rem/1 var(--display);
+  color: var(--ink-2);
+}
+.nav-tool-pennant {
+  display: block;
+  flex: none;
+}
+@media (max-width: 1180px) {
+  .nav-tool-jump {
+    padding: 0;
+  }
+  .nav-tool-jump .nav-tool-text,
+  .nav-tool-kbd {
+    display: none;
+  }
+}
+@media (max-width: 1000px) {
+  .nav-tool-map {
+    padding: 0;
+  }
+  .nav-tool-map .nav-tool-text {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .nav-tool {
+    min-width: 44px;
+    min-height: 44px;
+    border-color: transparent;
+  }
+  .site-header-end {
+    gap: 2px;
+  }
+}
+
+kbd {
+  font: 600 0.8125rem/1 var(--display);
+}
+
+/* ---------- stadium map ---------- */
+.smap {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.smap::backdrop {
+  background: var(--bg);
+}
+/* the map covers the page, so the page behind does not scroll */
+html:has(dialog.smap[open]) {
+  overflow: hidden;
+}
+.smap[open] {
+  animation: nav-fade var(--dur-quick) var(--ease-out);
+}
+@keyframes nav-fade {
+  from {
+    opacity: 0;
+  }
+}
+.smap-in {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: calc(1200px + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 16px var(--gutter) calc(16px + env(safe-area-inset-bottom));
+}
+.smap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.smap-head h2 {
+  font-size: 1.5625rem;
+}
+.smap-head p {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+.smap-x,
+.qj-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: 400 1.75rem/1 var(--font-body);
+  cursor: pointer;
+}
+.smap-x:hover,
+.qj-x:hover {
+  border-color: var(--ink);
+}
+
+/* the stage is always the night match, in both themes */
+.smap-stage {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: clamp(10px, 2vw, 20px);
+  background: var(--stage);
+  border-radius: 14px;
+  color: var(--chalk);
+}
+.smap-plan {
+  flex: 1;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2.6fr) minmax(150px, 1fr);
+  grid-template-rows: minmax(104px, 1fr) minmax(210px, 2.1fr) minmax(104px, 1fr) auto;
+  grid-template-areas:
+    'stats attendance statement'
+    'clubs pitch league'
+    'about ground docs'
+    '. home .';
+  min-height: min(600px, calc(100dvh - 210px));
+}
+.smap-area {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.smap-home { grid-area: home; }
+.smap-ground { grid-area: ground; }
+.smap-attendance { grid-area: attendance; }
+.smap-clubs { grid-area: clubs; }
+.smap-league { grid-area: league; }
+.smap-stats { grid-area: stats; }
+.smap-statement { grid-area: statement; }
+.smap-about { grid-area: about; }
+.smap-docs { grid-area: docs; }
+.smap-pitch { grid-area: pitch; }
+
+/* a stand: the bowl's faint fill, a hairline edge and a block of empty (ghost) seats */
+.smap-go {
+  --seat: rgba(169, 171, 217, 0.24);
+  --stand: color-mix(in srgb, var(--stage), #8ab8ff 5.5%);
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(138, 184, 255, 0.22);
+  border-radius: 3px;
+  background-color: var(--stand);
+  background-image: radial-gradient(circle, var(--seat) 0 1.2px, transparent 1.7px);
+  background-size: 9px 9px;
+  background-position: 4px 4px;
+  color: var(--chalk);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-quick), border-color var(--dur-quick);
+}
+/* the bowl's outer corners are round */
+.smap-stats .smap-go { border-top-left-radius: 44px; padding-left: 24px; }
+.smap-statement .smap-go { border-top-right-radius: 44px; }
+.smap-about .smap-go { border-bottom-left-radius: 44px; padding-left: 24px; }
+.smap-docs .smap-go { border-bottom-right-radius: 44px; }
+/* lit: the fans are in */
+.smap-go:hover,
+.smap-go:focus-visible {
+  --seat: rgba(138, 184, 255, 0.6);
+  --stand: color-mix(in srgb, var(--stage), #8ab8ff 12%);
+  border-color: rgba(138, 184, 255, 0.55);
+}
+.smap-go:focus-visible {
+  outline: 3px solid var(--marigold);
+  outline-offset: -3px;
+}
+/* your seat is Marigold */
+.smap-area[data-here] .smap-go {
+  --seat: rgba(255, 197, 49, 0.55);
+  border-color: rgba(255, 197, 49, 0.7);
+}
+.smap-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 clamp(1.125rem, 0.85rem + 0.8vw, 1.5625rem)/1.1 var(--display);
+  letter-spacing: -0.01em;
+}
+.smap-name,
+.smap-sub,
+.smap-stand {
+  /* the stand's own colour behind the words, so the seats never fight the type */
+  background: var(--stand);
+  box-shadow: 0 0 0 3px var(--stand);
+}
+.smap-sub {
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: #d4d5f2;
+}
+.smap-stand {
+  margin-top: 4px;
+  font: 600 0.75rem/1.1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a9abd9;
+}
+.smap-here {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 7px 4px;
+  background: var(--marigold);
+  color: var(--midnight);
+  font: 600 0.75rem/1 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.smap-statement .smap-here,
+.smap-docs .smap-here {
+  right: 22px;
+}
+.smap-desc {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* the main gate sits outside the bowl, under the South Stand */
+.smap-home .smap-go {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 12px;
+  min-height: 56px;
+  margin-top: 6px;
+  background-image: repeating-linear-gradient(90deg, transparent 0 14px, rgba(169, 171, 217, 0.24) 14px 15.5px);
+  background-size: auto;
+  background-position: 0 0;
+}
+.smap-home .smap-go:hover,
+.smap-home .smap-go:focus-visible {
+  background-image: repeating-linear-gradient(90deg, transparent 0 14px, rgba(138, 184, 255, 0.6) 14px 15.5px);
+}
+.smap-home[data-here] .smap-go {
+  background-image: repeating-linear-gradient(90deg, transparent 0 14px, rgba(255, 197, 49, 0.55) 14px 15.5px);
+}
+.smap-home .smap-stand {
+  margin-top: 0;
+}
+.smap-home .smap-here {
+  position: static;
+}
+
+/* the pitch: flat mowing stripes, hairline markings, and a scoreboard plate at halfway */
+.smap-pitch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, rgba(18, 168, 116, 0.2) 0 8.333%, rgba(18, 168, 116, 0.145) 8.333% 16.666%);
+  color: rgba(244, 241, 232, 0.42);
+}
+.smap-lines {
+  position: absolute;
+  inset: 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+}
+.smap-lines-p {
+  display: none;
+}
+.smap-board {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  max-width: min(360px, 90%);
+  padding: 12px 16px;
+  background: var(--stage);
+  border: 1px solid rgba(244, 241, 232, 0.28);
+  color: var(--chalk);
+  text-align: center;
+}
+.smap-board b {
+  font: 700 1.25rem/1.15 var(--display);
+}
+.smap-board span {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #d4d5f2;
+}
+
+.smap-foot {
+  min-height: 52px;
+}
+.smap-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  max-width: none;
+}
+.smap-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.smap-key kbd,
+.qj-foot kbd,
+.qj-enter {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--ink);
+}
+.smap-form {
+  max-width: 640px;
+}
+.smap-form label {
+  display: block;
+  font: 600 1.0625rem var(--display);
+  margin-bottom: 8px;
+}
+
+/* portrait plan on phones: the pitch stands up, the long stands are the sides */
+@media (max-width: 640px) {
+  .smap-head p {
+    display: none;
+  }
+  .smap-stage {
+    flex: none;
+  }
+  .smap-plan {
+    align-content: start;
+    gap: 5px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr) minmax(0, 1fr);
+    grid-template-rows: minmax(92px, auto) auto minmax(92px, auto) auto;
+    grid-template-areas:
+      'stats attendance statement'
+      'clubs pitch league'
+      'about ground docs'
+      'home home home';
+    min-height: 0;
+  }
+  .smap-go {
+    padding: 10px 9px;
+    gap: 3px;
+  }
+  .smap-stats .smap-go,
+  .smap-about .smap-go {
+    padding-left: 12px;
+  }
+  .smap-stats .smap-go { border-top-left-radius: 26px; }
+  .smap-statement .smap-go { border-top-right-radius: 26px; }
+  .smap-about .smap-go { border-bottom-left-radius: 26px; }
+  .smap-docs .smap-go { border-bottom-right-radius: 26px; }
+  .smap-name {
+    font-size: 1.0625rem;
+  }
+  .smap-sub {
+    font-size: 0.8125rem;
+  }
+  .smap-stand {
+    display: none;
+  }
+  .smap-home .smap-stand {
+    display: inline;
+  }
+  .smap-here {
+    position: static;
+    margin-top: 4px;
+    padding: 4px 6px 3px;
+    font-size: 0.6875rem;
+  }
+  .smap-lines-l {
+    display: none;
+  }
+  .smap-lines-p {
+    display: block;
+  }
+  /* a standing pitch keeps its real proportions, so the markings fill it */
+  .smap-pitch {
+    aspect-ratio: 68 / 105;
+    background: repeating-linear-gradient(0deg, rgba(18, 168, 116, 0.2) 0 8.333%, rgba(18, 168, 116, 0.145) 8.333% 16.666%);
+    padding: 8px;
+  }
+  .smap-lines {
+    inset: 6px;
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
+  }
+  .smap-board {
+    padding: 10px;
+    max-width: 100%;
+  }
+  .smap-board b {
+    font-size: 1.0625rem;
+  }
+  .smap-board span {
+    font-size: 0.8125rem;
+  }
+  .smap-key-alt {
+    display: none !important;
+  }
+}
+
+/* reduced motion: no drawn plan, no animation, just the list of stands */
+@media (prefers-reduced-motion: reduce) {
+  .smap[open] {
+    animation: none;
+  }
+  .smap-stage {
+    flex: none;
+    padding: 0;
+    background: none;
+    color: var(--ink);
+  }
+  .smap-plan {
+    display: block;
+    min-height: 0;
+    border-top: 2px solid var(--ink);
+  }
+  .smap-pitch {
+    display: none;
+  }
+  .smap-area {
+    display: grid;
+    border-bottom: 1px solid var(--line);
+  }
+  .smap .smap-area .smap-go {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 2px 12px;
+    min-height: 44px;
+    margin: 0;
+    padding: 12px 0 2px;
+    border: 0;
+    border-radius: 0 !important;
+    background: none;
+    color: var(--ink);
+  }
+  .smap-go:focus-visible {
+    outline-color: var(--focus);
+    outline-offset: 2px;
+  }
+  .smap-name,
+  .smap-sub,
+  .smap-stand {
+    background: none;
+    box-shadow: none;
+  }
+  .smap-name {
+    font-size: 1.25rem;
+  }
+  .smap-sub {
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+  }
+  .smap-stand {
+    display: none;
+  }
+  .smap-here {
+    position: static;
+    order: 3;
+  }
+  .smap-desc {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    padding: 0 0 10px;
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+}
+
+/* ---------- quick jump ---------- */
+.qj {
+  width: min(640px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(640px, calc(100dvh - 24vh));
+  margin: 12vh auto auto;
+  padding: 0;
+  border: 0;
+  border-top: 4px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+}
+.qj[open] {
+  display: flex;
+  animation: nav-fade var(--dur-quick) var(--ease-out);
+}
+.qj::backdrop {
+  background: rgba(12, 10, 42, 0.72);
+}
+.qj-in {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+.qj-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+.qj-label {
+  color: var(--ink-2);
+}
+.qj-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 1.25rem var(--display);
+  letter-spacing: -0.005em;
+}
+.qj-input::placeholder {
+  color: var(--ink-2);
+  opacity: 0.8;
+  font-weight: 500;
+}
+.qj-input:focus,
+.qj-input:focus-visible {
+  outline: none;
+}
+.qj-bar:focus-within {
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+.qj-x {
+  min-width: 52px;
+  padding: 0 10px;
+  font: 600 0.875rem/1 var(--display);
+}
+.qj-x-word {
+  display: none;
+}
+@media (pointer: coarse) {
+  .smap-key,
+  .qj-enter {
+    display: none;
+  }
+  .qj-x-key {
+    display: none;
+  }
+  .qj-x-word {
+    display: inline;
+  }
+}
+.qj-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0 8px;
+}
+.qj-group {
+  padding: 14px 16px 6px;
+  font: 600 0.75rem/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.qj-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 16px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.qj-opt[aria-selected='true'] {
+  background: var(--bg-2);
+  border-left-color: var(--ink);
+}
+.qj-ic {
+  width: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.qj-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.qj-text b {
+  font: 600 1.0625rem/1.25 var(--display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qj-text small {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qj-enter {
+  color: var(--ink-2);
+}
+.qj-status {
+  padding: 10px 16px;
+  font-size: 0.9375rem;
+  max-width: none;
+}
+.qj-status.tone-warn {
+  font-weight: 600;
+}
+.qj-foot {
+  display: flex;
+  gap: 8px 20px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  max-width: none;
+}
+.qj-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+@media (max-width: 640px) {
+  .qj {
+    width: 100vw;
+    max-height: 100dvh;
+    margin: 0 0 auto;
+  }
+  .qj-foot {
+    display: none;
+  }
+  .qj-input {
+    font-size: 1.0625rem;
+  }
+}
+
+/* ---------- phone bottom bar ---------- */
+.bbar {
+  display: none;
+}
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  .bbar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--bg);
+    border-top: 1px solid var(--line-2);
+    transition: transform var(--dur-quick) var(--ease-out), visibility 0s;
+  }
+  .bbar[data-hidden] {
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform var(--dur-quick) var(--ease-out), visibility 0s var(--dur-quick);
+  }
+  .bbar ul {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    height: 60px;
+  }
+  .bbar a,
+  .bbar button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink-2);
+    font: 600 0.8125rem/1 var(--display);
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bbar a[aria-current='page'] {
+    color: var(--ink);
+  }
+  .bbar a[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 24%;
+    right: 24%;
+    height: 3px;
+    background: var(--ink);
+  }
+  .bbar a:focus-visible,
+  .bbar button:focus-visible {
+    outline-offset: -3px;
+  }
+}
+
+/* ---------- back to top, with how far down you are ---------- */
+.totop {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 39;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity var(--dur-quick), transform var(--dur-quick) var(--ease-out), visibility 0s var(--dur-quick);
+}
+.totop[data-show] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+.totop > svg:first-child {
+  position: absolute;
+  inset: 0;
+}
+.totop-track {
+  fill: var(--bg);
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+}
+.totop-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.totop:hover .totop-track {
+  fill: var(--bg-2);
+}
+@media (max-width: 767px) {
+  .totop {
+    bottom: calc(60px + 12px + env(safe-area-inset-bottom));
+  }
+}
+#main:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---------- breadcrumbs ---------- */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+}
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.crumbs li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.crumbs li + li::before {
+  content: '›';
+  content: '›' / '';
+  margin: 0 9px;
+  color: var(--ink-2);
+}
+.crumbs a {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+.crumbs [aria-current='page'] {
+  color: var(--ink);
+  padding: 6px 0;
+}
+.crumbs-note {
+  color: var(--ink-2);
+}
+.crumbs-note::before {
+  content: '·';
+  content: '·' / '';
+  margin-right: 12px;
+}
+
+/* ---------- next strip ---------- */
+.next-strip {
+  border-top: 1px solid var(--line-2);
+  padding-block: clamp(32px, 5vw, 56px);
+}
+.next-in {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px 32px;
+  align-items: start;
+}
+.next-label {
+  padding-top: 18px;
+  font: 600 0.75rem/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.next-strip ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0 32px;
+}
+.next-go {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'title arrow' 'sub arrow';
+  column-gap: 16px;
+  row-gap: 2px;
+  min-height: 80px;
+  padding: 14px 0;
+  border-top: 2px solid var(--ink);
+  color: var(--ink);
+  text-decoration: none;
+}
+.next-title {
+  grid-area: title;
+  font: 700 1.5625rem/1.15 var(--display);
+  letter-spacing: -0.01em;
+}
+.next-sub {
+  grid-area: sub;
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+.next-arrow {
+  grid-area: arrow;
+  align-self: center;
+  font: 600 1.5625rem/1 var(--display);
+}
+.next-go:hover .next-title {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+@media (max-width: 620px) {
+  .next-in {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .next-label {
+    padding-top: 0;
+  }
+  .next-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* ---------- glossary terms ---------- */
+.term {
+  position: relative;
+}
+.term-btn {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: var(--ink-2);
+  cursor: help;
+}
+.term-btn:hover {
+  text-decoration-color: currentColor;
+}
+.term-tip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 45;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 12px 14px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 400 0.875rem/1.45 var(--font-body);
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  transform: translateX(var(--shift, 0px));
+  /* closed cards take no room at all, so they can never widen the page on a phone */
+  display: none;
+}
+.term-tip[data-open] {
+  display: block;
+}
+.term-tip[data-up] {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+.term-tip b {
+  display: block;
+  margin-bottom: 4px;
+  font: 600 0.75rem/1.2 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}

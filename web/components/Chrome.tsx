@@ -3,12 +3,21 @@ import type { ReactNode } from 'react';
 import { Lockup, Mark } from './ds/Logo';
 import ThemeToggle from './ThemeToggle';
 import RegionGate from './RegionGate';
-import MobileMenu from './MobileMenu';
+import { HeaderNav, HeaderTools } from './nav/HeaderNav';
+import NavHost from './nav/NavHost';
+import HeaderWallet from './nav/HeaderWallet';
+import Floating from './nav/Floating';
 import { fmtDate } from '@/lib/format';
 import { DOCS_URL, TAGLINE, X_URL } from '@/lib/site';
-import type { Source } from '@/lib/server/data';
+import { jumpTokens, type JumpToken } from '@/lib/nav';
+import { getIndex, type Source } from '@/lib/server/data';
 
-export function SiteHeader({ source, ground = '/ground/NVDAc', end, sampleClubs = false }: { source: Source; ground?: string; end?: ReactNode; sampleClubs?: boolean }) {
+/**
+ * The header. `tokens` (every ground, compact) feeds quick jump; `wallet` is the signed-in wallet
+ * when the page knows it (club pages), so the map and "your ticket" links can point at it.
+ */
+export async function SiteHeader({ source, ground = '/ground/NVDAc', end, sampleClubs = false, tokens, wallet }: { source: Source; ground?: string; end?: ReactNode; sampleClubs?: boolean; tokens?: JumpToken[]; wallet?: string | null }) {
+  const list = tokens ?? jumpTokens((await getIndex()).data.tokens);
   return (
     <>
       <header className="site-header">
@@ -17,38 +26,30 @@ export function SiteHeader({ source, ground = '/ground/NVDAc', end, sampleClubs 
             <span className="brand-lockup"><Lockup height={26} /></span>
             <span className="brand-mark"><Mark size={28} /></span>
           </Link>
-          <nav aria-label="Main">
-            <Link href="/attendance">Attendance</Link>
-            <Link href={ground}>The Ground</Link>
-            <Link href="/clubs">Clubs</Link>
-            <Link href="/league" className="nav-wide nav-mid">League</Link>
-            <Link href="/about" className="nav-wide">About</Link>
-            <a href={DOCS_URL} className="nav-wide">Docs</a>
-          </nav>
+          <HeaderNav
+            links={[
+              { label: 'Stock rankings', href: '/attendance', section: 'attendance' },
+              { label: 'Grounds', href: ground, section: 'ground' },
+              { label: 'Clubs', href: '/clubs', section: 'clubs' },
+              { label: 'League', href: '/league', section: 'league', className: 'nav-wide nav-mid' },
+              { label: 'How it works', href: '/about', section: 'about', className: 'nav-wide' },
+              { label: 'Docs', href: DOCS_URL, section: 'docs', className: 'nav-wide', ext: true },
+            ]}
+          />
           <div className="site-header-end">
-            {end ?? <Link href="/#find" className="btn btn-accent btn-sm header-cta">Find your seat</Link>}
+            <HeaderTools />
+            {end ?? <HeaderWallet />}
             <ThemeToggle />
-            <MobileMenu
-              links={[
-                { label: 'The Ground', href: ground, note: 'Walk a club’s seating plan' },
-                { label: 'The Attendance', href: '/attendance', note: 'Real fans of every stock token' },
-                { label: 'Clubs', href: '/clubs', note: 'Found one, join one, or get matched' },
-                { label: 'League', href: '/league', note: 'Standings and the Supporters table' },
-                { label: 'Stats', href: '/stats', note: 'What has been measured so far' },
-                { label: 'Find your seat', href: '/#find', note: 'Paste a wallet, print its ticket' },
-                { label: 'How it works', href: '/about' },
-                { label: 'Docs', href: DOCS_URL, ext: true },
-              ]}
-            />
           </div>
         </div>
       </header>
+      <NavHost tokens={list} ground={ground} wallet={wallet} />
       {(source === 'mock' || sampleClubs) && (
         <p className="sample" role="note">
           <span className="wrap">
             <b>Sample data.</b>{' '}
-            {source === 'mock' ? 'Seven clubs show the counts measured on 21 Nov 2026. The other clubs and all wallets are simulated until the indexer’s first run is published.' : ''}
-            {sampleClubs ? ' Clubs, members and Matchday scores on this page are made up for preview.' : ''}
+            {source === 'mock' ? 'Seven stock tokens show the counts measured on 21 Nov 2026. The other tokens and all wallets are simulated until the indexer’s first run is published.' : ''}
+            {sampleClubs ? ' Clubs, members and Matchday cards on this page are made up for preview.' : ''}
           </span>
         </p>
       )}
@@ -68,8 +69,8 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'The Ground', href: '/ground/NVDAc' },
-      { label: 'The Attendance', href: '/attendance' },
+      { label: 'Grounds', href: '/ground/NVDAc' },
+      { label: 'Stock rankings', href: '/attendance' },
       { label: 'Clubs', href: '/clubs' },
       { label: 'League', href: '/league' },
       { label: 'Stats', href: '/stats' },
@@ -100,7 +101,7 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
   },
 ];
 
-export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: string; block?: number; ground?: string }) {
+function Footer({ source, asOf, ground }: { source: Source; asOf?: string; block?: number; ground?: string }) {
   return (
     <footer className="site-footer">
       <div className="wrap">
@@ -108,9 +109,10 @@ export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: st
           <div className="foot-brand">
             <Link href="/" aria-label="Tropa Club home" className="foot-logo"><Lockup height={30} /></Link>
             <p>{TAGLINE}</p>
+            <p>Tropa Club is a free site for Coinbase’s stock tokens on Base. It never holds your money.</p>
           </div>
           <div className="foot-actions">
-            <Link href="/#find" className="btn btn-accent">Find your seat</Link>
+            <Link href="/#find" className="btn btn-accent">Check my wallet</Link>
             <a href={X_URL} rel="noopener" className="foot-x"><XGlyph /><span>@tropaclubxyz</span></a>
           </div>
         </div>
@@ -121,7 +123,7 @@ export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: st
               <ul>
                 {c.links.map((l) => (
                   <li key={l.label}>
-                    {l.ext ? <a href={l.href} rel="noopener">{l.label}</a> : <Link href={l.label === 'The Ground' && ground ? ground : l.href}>{l.label}</Link>}
+                    {l.ext ? <a href={l.href} rel="noopener">{l.label}</a> : <Link href={l.label === 'Grounds' && ground ? ground : l.href}>{l.label}</Link>}
                   </li>
                 ))}
               </ul>
@@ -130,7 +132,7 @@ export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: st
         </nav>
         <div className="foot-bar">
           <p className="foot-copy"><Mark size={16} /> <span>© 2026 Tropa Club</span></p>
-          <p>Stock tokens track the share price; they are not shares. Not available to US persons. Past performance · not advice.</p>
+          <p>Stock tokens track the share price; they are not shares. Buying through Tropa Club: not available to US persons or in sanctioned regions. Past results don’t predict future results. Nothing here is advice.</p>
           <p>
             {asOf ? <>Data as of <time dateTime={asOf}>{fmtDate(asOf, true)}</time>{source === 'mock' ? ' (sample)' : ''}</> : 'Data recounted every 6 hours'}
           </p>
@@ -138,5 +140,15 @@ export function SiteFooter({ source, asOf, ground }: { source: Source; asOf?: st
         </div>
       </div>
     </footer>
+  );
+}
+
+/** The footer, then the phone bottom bar and the back-to-top button (fixed, so their place in the page does not matter). */
+export function SiteFooter(props: { source: Source; asOf?: string; block?: number; ground?: string }) {
+  return (
+    <>
+      <Footer {...props} />
+      <Floating ground={props.ground ?? '/ground/NVDAc'} />
+    </>
   );
 }

@@ -22,7 +22,7 @@ export default function ShareBar({ address, symbol, club, line, pageUrl, scoutLi
   // Tear the stub: the ticket block shows the stub pulled away once the ticket has been shared.
   const tear = () => root.current?.closest('.ticket-block')?.setAttribute('data-shared', '1');
 
-  const text = `My seat at ${club}: ${line.charAt(0).toLowerCase()}${line.slice(1)}. ${scoutLink ? `Join me: ${scoutLink}` : 'Find yours.'} #StocksMaxxing via @tropaclubxyz`;
+  const text = `My ticket for the ${club}: ${line.charAt(0).toLowerCase()}${line.slice(1)}. ${scoutLink ? `Join me: ${scoutLink}` : 'Check yours.'} #StocksMaxxing via @tropaclubxyz`;
   const enc = encodeURIComponent;
   const targets = [
     { label: 'Post on X', href: `https://x.com/intent/post?text=${enc(text)}&url=${enc(pageUrl)}` },
@@ -57,9 +57,9 @@ export default function ShareBar({ address, symbol, club, line, pageUrl, scoutLi
     return (
       <div className="share" ref={root}>
         <button type="button" className="btn btn-accent" onClick={make} disabled={state === 'busy'}>
-          {state === 'busy' ? 'Printing the ticket…' : 'Share ticket'}
+          {state === 'busy' ? 'Making the picture…' : 'Share ticket'}
         </button>
-        <span className="share-note">Makes a picture of this ticket and a link that previews it.{scoutLink ? ' The post carries your scout link.' : ''}</span>
+        <span className="share-note">Makes a picture of this ticket and a link that previews it.{scoutLink ? ' The post carries your referral (scout) link.' : ''}</span>
       </div>
     );
   }

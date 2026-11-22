@@ -40,7 +40,7 @@ export default function Scoreboard({ title, kicker, cells, foot }: { title: stri
       <dl>
         {cells.map((c) => (
           <div key={c.label}>
-            <dd><FlipNumber value={c.value} pad={c.pad} /></dd>
+            <dd><FlipNumber value={c.value} pad={c.pad} label={/ %$/.test(c.label) ? `${c.label.replace(/ %$/, '')} ${c.value}%` : `${c.label}: ${c.value}`} /></dd>
             <dt>{c.label}</dt>
           </div>
         ))}

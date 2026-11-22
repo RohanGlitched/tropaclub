@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Tropa Club',
     short_name: 'Tropa Club',
-    description: '$10 a week in stocks with your group chat. Tickets sold vs fans who showed up, for every stock token on Base.',
+    description: 'See who really holds each stock token on Base, and buy about $10 a week with your group chat, each from your own wallet.',
     start_url: '/',
     display: 'standalone',
     background_color: '#121037',

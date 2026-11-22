@@ -1,4 +1,4 @@
-// Cosmetic honours on a wallet's ticket: the scout badge, the Founders' Pennant and the Caps line.
+// Cosmetic honours on a wallet's ticket: the scout badge, the First 1,000 stamp and the Caps line.
 // None of them is money or a token. Read with a short timeout, so a slow clubhouse only hides them.
 import 'server-only';
 import { COL, publicName, type CapsRow, type MemberDoc, type ScoutRow } from '@tropaclub/clubs';
@@ -8,7 +8,7 @@ import { shortAddr } from '@/lib/format';
 export interface Honours {
   /** "Scout" or "Captain's armband", from credited mates. */
   scout: string | null;
-  /** On the Founders' Pennant list. */
+  /** Among the First 1,000. */
   founders: boolean;
   /** Season Caps total and rank, or null when the wallet has none yet. */
   caps: { caps: number; rank: number; of: number } | null;
@@ -29,7 +29,7 @@ export async function walletHonours(wallet: string, ms = 2500): Promise<Honours>
 }
 
 /** The stamps printed on a ticket and its share picture, in order. */
-export const honourStamps = (h: Pick<Honours, 'scout' | 'founders'>): string[] => [...(h.scout ? [h.scout] : []), ...(h.founders ? ['Founders’ Pennant'] : [])];
+export const honourStamps = (h: Pick<Honours, 'scout' | 'founders'>): string[] => [...(h.scout ? [h.scout] : []), ...(h.founders ? ['First 1,000'] : [])];
 
 
 export const ordinal = (n: number) => {

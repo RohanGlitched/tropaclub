@@ -14,7 +14,7 @@ const START: Member[] = [
 ];
 const KIT: Kit = { primary: '#12A874', secondary: '#F4F1E8', pattern: 'chevron' };
 
-/** A working preview of a Matchday card, with made-up members. Real clubs open on Tuesday. */
+/** A working preview of a Matchday card (a club's weekly card), with made-up members. */
 export default function ClubPreview() {
   const [members, setMembers] = useState(START);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,7 +25,7 @@ export default function ClubPreview() {
   const callUp = (id: string) => {
     setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, calledUp: true } : m)));
     timer.current = setTimeout(() => {
-      setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, status: 'playing', calledUp: false, fresh: true, note: 'Answered the call-up' } : m)));
+      setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, status: 'playing', calledUp: false, fresh: true, note: 'Bought after the nudge' } : m)));
     }, 1100);
   };
   const changed = members !== START;
@@ -33,19 +33,19 @@ export default function ClubPreview() {
   return (
     <div className="club-preview">
       <Scoreboard
-        title="Sunday League Tropa"
-        kicker="Gameweek 0, preview"
+        title="Sample club: Sunday League Tropa"
+        kicker="Matchday card, week 0 (sample)"
         cells={[
           { label: 'Played', value: playing },
           { label: 'Bench', value: bench },
           { label: 'Turnout %', value: Math.round((playing / members.length) * 100), pad: 2 },
         ]}
-        foot={playing === members.length ? 'Full team. Everyone bought this week.' : 'Turnout of 80% or more earns the club its bonus point.'}
+        foot={playing === members.length ? 'Everyone bought this week.' : 'If 80% or more of members buy this week, the club gets a bonus point in the weekly rankings.'}
       />
       <div>
         <TeamSheet members={members} kit={KIT} onCallUp={callUp} />
         <p className="muted small club-preview-note" role="status">
-          {changed && bench === 0 ? 'In the preview Sam answers at once. A real call-up is a message to your friend, who then buys from their own wallet. ' : 'A preview with made-up names. Try the call-up. '}
+          {changed && bench === 0 ? 'In the sample Sam buys at once. A real nudge is a WhatsApp or Telegram message to your friend, who then buys from their own wallet. ' : 'A sample with made-up names. Played means bought this week; Bench means not yet. Try the nudge. '}
           {changed && (
             <button type="button" className="linklike" onClick={() => { if (timer.current) clearTimeout(timer.current); setMembers(START); }}>
               Start again

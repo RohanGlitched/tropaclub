@@ -4,9 +4,9 @@
   "habitUsd": 10,
   "realFanUsd": 10,
   "payWith": "USDC or ETH",
-  "streakRule": "One qualifying buy of $5 or more in any rolling 14 days keeps the payday streak alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
-  "streakShort": "One buy of $5 or more in any rolling 14 days keeps a payday streak alive, with one free skip a calendar month (a gap of up to 28 days).",
-  "realFanLine": "A real fan holds $10 or more of the token. That is a different line from the $5 play rule.",
+  "streakRule": "One buy of $5 or more through Tropa Club in any rolling 14 days keeps your streak alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
+  "streakShort": "Buy $5 or more through Tropa Club at least once every 14 days to keep your streak alive, with one free skip a calendar month (a gap of up to 28 days).",
+  "realFanLine": "A real fan (real holder) holds $10 or more of the token. That is a different line from the $5 that counts as played in a gameweek.",
   "caps": {
     "played": 1,
     "heldD7": 0.5,

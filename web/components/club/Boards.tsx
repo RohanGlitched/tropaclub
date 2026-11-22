@@ -13,10 +13,10 @@ const Name = ({ name }: { name: string }) => <span className={`board-name${name.
 export function CapsBoard({ rows }: { rows: CapsBoardRow[] }) {
   return (
     <table className="league-table">
-      <caption className="sr">Caps table: season Caps by wallet</caption>
+      <caption className="sr">Caps: season points by wallet</caption>
       <thead>
         <tr>
-          <th scope="col" className="c-pos">Pos</th>
+          <th scope="col" className="c-pos">Rank</th>
           <th scope="col" className="c-club">Name</th>
           <th scope="col" className="r">Caps</th>
           <th scope="col" className="r">First buy</th>
@@ -39,13 +39,13 @@ export function CapsBoard({ rows }: { rows: CapsBoardRow[] }) {
 export function ScoutsBoard({ rows }: { rows: ScoutsBoardRow[] }) {
   return (
     <table className="league-table">
-      <caption className="sr">Top scouts: credited mates still holding</caption>
+      <caption className="sr">Top referrers (Scouts): friends who count, still holding</caption>
       <thead>
         <tr>
-          <th scope="col" className="c-pos">Pos</th>
+          <th scope="col" className="c-pos">Rank</th>
           <th scope="col" className="c-club">Name</th>
           <th scope="col" className="r">Still holding</th>
-          <th scope="col" className="r">Credited mates</th>
+          <th scope="col" className="r">Friends who count</th>
           <th scope="col" className="r">Badge</th>
         </tr>
       </thead>
@@ -55,7 +55,7 @@ export function ScoutsBoard({ rows }: { rows: ScoutsBoardRow[] }) {
             <td className="c-pos num">{r.rank}</td>
             <th scope="row" className="c-club"><Name name={r.name} /></th>
             <td className="r num c-strong" data-label="Still holding">{fmtInt(r.stillHolding)}</td>
-            <td className="r num" data-label="Credited mates">{fmtInt(r.credited)}</td>
+            <td className="r num" data-label="Friends who count">{fmtInt(r.credited)}</td>
             <td className="r" data-label="Badge">{r.badge ?? '—'}</td>
           </tr>
         ))}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CorporateActionsFile, HistoryEntry, WalletHistory, WalletHistoryShard } from '../../shared/types';
 import { buildStatement } from '../../clubs/src/statement';
-import { DAY_PRICE_NOTE, labelDayPrices, multipliersFromFile, netRaw, splitSymbols, transfersFromHistory, walletFromShards } from '../lib/statement-history';
+import { DAY_PRICE_NOTE, labelDayPrices, multipliersFromFile, netRaw, readableNote, splitSymbols, transfersFromHistory, walletFromShards } from '../lib/statement-history';
 import { assertMatchesHoldings } from '../lib/statement-check';
 
 const WALLET = '0xfdcd2ddee853c940a2ce2e082a05744619b24689';
@@ -178,5 +178,20 @@ describe('shards', () => {
       {},
     ];
     expect(walletFromShards(parts, WALLET)?.tokens.map((t) => t.symbol)).toEqual(['NVDAc', 'SNDKc']);
+  });
+});
+
+describe('readableNote: statement notes in plain words', () => {
+  it('shows a date instead of the engine field name, and the issuer announcement in words', () => {
+    const t = 1795150800; // 20 Nov 2026, 05:00 UTC
+    const note = readableNote('stock dividend +0.0500%: new lot at fair value (mark at effectiveAt) · confirmed by announcement', t);
+    expect(note).not.toContain('effectiveAt');
+    expect(note).toBe('stock dividend +0.0500%: added at that day’s value (20 Nov 2026). Confirmed by the issuer’s announcement');
+  });
+  it('speaks of a share equivalent, never of shares owned', () => {
+    expect(readableNote('8-for-1 split: shares ×8, basis reallocated over the new share count (total basis unchanged)', 0)).toBe('8-for-1 split: share equivalent ×8; your total cost doesn’t change');
+  });
+  it('leaves notes it does not know alone', () => {
+    expect(readableNote('bought through Tropa Club', 0)).toBe('bought through Tropa Club');
   });
 });

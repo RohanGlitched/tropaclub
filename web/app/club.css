@@ -1038,75 +1038,8 @@
   text-decoration: underline;
 }
 
-/* phone menu */
-.menu-btn {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1.5px solid var(--line-2);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--ink);
-  font: 600 1rem var(--display);
-  cursor: pointer;
-}
-.menu-sheet {
-  border: 0;
-  padding: 0;
-  margin: 0 0 0 auto;
-  width: min(360px, 100vw);
-  max-width: 100vw;
-  height: 100dvh;
-  max-height: 100dvh;
-  background: var(--bg);
-  color: var(--ink);
-  border-left: 6px solid var(--marigold);
-}
-.menu-sheet::backdrop {
-  background: rgba(12, 10, 42, 0.72);
-}
-.menu-in {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-.menu-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px 10px 20px;
-  border-bottom: 1px solid var(--line-2);
-  font: 600 0.75rem var(--display);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-}
-.menu-sheet nav {
-  display: grid;
-  padding: 4px 20px 24px;
-}
-.menu-sheet nav a {
-  display: grid;
-  align-content: center;
-  min-height: 60px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
-  text-decoration: none;
-}
-.menu-sheet nav a b {
-  font: 600 1.25rem/1.2 var(--display);
-}
-.menu-sheet nav a small {
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-}
+/* phone header: the links move to the bottom bar and the stadium map (components/nav) */
 @media (max-width: 767px) {
-  .menu-btn {
-    display: inline-flex;
-  }
   .site-header .site-header-in > nav {
     display: none;
   }
@@ -1240,7 +1173,7 @@ abbr.ref {
     font-size: 0.9375rem;
   }
 }
-/* honours (scout badge, Founders' Pennant): small inked stamps in the flow, under the seat */
+/* honours (scout badge, First 1,000): small inked stamps in the flow, under the seat */
 .ticket-honours {
   display: flex;
   flex-wrap: wrap;

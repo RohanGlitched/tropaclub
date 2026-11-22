@@ -6,7 +6,7 @@ import { useSeats } from '@/lib/client';
 import { fmtDate, fmtInt, shortAddr } from '@/lib/format';
 import { seatLabel } from '@/lib/stadium';
 
-/** The first ten fans by rank, and a few facts about the crowd, from the seat list. */
+/** The ten longest holders, and a few facts about the real holders, from the holder list. */
 export default function FrontRow({ symbol, club, total, realFans, seatsBase }: { symbol: string; club: string; total: number; realFans: number; seatsBase?: string | null }) {
   const s = useSeats(symbol, true, seatsBase);
   const real = useMemo(() => s.seats.slice(0, Math.min(realFans, s.seats.length)).filter((x) => x.k === 'real'), [s.seats, realFans]);
@@ -33,7 +33,7 @@ export default function FrontRow({ symbol, club, total, realFans, seatsBase }: {
   if (s.status === 'missing' || !real.length) {
     return (
       <p className="notice">
-        The seat-by-seat list for {club} is not published yet, so the front row cannot be named. The totals above are complete. Check back after the next count.
+        The wallet-by-wallet list for the {club} is not published yet, so the longest holders cannot be named. The totals above are complete. Check back after the next count.
       </p>
     );
   }
@@ -60,9 +60,9 @@ export default function FrontRow({ symbol, club, total, realFans, seatsBase }: {
       {facts && (
         <dl className="front-facts">
           <div><dt>Longest unbroken hold</dt><dd className="num">{fmtInt(facts.longest)} days</dd></div>
-          <div><dt>Median hold among fans</dt><dd className="num">{fmtInt(facts.median)} days</dd></div>
-          <div><dt>Held through a weekend gap</dt><dd className="num">{facts.gapPct.toFixed(0)}% of fans</dd></div>
-          <div><dt>Bought two weeks running or more</dt><dd className="num">{fmtInt(facts.streak)} fans</dd></div>
+          <div><dt>Median hold among real holders</dt><dd className="num">{fmtInt(facts.median)} days</dd></div>
+          <div><dt>Held through a weekend gap</dt><dd className="num">{facts.gapPct.toFixed(0)}% of real holders</dd></div>
+          <div><dt>Bought two weeks running or more</dt><dd className="num">{fmtInt(facts.streak)} real holders</dd></div>
         </dl>
       )}
     </div>

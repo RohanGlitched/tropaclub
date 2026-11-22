@@ -10,6 +10,7 @@
 //     through Tropa Club (its dollars were recorded) has an exact cost.
 import type { CorporateActionsFile, HistoryEntry, WalletHistory, WalletHistoryShard, WalletHistorySplitIndex } from '@shared/types';
 import type { HistTransfer, MultiplierEvent, Statement } from '@tropaclub/clubs';
+import { fmtDate } from './format';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 /** Stand-in counterparty for a labelled kind that carries no address. Never shown. */
@@ -20,7 +21,7 @@ const KIND_ADDRESS: Record<string, string> = {
 };
 
 export const DAY_PRICE_NOTE =
-  'Buys and sells on a DEX are priced at that day’s average price, not the exact price paid, and are marked “est.”. Buys made through Tropa Club use the dollars recorded at the time.';
+  'Buys and sells on an exchange (DEX) are priced at that day’s price, not the exact price paid, and are marked “est.” with where the price came from: a Chainlink close, a pool average, the last close or a reference price. Buys made through Tropa Club use the dollars recorded at the time.';
 
 const isSplitIndex = (v: unknown): v is WalletHistorySplitIndex => !!v && typeof v === 'object' && (v as { split?: unknown }).split === true && Array.isArray((v as { symbols?: unknown }).symbols);
 
@@ -151,4 +152,22 @@ export function labelDayPrices(s: Statement, priceSources?: Map<string, PriceSou
   }
   if (estimated && !s.warnings.includes(DAY_PRICE_NOTE)) s.warnings.unshift(DAY_PRICE_NOTE);
   return s;
+}
+
+/** The statement's own label ("FIFO · USD · records, not tax advice"), in words. */
+export const STATEMENT_LABEL_TEXT = 'First in, first out. In US dollars. A record, not tax advice.';
+
+/**
+ * A statement line's note in plain words, for the page only (the stored statement and its CSV keep
+ * the engine's wording). Field names such as "effectiveAt" never reach the page: a date does.
+ * `t` is the line's time in unix seconds.
+ */
+export function readableNote(note: string, t: number): string {
+  return note
+    .replace('new lot at fair value (mark at effectiveAt)', `added at that day’s value (${fmtDate(t)})`)
+    .replace(/shares ×([\d.]+), basis reallocated over the new share count \(total basis unchanged\)/, 'share equivalent ×$1; your total cost doesn’t change')
+    .replace('paid in another token: cost estimated at the mark', 'bought with another token: cost estimated at the market price then')
+    .replace('sold for another token: proceeds estimated at the mark', 'sold for another token: proceeds estimated at the market price then')
+    .replace(' · confirmed by announcement', '. Confirmed by the issuer’s announcement')
+    .replace(/, ratio wins$/, ', so the token’s own ratio is used');
 }

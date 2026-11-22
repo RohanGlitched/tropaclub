@@ -3,7 +3,8 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import BuySheet from './BuySheet';
-import { X_FOLLOW_URL } from '@/lib/site';
+import OpensAt from '@/components/OpensAt';
+import { REGION_LINE, X_FOLLOW_URL } from '@/lib/site';
 
 // Pages outside the clubs section have no wallet code loaded. It arrives only when Buy is tapped.
 const BuyStandalone = dynamic(() => import('./BuyStandalone'), { ssr: false });
@@ -22,19 +23,11 @@ interface Props {
   compact?: boolean;
 }
 
-const utc = (iso: string) => {
-  const d = new Date(iso);
-  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()];
-  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
-  return `${day} ${d.getUTCDate()} ${mon}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
-};
-
-/** The buy button for one stock. Until buying opens it shows the opening time and a reminder instead. */
+/** The buy button for one stock. Until buying opens it shows the opening time and an add-to-calendar link instead. */
 export default function BuyCta({ token = null, symbol, clubId = null, openAt, standalone = false, label, compact = false }: Props) {
   const opensMs = Date.parse(openAt);
-  // The server's answer first (so the first paint matches), the visitor's clock and time zone after mount.
+  // The server's answer first (so the first paint matches), the visitor's clock after mount.
   const [isOpen, setIsOpen] = useState(false);
-  const [when, setWhen] = useState(utc(openAt));
   const [sheet, setSheet] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [us, setUs] = useState(false);
@@ -42,11 +35,6 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
   useEffect(() => {
     const left = opensMs - Date.now();
     setIsOpen(left <= 0);
-    try {
-      setWhen(new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date(opensMs)));
-    } catch {
-      /* keep UTC */
-    }
     if (left > 0 && left < 2_000_000_000) {
       const t = setTimeout(() => setIsOpen(true), left + 500);
       return () => clearTimeout(t);
@@ -58,9 +46,9 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
   const facts = (
     <ul className="buy-facts-up">
       <li><b>0% Tropa fee.</b> Network gas is a few cents.</li>
-      <li><b>1.5% price guard.</b> If the price moves past it, the buy stops and nothing is spent.</li>
-      <li>Routed through Aerodrome on Base, from your own wallet, in USDC or ETH.</li>
-      <li>Available outside the US. You’ll confirm you’re not a US person.</li>
+      <li><b>1.5% price guard.</b> If the price moves more than 1.5% before your buy goes through, it’s cancelled and nothing is spent.</li>
+      <li>Bought on Aerodrome, a public exchange on Base, from your own wallet, in USDC or ETH.</li>
+      <li>{REGION_LINE} You’ll confirm before buying.</li>
     </ul>
   );
   return (
@@ -84,16 +72,16 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
           </>
         ) : (
           <>
-            <p className="buy-opens"><span className="tag">Buying opens</span> <b suppressHydrationWarning>{when}</b></p>
+            <p className="buy-opens"><span className="tag">Buying opens</span> <b><OpensAt at={openAt} /></b></p>
             <div className="buy-remind">
-              <a className="btn btn-accent" href="/remind.ics" download="tropa-club-buying-opens.ics">Remind me</a>
+              <a className="btn btn-accent" href="/remind.ics" download="tropa-club-buying-opens.ics">Add to calendar</a>
               <a className="btn" href={X_FOLLOW_URL} target="_blank" rel="noopener noreferrer">Follow @tropaclubxyz</a>
             </div>
             {facts}
           </>
         )}
       </div>
-      <p className="us-only notice"><b>Buying isn't available in your region.</b> Everything else here stays open.</p>
+      <p className="us-only notice"><b>Buying isn't available in your region.</b> Checking wallets and holder counts stays open.</p>
       {loaded && (standalone ? <BuyStandalone open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} /> : <BuySheet open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} />)}
     </div>
   );

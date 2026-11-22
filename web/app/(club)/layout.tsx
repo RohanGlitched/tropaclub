@@ -5,6 +5,7 @@ import { getIndex } from '@/lib/server/data';
 import { clubsSample } from '@/lib/server/clubs';
 import { sessionWallet } from '@/lib/server/session';
 import { groundPath } from '@/lib/clubs';
+import { jumpTokens } from '@/lib/nav';
 
 // Clubs, buying and records: everything that needs a wallet. Same chrome as the public site,
 // wrapped in the wallet provider. These pages are rendered per request.
@@ -15,7 +16,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
   const ground = groundPath(data.tokens[0].symbol);
   return (
     <WalletProvider initialWallet={wallet}>
-      <SiteHeader source={source} ground={ground} end={<ConnectButton compact />} sampleClubs={clubsSample} />
+      <SiteHeader source={source} ground={ground} end={<ConnectButton compact header />} sampleClubs={clubsSample} tokens={jumpTokens(data.tokens)} wallet={wallet} />
       {children}
       <SiteFooter source={source} asOf={data.asOf} ground={ground} />
     </WalletProvider>

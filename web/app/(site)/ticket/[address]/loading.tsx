@@ -2,8 +2,8 @@ export default function Loading() {
   return (
     <main id="main" aria-busy="true">
       <section className="wrap page-head">
-        <h1>Checking the gate…</h1>
-        <p className="lede">Looking this wallet up in every ground.</p>
+        <h1>Checking the wallet…</h1>
+        <p className="lede">Looking this wallet up in every stock token on Base.</p>
       </section>
       <section className="wrap tickets" aria-hidden="true">
         <div className="ticket-stage">

@@ -306,7 +306,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
 
         {us ? (
           <div className="buy-body">
-            <p className="notice"><b>Buying isn't available in your region.</b> The Ground, the tickets and The Attendance stay open to you.</p>
+            <p className="notice"><b>Buying isn't available in your region.</b> Not available to US persons or in sanctioned regions. Grounds, tickets and stock rankings stay open to you.</p>
             <button type="button" className="btn" onClick={close}>Close</button>
           </div>
         ) : phase === 'done' ? (
@@ -314,23 +314,23 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
             <p className="buy-ok"><b>Bought.</b> {q ? `About ${q.shares} shares’ worth of ${q.symbol} is in your wallet.` : 'The tokens are in your wallet.'}</p>
             {txHash && <p><a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noopener noreferrer">See the transaction on BaseScan</a></p>}
             <ul className="buy-facts">
-              <li>{record?.recorded ? (record.promoted ? 'Recorded. You are in the Playing lineup this gameweek.' : clubId ? 'Recorded for your club.' : 'Recorded. It counts toward the season.') : record?.message ?? 'Recording…'}</li>
+              <li>{record?.recorded ? (record.promoted ? 'Recorded. You played this gameweek.' : clubId ? 'Recorded for your club.' : 'Recorded. It counts toward the season.') : record?.message ?? 'Recording…'}</li>
               {record?.attributed != null && <li>{record.attributed ? 'Counted as a Tropa Club buy on Base.' : 'This wallet did not carry our Builder Code on the transaction, so it is not counted in our stats.'}</li>}
             </ul>
             <div className="buy-next">
               <h3>What next</h3>
               <a className="buy-next-row" href={address ? `/ticket/${address.toLowerCase()}` : '/'}>
-                <b>Share your seat</b>
-                <small>Your matchday ticket, ready to post. A new seat shows at the next count, every 6 hours.</small>
+                <b>Share your ticket</b>
+                <small>Your ticket, ready to post. A new holding shows on it at the next count, every 6 hours.</small>
               </a>
               <a className="buy-next-row" href={clubId ? `/club/${encodeURIComponent(clubId)}#invite` : '/clubs#start'}>
-                <b>{clubId ? 'Invite your group chat' : 'Found a club for your group chat'}</b>
-                <small>{clubId ? 'Send the invite link. Everyone who opens it takes a free seat on the Bench.' : 'Free, takes a minute. This buy already counts for you.'}</small>
+                <b>{clubId ? 'Invite your group chat' : 'Start a club for your group chat'}</b>
+                <small>{clubId ? 'Send the invite link. Anyone who opens it can join the club for free, with no buy needed.' : 'Free, takes a minute. This buy already counts for you.'}</small>
               </a>
               {clubId && (
                 <a className="buy-next-row" href={`/club/${encodeURIComponent(clubId)}#team`}>
-                  <b>Call up a teammate</b>
-                  <small>You played, so you can nudge anyone still on the Bench. 80% turnout earns the bonus point.</small>
+                  <b>Nudge a teammate</b>
+                  <small>You played, so you can send a nudge to anyone who hasn’t bought yet. If 80% of members buy this week, the club gets a bonus point.</small>
                 </a>
               )}
             </div>

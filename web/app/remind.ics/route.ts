@@ -1,8 +1,8 @@
-import { SITE_URL, buyOpenAt } from '@/lib/site';
+import { REGION_LINE, SITE_URL, buyOpenAt } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
-// "Remind me": a calendar entry for the moment buying opens.
+// "Add to calendar": a calendar entry for the moment buying opens.
 export function GET() {
   const start = new Date(buyOpenAt());
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -16,7 +16,7 @@ export function GET() {
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(new Date(start.getTime() + 30 * 60_000))}`,
     'SUMMARY:Tropa Club: buying opens',
-    `DESCRIPTION:Take your seat. Buy from $5 of a stock token from your own wallet and play gameweek 0 with your club. ${SITE_URL}/clubs\\nStock tokens track the share price. They are not shares. Not available to US persons. Not advice.`,
+    `DESCRIPTION:Buying opens on Tropa Club. Buy $5 or more of a stock token through Tropa Club from your own wallet and it counts as played in gameweek 0 (the practice week) for your club. ${SITE_URL}/clubs\\nStock tokens track the share price. They are not shares. ${REGION_LINE} Not advice.`,
     `URL:${SITE_URL}/clubs`,
     'BEGIN:VALARM',
     'TRIGGER:-PT10M',

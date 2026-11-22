@@ -13,7 +13,7 @@ export const maxDuration = 300;
 //   POST /api/cron/match-pickups        hourly
 //   POST /api/cron/schedule-fixtures    Monday open        (?gw=GW1 to name the gameweek)
 //   POST /api/cron/settle-gameweek      Friday after close (?gw=GW1 to name the gameweek); then awards Caps
-//   POST /api/cron/scouts               hourly: decide scout credits, the Founders' Pennant list, Caps
+//   POST /api/cron/scouts               hourly: decide scout credits, the First 1,000 list, Caps
 // Each run claims a run key in Firestore first (gameweek jobs by gameweek, the rest by ten-minute
 // slot). Hosting cuts a request off at 60 s and Scheduler then retries while the first run is still
 // going, so a retry gets the first run's result, or "running", and never a second run.

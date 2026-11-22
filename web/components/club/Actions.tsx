@@ -57,12 +57,12 @@ export function InviteBox({ url, club }: { url: string; club: string }) {
   return (
     <div className="invite">
       <p className="invite-url num">{url.replace(/^https?:\/\//, '')}</p>
-      <ShareLinks url={url} text={`Join ${club} on Tropa Club: $10 a week in stocks with the group chat. Take a seat on the Bench, it is free.`} />
+      <ShareLinks url={url} text={`Join ${club} on Tropa Club: we each buy about $10 of stock tokens a week from our own wallets. Joining is free and needs no buy.`} />
     </div>
   );
 }
 
-/** Start a club: name it, the crest is cut, the invite link is ready to send. */
+/** Start a club: name it, the crest is drawn, the invite link is ready to send. */
 export function StartClub() {
   const gate = useGate();
   const router = useRouter();
@@ -79,8 +79,8 @@ export function StartClub() {
       <div className="start start-done">
         <Crest recipe={made.crest} width={72} raise title={`Crest of ${made.name}`} />
         <div>
-          <h3>{made.name} is founded</h3>
-          <p>Your crest is cut and you hold the first seat on the Bench. Send the invite to the group chat.</p>
+          <h3>{made.name} is started</h3>
+          <p>Its crest is drawn and you are its first member. Send the invite to the group chat.</p>
           <InviteBox url={made.inviteUrl} club={made.name} />
           <p><button type="button" className="btn btn-accent" onClick={() => router.push(`/club/${made.id}`)}>Open the club</button></p>
         </div>
@@ -109,14 +109,14 @@ export function StartClub() {
       </ol>
       <label htmlFor={`${id}-n`}>Club name</label>
       <input id={`${id}-n`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday League Tropa" maxLength={40} autoComplete="off" required minLength={3} />
-      <label htmlFor={`${id}-k`}>Your name on the team sheet <span className="muted">(optional)</span></label>
+      <label htmlFor={`${id}-k`}>Your nickname in the club <span className="muted">(optional)</span></label>
       <input id={`${id}-k`} value={nick} onChange={(e) => setNick(e.target.value)} placeholder="Ana" maxLength={20} autoComplete="off" />
       <p className="find-note">The crest is drawn for the club when it is made: two colours, a kit pattern and an emblem. Starting a club is free and needs no buy.</p>
       <div className="start-go">
         {gate.ready ? (
-          <button type="submit" className="btn btn-accent" disabled={busy || name.trim().length < 3}>{busy ? 'Founding…' : 'Found the club'}</button>
+          <button type="submit" className="btn btn-accent" disabled={busy || name.trim().length < 3}>{busy ? 'Starting…' : 'Start the club'}</button>
         ) : (
-          <ConnectButton prompt="Connect to found a club" />
+          <><ConnectButton prompt="Connect wallet to start club" /><span className="buy-why">No buy needed. We’ll ask you to sign in, not to pay.</span></>
         )}
         {gate.ready && name.trim().length < 3 && <span className="buy-why">Give the club a name of three letters or more.</span>}
       </div>
@@ -150,12 +150,12 @@ export function InviteCodeForm() {
   );
 }
 
-export function JoinButton({ inviteCode, clubId, label = 'Take a seat on the Bench' }: { inviteCode?: string; clubId?: string; label?: string }) {
+export function JoinButton({ inviteCode, clubId, label = 'Join the club (free)' }: { inviteCode?: string; clubId?: string; label?: string }) {
   const gate = useGate();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  if (!gate.ready) return <ConnectButton prompt="Connect to join" />;
+  if (!gate.ready) return <ConnectButton prompt="Connect wallet to join (free)" />;
   return (
     <div className="act">
       <button
@@ -186,7 +186,7 @@ export function PickupButton() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  if (!gate.ready) return <ConnectButton prompt="Connect to be matched" />;
+  if (!gate.ready) return <ConnectButton prompt="Connect wallet to get matched" />;
   return (
     <div className="act">
       <button
@@ -202,10 +202,10 @@ export function PickupButton() {
           if (r.data.club) {
             router.push(`/club/${r.data.club.id}?joined=1`);
             router.refresh();
-          } else setMsg('You are in the queue. You will be seated as soon as enough players from your part of the world are waiting. Check back here.');
+          } else setMsg('You are in the queue. You will be put in a club as soon as enough people from your region are waiting. Check back here.');
         }}
       >
-        {busy ? 'Finding a club…' : 'Find me a pick-up club'}
+        {busy ? 'Finding a club…' : 'Match me into a club'}
       </button>
       {msg && <p className="act-msg" role="status">{msg}</p>}
     </div>
@@ -214,7 +214,7 @@ export function PickupButton() {
 
 interface Share { text: string; url: string; whatsapp: string; telegram: string; x: string }
 
-/** The team sheet with call-ups: tap a benched teammate, get the message to send them. */
+/** The member list with nudges: tap a member who has not bought, get the message to send them. */
 export function Roster({ clubId, clubName, members, crest, callUpOff, playingLabel, benchLabel, joined }: { clubId: string; clubName: string; members: Member[]; crest: CrestRecipe; callUpOff?: string; playingLabel?: string; benchLabel?: string; joined?: boolean }) {
   const [list, setList] = useState(() => (joined ? members.map((m) => (m.you ? { ...m, fresh: true } : m)) : members));
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -235,10 +235,10 @@ export function Roster({ clubId, clubName, members, crest, callUpOff, playingLab
       {err && <p className="buy-error" role="alert">{err}</p>}
       {share && (
         <div className="callup" role="status">
-          <h4>Send {share.who} the call-up</h4>
+          <h4>Send {share.who} the nudge</h4>
           <p className="callup-text">{share.text}</p>
           <ShareLinks text={share.text} url={share.url} whatsapp={share.whatsapp} telegram={share.telegram} x={share.x} />
-          <p className="muted small">One call-up per teammate each gameweek. {clubName} needs 80% of the team playing for the bonus point.</p>
+          <p className="muted small">One nudge per teammate each gameweek. {clubName} gets a bonus point if 80% of members buy this week.</p>
         </div>
       )}
     </div>
@@ -249,7 +249,7 @@ export function CsvButton({ address }: { address: string }) {
   const { address: connected } = useAccount();
   const s = useSession();
   const mine = connected?.toLowerCase() === address.toLowerCase();
-  if (!mine) return <p className="muted small">The CSV download is for the owner of this wallet. Connect it to download.</p>;
+  if (!mine) return <p className="muted small">Own this wallet? Connect it to download a CSV.</p>;
   if (!s.signedIn) return <ConnectButton prompt="Sign in to download" />;
   return <a className="btn" href={`/api/statement/${address}/csv`}>Download CSV</a>;
 }

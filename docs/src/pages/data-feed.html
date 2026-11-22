@@ -1,5 +1,5 @@
-<!--meta {"slug":"data-feed","nav":"Public data feed","title":"Public data feed","description":"The free JSON files behind The Ground and The Attendance: URLs, full schema with field descriptions, caching, an example fetch and the licence.","updated":"Nov 22 2026"}-->
-<p class="lede">Everything on The Ground and The Attendance is read from four kinds of static JSON file. They are public, need no key and are refreshed every six hours.</p>
+<!--meta {"slug":"data-feed","nav":"Public data feed","title":"Public data feed","description":"The free JSON files behind the grounds and stock rankings: URLs, full schema with field descriptions, caching, an example fetch and the licence.","updated":"Nov 22 2026"}-->
+<p class="lede">Everything on the grounds and stock rankings is read from four kinds of static JSON file. They are public, need no key and are refreshed every six hours.</p>
 
 <callout kind="soon" title="Status">
 <p>The first files appear after the first scheduled run following launch. Until a run has finished, a URL below can return <code>404</code>. Once published, <code>index.json</code> carries the time of the last snapshot in <code>asOf</code>.</p>
@@ -11,7 +11,7 @@
 <table>
   <thead><tr><th>File</th><th>What it holds</th><th>Typical size</th></tr></thead>
   <tbody>
-    <tr><td><code>index.json</code></td><td>The league table: one summary per stock token, sorted by real fans.</td><td>Small</td></tr>
+    <tr><td><code>index.json</code></td><td>The stock rankings: one summary per stock token, sorted by real fans.</td><td>Small</td></tr>
     <tr><td><code>tokens/&lt;symbol&gt;.json</code></td><td>Every seat of one token, real fans first in rank order, then ghosts. Symbols keep their case, for example <code>tokens/NVDAc.json</code>.</td><td>Up to a few MB for the largest grounds</td></tr>
     <tr><td><code>wallets/&lt;2hex&gt;.json</code></td><td>A shard of the wallet lookup. The two hex digits are the first two after <code>0x</code> in the lowercase address, so there are 256 shards.</td><td>Small</td></tr>
     <tr><td><code>stats.json</code></td><td>Global numbers: unique holders, real wallets, weekly buyers by week.</td><td>Small</td></tr>
@@ -54,8 +54,8 @@ export interface TokenSummary {
   priceUsd: number | null;   // DEX price used for $ values
   navUsd: number | null;     // Coinbase API nav_price if present
   multiplier: number;        // ERC-8056 uiMultiplier
-  holdersTotal: number;      // nonzero balances ("tickets sold")
-  realFans: number;          // >= $10, EOA/smart wallet, not farmer-only ("fans in the ground")
+  holdersTotal: number;      // nonzero balances (all holders)
+  realFans: number;          // >= $10, EOA/smart wallet, not airdrop-only (farmer): the real holders
   ghosts: { dust: number; farmerOnly: number; contracts: number };
   attendancePct: number;     // realFans / holdersTotal * 100
   top10SharePct: number;
@@ -132,8 +132,8 @@ export interface StatsFile {
     <tr><td><code>priceSource</code></td><td><code>"dex"</code>: the deepest DEX pair with at least $1,000 of liquidity. <code>"reference"</code>: no such pair, so the underlying stock&rsquo;s last price times the multiplier (else Coinbase&rsquo;s <code>nav_price</code>). <code>null</code>: unpriced, all seats show <code>usd: 0</code>.</td></tr>
     <tr><td><code>navUsd</code></td><td>Coinbase&rsquo;s <code>nav_price</code> where the API publishes one (only a minority of tokens do).</td></tr>
     <tr><td><code>multiplier</code></td><td>The ERC-8056 <code>uiMultiplier</code>. Dividends are paid as shares through increases of this number. Above 1 means the token has had a split or stock dividend.</td></tr>
-    <tr><td><code>holdersTotal</code></td><td>Wallets with a nonzero balance: &ldquo;tickets sold&rdquo;. It includes pools and contracts.</td></tr>
-    <tr><td><code>realFans</code></td><td>Real fans as defined in <a href="the-ground.html#thresholds">thresholds</a>: &ldquo;fans in the ground&rdquo;.</td></tr>
+    <tr><td><code>holdersTotal</code></td><td>Wallets with a nonzero balance: all holders, the number a block explorer shows. It includes pools and contracts.</td></tr>
+    <tr><td><code>realFans</code></td><td>Real fans as defined in <a href="the-ground.html#thresholds">thresholds</a>: the real holders.</td></tr>
     <tr><td><code>ghosts</code></td><td><code>dust</code>: people&rsquo;s wallets under $10. <code>farmerOnly</code>: wallets that only ever received giveaways. <code>contracts</code>: pools plus other contracts. With <code>realFans</code> these add up to <code>holdersTotal</code>.</td></tr>
     <tr><td><code>attendancePct</code></td><td><code>realFans / holdersTotal * 100</code>, one decimal.</td></tr>
     <tr><td><code>top10SharePct</code>, <code>top10ShareExPoolsPct</code></td><td>The share of supply held by the ten largest balances, with and without liquidity pools.</td></tr>

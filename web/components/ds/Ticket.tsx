@@ -1,7 +1,8 @@
 import type { TokenSummary, WalletTokenEntry } from '@shared/types';
 import { Mark } from './Logo';
 import { Pennant } from './Pennant';
-import { clubName, kitFor } from '@/lib/clubs';
+import { kitFor, shortName } from '@/lib/clubs';
+import { groundName } from '@/lib/site';
 import { fmtDate, fmtInt, shortAddr } from '@/lib/format';
 import { barcode, barcodeWidth, statSentence, ticketSeat } from '@/lib/ticket';
 import type { SeatLabel } from '@/lib/stadium';
@@ -52,7 +53,7 @@ interface Props {
   stamp?: string | null;
   /** Payday streak badge, printed under the stamp. */
   badge?: string | null;
-  /** Cosmetic honours of the wallet ("Scout", "Founders’ Pennant"), stamped small under the seat. */
+  /** Cosmetic honours of the wallet ("Scout", "First 1,000"), stamped small under the seat. */
   honours?: string[];
 }
 
@@ -61,18 +62,18 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
   const seat = ticketSeat(address, entry, token);
   const H = `h${headingLevel}` as 'h2' | 'h3';
   return (
-    <article className={`ticket${printIn ? ' print-in' : ''}${preview ? ' ticket-preview' : ''}`} aria-label={`${preview ? 'Preview of a matchday ticket' : 'Matchday ticket'}, ${clubName(token.name)}`}>
+    <article className={`ticket${printIn ? ' print-in' : ''}${preview ? ' ticket-preview' : ''}`} aria-label={`${preview ? 'Preview of a ticket' : 'Ticket'}, ${groundName(token.name, token.symbol)}`}>
       <div className="ticket-main">
         <header className="ticket-top">
           <span className="ticket-brand"><Mark size={16} /> Tropa Club</span>
-          <span>Matchday ticket</span>
-          <span className="ticket-asof">{preview ? 'Preview' : specimen ? 'Specimen' : `As of ${fmtDate(asOf)}`}</span>
+          <span>Ticket</span>
+          <span className="ticket-asof">{preview ? 'Preview' : specimen ? 'Sample' : `As of ${fmtDate(asOf)}`}</span>
         </header>
         <div className="ticket-club">
           <Pennant kit={kit} width={34} />
           <div>
-            <H>{clubName(token.name)}</H>
-            <p>Home ground of {token.symbol} holders on Base</p>
+            <H>{groundName(token.name, token.symbol)}</H>
+            <p>Holders of {token.symbol}, {shortName(token.name, token.symbol)}&rsquo;s stock token on Base</p>
           </div>
         </div>
         <dl className="ticket-seat">
@@ -80,7 +81,7 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
           <div><dt>Row</dt><dd className="num">{seat?.row ?? '—'}</dd></div>
           <div><dt>Seat</dt><dd className="num">{seat?.seat ?? '—'}</dd></div>
           <div className="ticket-fan">
-            <dt>Real fan</dt>
+            <dt>Real holder</dt>
             <dd className="num">{preview && <small className="about">about </small>}{entry.rank != null ? fmtInt(entry.rank) : '—'}<small> of {fmtInt(entry.of || token.realFans)}</small></dd>
           </div>
         </dl>
@@ -97,7 +98,7 @@ export default function Ticket({ address, entry, token, asOf, specimen, headingL
         )}
         <p className="ticket-stat">{preview ? 'Yours after one $10 buy, at the next count' : statSentence(entry.bestStat)}</p>
         <p className="ticket-fine">
-          {seat?.stand ?? 'The Ground'}. {token.symbol} is a stock token that tracks the share price; it is not the share. Seats go by time held, never by size. Not advice.
+          {seat ? `${seat.stand} of the stadium drawing. ` : ''}{token.symbol} is a stock token that tracks the share price; it is not the share. Ranked by time held, never by size. A picture to share, not an NFT. Not advice.
         </p>
       </div>
       <div className="ticket-stub">

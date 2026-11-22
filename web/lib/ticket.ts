@@ -50,30 +50,30 @@ export function ticketSeat(address: string, entry: WalletTokenEntry, token: Pick
   return seatLabel(token.holdersTotal, seatIndexFor(address, entry, token));
 }
 
-/** One plain sentence for the best stat. pct is "top pct%" among real fans. */
+/** One plain sentence for the best stat. pct is "top pct%" among real holders. */
 export function statSentence(b: WalletTokenEntry['bestStat']): string {
-  if (!b) return 'In the ground with the real fans';
+  if (!b) return 'A real holder in this ground';
   const beat = Math.max(1, Math.min(99, Math.round(100 - b.pct)));
   switch (b.key) {
     case 'longestHold':
-      return beat >= 99 ? 'Longest holder in the ground' : `Held longer than ${beat}% of real fans`;
+      return beat >= 99 ? 'Longest holder in the ground' : `Held longer than ${beat}% of real holders`;
     case 'earliest':
-      return beat >= 99 ? 'First to arrive in the ground' : `Arrived before ${beat}% of real fans`;
+      return beat >= 99 ? 'First to arrive in the ground' : `Arrived before ${beat}% of real holders`;
     case 'entryVsMedian':
-      return `Entry price lower than ${beat}% of real fans`;
+      return `Entry price lower than ${beat}% of real holders`;
     case 'streak':
-      return `Longer weekly streak than ${beat}% of real fans`;
+      return `Longer weekly streak than ${beat}% of real holders`;
     case 'heldThroughGap':
       return 'Held through the weekend gap';
     default:
-      return b.label || 'In the ground with the real fans';
+      return b.label || 'A real holder in this ground';
   }
 }
 
 export const KIND_LABEL: Record<string, string> = {
-  real: 'Real fan',
-  dust: 'Dust seat',
-  farmer: 'Farmer-only seat',
-  contract: 'Contract seat',
-  pool: 'Pool seat',
+  real: 'Real holder',
+  dust: 'Under $10',
+  farmer: 'Airdrop-only',
+  contract: 'Contract',
+  pool: 'Exchange pool',
 };

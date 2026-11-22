@@ -3,11 +3,14 @@ import Link from 'next/link';
 import { APPROVALS, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex, getStats } from '@/lib/server/data';
 import { fmtDate, fmtInt, fmtUsd, shortAddr } from '@/lib/format';
-import { BUILDER_CODE, DOCS_URL, OPENS, PLAY_USD } from '@/lib/site';
+import { BUILDER_CODE, DOCS_URL, PLAY_USD, buyOpenAt } from '@/lib/site';
+import OpensAt from '@/components/OpensAt';
+import Term from '@/components/nav/Term';
+import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 
 export const metadata: Metadata = {
-  title: 'Stats: what Tropa Club has measured so far',
-  description: 'Unique signers, attributed swaps and approvals, dollars routed, hold rates at D+1, D+3 and D+7, repeat buying and seats. Counted from onchain records, with the exclusion list in the open.',
+  title: 'Stats: Tropa Club’s own numbers',
+  description: 'How many people have bought through Tropa Club and kept holding, counted from public Base records: buyers, buys and approvals, dollars, hold rates after 1, 3 and 7 days, repeat buying and club members. Team wallets are left out.',
 };
 
 const rate = (n: number | null) => (n == null ? '—' : `${(n * 100).toFixed(0)}%`);
@@ -29,7 +32,8 @@ export default async function StatsPage() {
     return (
       <main id="main">
         <section className="wrap page-head empty">
-          <h1>Stats</h1>
+          <Crumbs trail={[{ label: 'Stats' }]} />
+          <h1>Tropa Club&rsquo;s own numbers</h1>
           <p className="lede">The numbers could not be counted just now. Try again in a minute.</p>
           <p className="closing-links"><Link className="btn" href="/stats">Try again</Link></p>
         </section>
@@ -48,42 +52,44 @@ export default async function StatsPage() {
   return (
     <main id="main">
       <section className="wrap page-head">
-        <h1>Stats</h1>
+        <Crumbs trail={[{ label: 'Stats' }]} />
+        <h1>Tropa Club&rsquo;s own numbers</h1>
         <p className="lede">
-          Everything Tropa Club claims about itself, counted from onchain records. Only transactions the member signed are counted, and only those that carry our Builder Code. Wallets that belong to the team are left out and listed below.
+          How many people have bought through Tropa Club and kept holding, counted from public Base records. Only transactions the member signed are counted, and only buys tagged with our <Term id="builder-code">Builder Code</Term> (a label Base uses to credit an app). Team wallets are left out and listed below.
         </p>
-        <p className="asof">Club numbers are live. The crowd was counted {fmtDate(index.asOf, true)}.</p>
+        <p className="hero-cta"><a className="btn" href="#how">See how we count</a></p>
+        <p className="asof">Club numbers are live. Stock token holders were counted {fmtDate(index.asOf, true)}.</p>
       </section>
 
       {pre ? (
         <section className="wrap section-tight">
           <div className="season-opens">
-            <p className="opens"><span className="tag">Season opens {OPENS}</span></p>
+            <p className="opens"><span className="tag">Buying opens</span> <OpensAt at={buyOpenAt()} /></p>
             <h2>No buy has gone through Tropa Club yet</h2>
             <p>
-              Buying opens on {OPENS}. From the first buy, this page counts unique signers, swaps and approvals carrying Builder Code <code>{BUILDER_CODE}</code>, dollars routed, and whether buyers are still holding one, three and seven days later. Nothing is shown here until it has been measured.
+              From the first buy, this page counts how many people bought, how many buys and approvals carry Builder Code <code>{BUILDER_CODE}</code>, total dollars, and how many buyers still hold after 1, 3 and 7 days. Nothing is shown here until it has been measured.
             </p>
             <p><a href={DOCS_URL} rel="noopener">How each number is counted</a></p>
           </div>
-          <h3 className="table-title crowd-title">The crowd today, from the index</h3>
+          <h3 className="table-title crowd-title">Stock token holders today (not Tropa Club buys)</h3>
           <dl className="figures">
-            <div><dt>Wallets with a real-fan seat</dt><dd className="num">{fmtInt(crowd.realWallets)}</dd><p>{fmtInt(seatsHeld)} seats across {index.tokens.length} clubs.</p></div>
-            <div><dt>Buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.buyers) : '—'}</dd><p>Wallets that bought any stock token on a DEX.</p></div>
-            <div><dt>First-time buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.newBuyers) : '—'}</dd><p>The people a club gives a reason to come back.</p></div>
-            <div><dt>Clubs founded</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(totalSeats)} {totalSeats === 1 ? 'seat' : 'seats'} taken on the Bench so far.</p></div>
+            <div><dt>Wallets that are real holders</dt><dd className="num">{fmtInt(crowd.realWallets)}</dd><p>{fmtInt(seatsHeld)} real holdings across {index.tokens.length} tokens.</p></div>
+            <div><dt>Buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.buyers) : '—'}</dd><p>Wallets that bought any stock token on an exchange.</p></div>
+            <div><dt>First-time buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.newBuyers) : '—'}</dd><p>Wallets buying a stock token for the first time.</p></div>
+            <div><dt>Clubs started</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(totalSeats)} {totalSeats === 1 ? 'person has' : 'people have'} joined a club so far.</p></div>
           </dl>
-          <p className="muted small">These four come from The Attendance and the club list, not from Tropa Club buys.</p>
+          <p className="muted small">These four come from the stock rankings and the club list, not from Tropa Club buys.</p>
         </section>
       ) : (
         <section className="wrap section-tight" aria-label="Builder Code counter">
-          <h2 className="h3 table-title">Builder Code <code>{BUILDER_CODE}</code>, live</h2>
+          <h2 className="h3 table-title">Buys tagged with Builder Code <code>{BUILDER_CODE}</code>, live</h2>
           <dl className="figures">
-            <div><dt>Unique signers</dt><dd className="num">{fmtInt(s.uniqueSigners)}</dd><p>Wallets with at least one counted swap.</p></div>
-            <div><dt>Swaps</dt><dd className="num">{fmtInt(s.attributedTx)}</dd><p>{s.pctAttributed == null ? 'Carrying the code.' : `${s.pctAttributed.toFixed(0)}% of ${fmtInt(s.submittedTx)} submitted. ${fmtInt(s.attributedVia.tx)} plain, ${fmtInt(s.attributedVia.userop)} smart-wallet.`}</p></div>
-            <div><dt>Approvals</dt><dd className="num">{fmtInt(approvals)}</dd><p>Sent as their own transaction by some wallets. Counted apart, never as a swap.</p></div>
-            <div><dt>Dollars routed</dt><dd className="num">{fmtUsd(s.usdRouted, 0)}</dd><p>Paid by members to public exchange routes. Tropa Club never held any of it.</p></div>
+            <div><dt>People who bought</dt><dd className="num">{fmtInt(s.uniqueSigners)}</dd><p>Wallets with at least one counted buy.</p></div>
+            <div><dt>Buys</dt><dd className="num">{fmtInt(s.attributedTx)}</dd><p>{s.pctAttributed == null ? 'Carrying the code.' : `${s.pctAttributed.toFixed(0)}% of ${fmtInt(s.submittedTx)} submitted. ${fmtInt(s.attributedVia.tx)} plain, ${fmtInt(s.attributedVia.userop)} smart-wallet.`}</p></div>
+            <div><dt>Approvals</dt><dd className="num">{fmtInt(approvals)}</dd><p>Sent as their own transaction by some wallets. Counted apart, never as a buy.</p></div>
+            <div><dt>Total dollars</dt><dd className="num">{fmtUsd(s.usdRouted, 0)}</dd><p>Paid by members to public exchanges from their own wallets. Tropa Club never held any of it.</p></div>
           </dl>
-          <p className="muted small">{fmtInt(s.qualifyingBuys)} swaps count toward lineups and streaks. {fmtInt(s.belowMinBuys)} under ${PLAY_USD} and {fmtInt(s.washBuys)} buy-and-sell-back are left out.</p>
+          <p className="muted small">{fmtInt(s.qualifyingBuys)} buys count as played and toward streaks. {fmtInt(s.belowMinBuys)} under ${PLAY_USD} and {fmtInt(s.washBuys)} buy-and-sell-back are left out.</p>
         </section>
       )}
 
@@ -108,10 +114,10 @@ export default async function StatsPage() {
               )}
               {gw0.length > 0 && (
                 <>
-                  <h3>Gameweek 0 Playing joiners</h3>
-                  <p className="muted small">The cohort named in advance for the D+7 comparison.</p>
+                  <h3>Club members who bought in week 0</h3>
+                  <p className="muted small">The group named in advance for the day-7 comparison.</p>
                   <table className="mini-table">
-                    <caption className="sr">Hold rate for gameweek 0 Playing joiners</caption>
+                    <caption className="sr">Hold rate for club members who bought in week 0</caption>
                     <thead><tr><th scope="col">After</th><th scope="col" className="r">Eligible</th><th scope="col" className="r">Still holding</th><th scope="col" className="r">Rate</th></tr></thead>
                     <tbody>
                       {gw0.map((c) => (
@@ -141,7 +147,7 @@ export default async function StatsPage() {
               {(s.twoPlus.buyers > 0 || s.callups > 0) && (
                 <dl className="figures figures-2">
                   {s.twoPlus.buyers > 0 && <div><dt>Bought twice or more</dt><dd className="num">{rate(s.twoPlus.share)}</dd><p>{fmtInt(s.twoPlus.twoPlus)} of {fmtInt(s.twoPlus.buyers)} buyers.</p></div>}
-                  {s.callups > 0 && <div><dt>Call-ups sent</dt><dd className="num">{fmtInt(s.callups)}</dd><p>Teammates nudged off the Bench.</p></div>}
+                  {s.callups > 0 && <div><dt>Nudges sent</dt><dd className="num">{fmtInt(s.callups)}</dd><p>Messages to teammates who hadn&rsquo;t bought yet.</p></div>}
                 </dl>
               )}
             </div>
@@ -152,30 +158,30 @@ export default async function StatsPage() {
       <section className="wrap section">
         <div className="split">
           <div className="split-text">
-            <h2>Bench and Playing</h2>
-            <p>A Bench seat is free and needs no buy. It is reported apart from Playing seats so the member count cannot flatter the buying.</p>
+            <h2>Members and buyers</h2>
+            <p>Joining a club is free, so we report members and buyers separately. Joins can&rsquo;t make the buying look bigger.</p>
             {totalSeats > 0 ? (
               <>
-                <div className="gate-bar" role="img" aria-label={`${fmtInt(s.seats.playing)} Playing seats and ${fmtInt(s.seats.bench)} Bench seats`}>
+                <div className="gate-bar" role="img" aria-label={`${fmtInt(s.seats.playing)} memberships that bought this week and ${fmtInt(s.seats.bench)} that have not`}>
                   <span className="gate-seg seat-playing" style={{ flexGrow: Math.max(s.seats.playing, 0.001) }} />
                   <span className="gate-seg gate-dust" style={{ flexGrow: Math.max(s.seats.bench, 0.001) }} />
                 </div>
                 <dl className="figures figures-2">
-                  <div><dt>Playing seats</dt><dd className="num">{fmtInt(s.seats.playing)}</dd><p>{fmtInt(s.seats.walletsPlaying)} wallets. {((s.seats.playing / totalSeats) * 100).toFixed(0)}% of seats.</p></div>
-                  <div><dt>Bench seats</dt><dd className="num">{fmtInt(s.seats.bench)}</dd><p>{fmtInt(s.seats.walletsBench)} wallets yet to buy.</p></div>
-                  <div><dt>Clubs in the league</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(s.clubs.private)} private, {fmtInt(s.clubs.pickup)} pick-up.</p></div>
-                  <div><dt>Stock clubs with supporters</dt><dd className="num">{fmtInt(stockWith)}</dd><p>Of {fmtInt(stockAll.length)}, one for every stock.</p></div>
+                  <div><dt>Bought this week</dt><dd className="num">{fmtInt(s.seats.playing)}</dd><p>{fmtInt(s.seats.walletsPlaying)} wallets. {((s.seats.playing / totalSeats) * 100).toFixed(0)}% of memberships.</p></div>
+                  <div><dt>On the Bench (not bought yet)</dt><dd className="num">{fmtInt(s.seats.bench)}</dd><p>{fmtInt(s.seats.walletsBench)} wallets yet to buy.</p></div>
+                  <div><dt>Friend clubs</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(s.clubs.private)} private, {fmtInt(s.clubs.pickup)} pick-up.</p></div>
+                  <div><dt>Open clubs with members</dt><dd className="num">{fmtInt(stockWith)}</dd><p>Of {fmtInt(stockAll.length)}, one for every stock token.</p></div>
                 </dl>
               </>
             ) : (
-              <p className="notice">No seat has been taken yet. The first club founded puts the first seat on the Bench. <Link href="/clubs#start">Found a club</Link></p>
+              <p className="notice">0 people have joined a club so far. <Link href="/clubs#start">Start a club</Link></p>
             )}
           </div>
           <div className="split-text">
-            <h2>Against a control group</h2>
-            <p><strong>Published Thu 3 Dec</strong>, once the first joiners reach seven days.</p>
-            <p>Club joiners will be compared with ordinary first-time buyers of the same token, the same week and a similar size, and with cashback-campaign recipients. The method was fixed before any data existed.</p>
-            <p className="muted small">Descriptive, not causal: joiners choose to join. <a href={DOCS_URL} rel="noopener">Read the method in the docs</a></p>
+            <h2>Do clubs help people keep holding?</h2>
+            <p><strong>Published Thu Dec 3</strong>, once the first members reach day 7.</p>
+            <p>We&rsquo;ll compare club members with similar first-time buyers of the same token in the same week who didn&rsquo;t join, and with people who got cashback offers. The method was fixed before any data existed.</p>
+            <p className="muted small">This shows a pattern, not proof: people choose to join. <a href={DOCS_URL} rel="noopener">Read the method in the docs</a></p>
           </div>
         </div>
       </section>
@@ -183,12 +189,12 @@ export default async function StatsPage() {
       <section className="band">
         <div className="wrap split">
           <div className="split-text">
-            <h2>How buys are counted</h2>
+            <h2 id="how">How buys are counted</h2>
             <ul className="ticks">
               <li>Each buy carries Builder Code <code>{BUILDER_CODE}</code> at the end of the transaction, the way Base attributes activity to an app.</li>
               <li>After a buy confirms, the server reads the transaction itself and checks the code. A buy without it is not counted.</li>
-              <li>A sweep catches buys the browser never reported.</li>
-              <li>Some wallets send the approval and the swap as two transactions. Both carry the code. They are counted in separate columns, so an approval never inflates the swap count.</li>
+              <li>A regular check also finds buys the website missed.</li>
+              <li>Some wallets send the approval and the swap as two transactions. Both carry the code. They are counted in separate columns, so an approval never inflates the buy count.</li>
             </ul>
           </div>
           <div className="split-text">
@@ -209,10 +215,17 @@ export default async function StatsPage() {
       <section className="closing">
         <div className="wrap closing-in">
           <h2>Add to the count</h2>
-          <p>Every seat and every buy on this page comes from a club or a fan.</p>
-          <p className="closing-links"><Link className="btn btn-accent" href="/clubs">Clubs</Link><Link href="/league">The league</Link></p>
+          <p>Every member and every buy on this page comes from someone who chose to join or buy.</p>
+          <p className="closing-links"><Link className="btn btn-accent" href="/clubs#start">Start a club</Link><Link href="/league">Club rankings</Link></p>
         </div>
       </section>
+
+      <NextStrip
+        items={[
+          { title: 'Stock rankings', sub: 'Real holders of every stock token, ranked', href: '/attendance' },
+          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps and Scouts', href: '/league' },
+        ]}
+      />
     </main>
   );
 }

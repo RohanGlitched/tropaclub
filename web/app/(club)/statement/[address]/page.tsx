@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import StatementView from '@/components/club/StatementView';
 import SeatSearchBox from '@/components/SeatSearchBox';
+import Term from '@/components/nav/Term';
+import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import { isAddress, shortAddr } from '@/lib/format';
 
 export const metadata: Metadata = {
-  title: 'Statement: cost basis and records for a wallet',
-  description: 'A wallet’s stock-token lots, cost basis and realised results, adjusted for splits and stock dividends. FIFO, USD. Records, not tax advice.',
+  title: 'Cost-basis statement (estimate) for a wallet',
+  description: 'What a wallet paid for its stock tokens, what they are worth now, and the gain or loss, adjusted for splits and stock dividends. First in, first out, in US dollars. A record, not tax advice.',
   robots: { index: false, follow: true },
 };
 
@@ -20,13 +22,14 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
   return (
     <main id="main">
       <section className="wrap page-head">
-        <h1>{valid ? <>Statement for <span className="num addr">{shortAddr(address)}</span></> : 'That is not a wallet address'}</h1>
+        <Crumbs trail={valid ? [{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span>, href: `/ticket/${address}` }, { label: 'Cost-basis statement' }] : [{ label: 'Cost-basis statement' }]} />
+        <h1>{valid ? <>Cost-basis statement for <span className="num addr">{shortAddr(address)}</span></> : 'That is not a wallet address'}</h1>
         <p className="lede">
           {valid
-            ? 'Every lot of the stock tokens this wallet holds, with cost basis and results, adjusted for splits and stock dividends. Built from every transfer this wallet has made on Base.'
+            ? <>What this wallet paid for its <Term id="stock-token">stock tokens</Term> (its <Term id="cost-basis">cost basis</Term>), what they&rsquo;re worth now, and the gain or loss, from its full history on Base. Adjusted for splits and stock dividends. An estimate and a record to share with your accountant, not tax advice.</>
             : 'A wallet address starts with 0x and has 42 characters. Paste it again to see its tickets, then open its statement from there.'}
         </p>
-        {!valid && <SeatSearchBox label="Find a wallet" button="Find seat" />}
+        {!valid && <SeatSearchBox label="Check a wallet" button="Check wallet" />}
       </section>
 
       {valid && (
@@ -40,12 +43,13 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
           <div className="split-text">
             <h2>How to read it</h2>
             <dl className="defs">
-              <div><dt>Lot</dt><dd>One purchase or receipt of a token. Lots are used up oldest first when you sell or send.</dd></div>
-              <div><dt>Cost basis</dt><dd>What the lot cost in dollars at the time. A buy made through Tropa Club uses the market mark at that buy&rsquo;s block. Older history uses that day&rsquo;s price, labelled with its source (Chainlink close, pool average, last close or reference price). Otherwise it is the payment seen on chain in the same transaction.</dd></div>
-              <div><dt>Basis unknown</dt><dd>The tokens arrived without a visible payment, such as a transfer from another wallet. Their value is shown, their result is not.</dd></div>
-              <div><dt>Split</dt><dd>The token’s multiplier jumped by a whole number. Shares change, total basis does not.</dd></div>
-              <div><dt>Stock dividend</dt><dd>A small rise in the multiplier. Shown as income, and as a new lot at that day’s value.</dd></div>
-              <div><dt>Unrealised and realised</dt><dd>Unrealised is market value minus basis on what you still hold. Realised is proceeds minus basis on what you sold.</dd></div>
+              <div><dt>First in, first out</dt><dd>Each purchase or receipt of a token is kept apart. When you sell or send, the oldest tokens are used up first.</dd></div>
+              <div><dt>Cost basis (what you paid)</dt><dd>What the tokens cost in dollars at the time. A buy made through Tropa Club uses the <Term id="mark">market price</Term> at the moment of the buy. Older history uses that day&rsquo;s price, labelled with its source (Chainlink close, pool average, last close or reference price). Otherwise it is the payment seen on chain in the same transaction.</dd></div>
+              <div><dt>Basis unknown</dt><dd>The tokens arrived without a visible payment, such as a transfer from another wallet, including another wallet of your own. Their value is shown, their gain or loss is not.</dd></div>
+              <div><dt><Term id="share-equivalent">Share equivalent</Term></dt><dd>How many shares&rsquo; worth the tokens track. A token tracks a share; it is not a share.</dd></div>
+              <div><dt>Split</dt><dd>Each token now represents more shares. Your total cost doesn&rsquo;t change.</dd></div>
+              <div><dt>Stock dividend</dt><dd>A small rise in the token&rsquo;s <Term id="multiplier">multiplier</Term>. Shown as income, and as new tokens at that day&rsquo;s value.</dd></div>
+              <div><dt>Gain or loss</dt><dd>On what you hold: value now minus what you paid. On what you sold: what you got minus what you paid.</dd></div>
             </dl>
           </div>
           <div className="split-text">
@@ -56,11 +60,18 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
               <li>Not exact where the chain is silent. Estimated figures say so on their line.</li>
             </ul>
             <h3>Another wallet</h3>
-            <SeatSearchBox label="See its tickets" button="Find seat" />
+            <SeatSearchBox label="See its tickets" button="Check wallet" />
             <p className="muted small">The CSV download is offered only to the wallet’s owner, after sign-in. <Link href="/about#privacy">Privacy</Link></p>
           </div>
         </div>
       </section>
+
+      <NextStrip
+        items={[
+          valid ? { title: 'This wallet’s ticket', sub: 'Its rank in every ground it is in', href: `/ticket/${address}` } : { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
+          { title: 'How it works', sub: 'The two things Tropa Club does', href: '/about' },
+        ]}
+      />
     </main>
   );
 }

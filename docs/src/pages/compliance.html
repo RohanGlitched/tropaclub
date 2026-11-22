@@ -6,31 +6,32 @@
   <li><strong>Not investment advice.</strong> Nothing in the app or these docs tells you what to buy, sell or hold. No stock is picked, tipped or scored. The app does not know your situation.</li>
   <li><strong>Not a broker or a custodian.</strong> Tropa Club holds no money, no tokens and no keys. Every transaction is signed in your own wallet. No Tropa Club contract is in the path of your funds. See <a href="buying-and-safety.html#non-custodial">non-custodial, 0% fee</a>.</li>
   <li><strong>Not an issuer.</strong> The tokens are issued by Coinbase&rsquo;s onchain SPV. Tropa Club does not mint, redeem or guarantee them.</li>
-  <li><strong>Not affiliated with the companies named.</strong> Club names such as &ldquo;NVIDIA FC&rdquo; are nicknames for a token&rsquo;s holders. The companies have nothing to do with them.</li>
+  <li><strong>Not affiliated with the companies named.</strong> Names such as &ldquo;the NVIDIA ground&rdquo; or &ldquo;the NVIDIA open club&rdquo; describe a token&rsquo;s holders or a club on Tropa Club. The companies have nothing to do with them.</li>
 </ul>
 
 <h2 id="no-prizes">No prizes tied to returns</h2>
-<p>No prize, rebate, fee reduction or access depends on how well anyone&rsquo;s holdings did. Fixtures compare the median of members who played, and the points reward showing up. The brand does not use odds, bets, jackpots, arrows or win language around money, and every card and table that shows history says &ldquo;past performance &middot; not advice&rdquo;. See <a href="scoring-and-seasons.html#prizes">the rule</a>.</p>
+<p>No prize, rebate, fee reduction or access depends on how well anyone&rsquo;s holdings did. Each week from Mon Nov 30, clubs of 3 or more are paired with a club of a similar size. The pair compare the middle (median) percentage return of the members who bought that week: 3 points to the higher one, 1 point each if they are within 0.05 percentage points, and 3 points to the other club if nobody in a club bought. Separately, any club where 80% or more of members bought gets 1 bonus point. The points are bragging rights only. The brand does not use odds, bets, jackpots, arrows or &ldquo;win&rdquo; language around money: a fixture is described as a higher or lower return and the points it takes. Every card and table that shows history says that past results don&rsquo;t predict future results and that nothing here is advice. See <a href="scoring-and-seasons.html#prizes">the rule</a>.</p>
 
 <h2 id="region">Region rule</h2>
-<callout kind="warn" title="Not available to US persons">
-<p>The buy flow, club buttons and call-ups are hidden in the United States and its territories: US, PR, GU, VI, AS, MP and UM. Before you buy, the app also asks you to confirm that you are not a US person.</p>
+<callout kind="warn" title="Not available to US persons or in sanctioned regions">
+<p>Not available to US persons or in sanctioned regions. The buy flow, club buttons and nudges are hidden in the United States and its territories (US, PR, GU, VI, AS, MP and UM), in countries under comprehensive sanctions (Cuba, Iran, North Korea, Syria) and in Russia and Belarus, and for Tor exit traffic. When the country cannot be told, buying is refused but pages stay open. Before you buy, the app also asks you to confirm that you are not a US person.</p>
 </callout>
 <ul>
+  <li>Do not buy from a sanctioned country or region. Separately, the issuer&rsquo;s compliance policies can block sanctioned addresses (see <a href="#issuer-pauses">issuer pauses and policy blocks</a>).</li>
   <li>The country comes from the edge of the network that serves you, and it is used only for this check and for pick-up matching. It is never stored against your wallet.</li>
-  <li>Read-only pages stay open everywhere: The Ground, The Attendance, tickets, the data feed and these docs.</li>
+  <li>Read-only pages stay open everywhere: grounds, stock rankings, tickets, the data feed and these docs.</li>
   <li>The rule is a minimum, not a legal opinion. Rules for tokenized securities differ by country and change, and we cannot list them all. You are responsible for knowing whether you may buy where you live. If you are not sure, do not buy.</li>
 </ul>
 
 <h2 id="data-limits">Data limits</h2>
-<p>The numbers on The Ground and in the feed are counts of public chain data under published rules. They are a good description of what the chain shows. They are not a census of people. The full list is in <a href="the-ground.html#limits">known approximations</a>. In short:</p>
+<p>The numbers on the grounds and in the feed are counts of public chain data under published rules. They are a good description of what the chain shows. They are not a census of people. The full list is in <a href="the-ground.html#limits">known approximations</a>. In short:</p>
 <ul>
   <li>A wallet is not a person, and we do not link wallets to owners.</li>
   <li>Values are spot DEX prices at the time of a snapshot, six hours old at worst, not what anyone paid.</li>
   <li>Tokens with no liquid pool are unpriced and have no real fans.</li>
-  <li>The farmer rule and the bot rule are heuristics. They can mislabel a wallet.</li>
+  <li>The airdrop-only (farmer) rule and the bot rule are heuristics. They can mislabel a wallet.</li>
   <li>Returns on Matchday cards are time-weighted percentages on Tropa Club buys only. They are a status, not a performance record, and they are not tax or accounting advice.</li>
-  <li>The cost-basis and P&amp;L statement is labelled &ldquo;FIFO &middot; USD &middot; records, not tax advice&rdquo;. It adjusts for splits and stock dividends. Tokens that were transferred in show &ldquo;basis unknown&rdquo;.</li>
+  <li>The cost-basis statement is labelled as an estimate: first in, first out, in US dollars, a record and not tax advice. It adjusts for splits and stock dividends. Tokens that were transferred in show &ldquo;basis unknown&rdquo;.</li>
   <li>Retention figures are descriptive, not causal. See <a href="retention-evidence.html">Retention evidence</a>.</li>
 </ul>
 
@@ -38,7 +39,7 @@
 <p>A stock token follows a share price, and it can lose value. It also has risks a share in a brokerage account does not.</p>
 
 <h3 id="weekend-gaps">Weekend and after-hours gaps</h3>
-<p>Stock tokens trade on DEXs every hour of every day. The company&rsquo;s shares trade on weekdays during market hours. Price feeds for the tokens hold the last close on weekends and holidays. In between, the DEX price is the market&rsquo;s own guess and can sit above or below the frozen reference. On Sat Nov 21 2026 the gaps ranged from about 2% above the frozen NAV (MSTRc +1.98%, ANTc +1.83%) to about 1% below it (SNDKc &minus;0.96%). When the market reopens, the price can jump to meet the stock: across the weekends we measured, the reopen gap ran from &minus;5.4% to +2.6%. This is why the buy guard holds a buy when the pool has drifted too far from the last close.</p>
+<p>Stock tokens trade on DEXs every hour of every day. The company&rsquo;s shares trade on weekdays during market hours. Price feeds for the tokens hold the last close on weekends and holidays. In between, the DEX price is the market&rsquo;s own guess and can sit above or below the frozen reference. On Sat Nov 21 2026 the gaps ranged from about 2% above the frozen NAV (net asset value: the last official share price) (MSTRc +1.98%, ANTc +1.83%) to about 1% below it (SNDKc &minus;0.96%). When the market reopens, the price can jump to meet the stock: across the weekends we measured, the reopen gap ran from &minus;5.4% to +2.6%. This is why the buy guard holds a buy when the pool has drifted too far from the last close.</p>
 
 <h3 id="corporate-actions">Corporate actions</h3>
 <p>Splits and stock dividends are recorded through a multiplier on the token (ERC-8056). The number of tokens in your wallet does not change when the multiplier does. The number of shares it represents does. Twelve tokens had a multiplier above 1 on Nov 21 2026, and SNDKc stood at 8. During a corporate action the reference price freezes, and Tropa Club pauses buying that token until the action is over. A change in the multiplier with no announcement is possible. In that case the statement labels it &ldquo;unclassified&rdquo; and shows it both ways.</p>
@@ -58,8 +59,8 @@
 
 <h2 id="privacy">Privacy</h2>
 <ul>
-  <li><strong>Reading is anonymous.</strong> You do not sign in to look at The Ground, a ticket or these docs. Looking up a wallet is not stored against that wallet.</li>
-  <li><strong>No IP address is stored against a wallet.</strong> Country comes from a network header, is used for the region check and for matching, and is not saved with your address. The pick-up queue keeps only a salted hash of it and deletes the entry when you are seated.</li>
+  <li><strong>Reading is anonymous.</strong> You do not sign in to look at a ground, a ticket or these docs. Looking up a wallet is not stored against that wallet.</li>
+  <li><strong>No IP address is stored against a wallet.</strong> Country comes from a network header, is used for the region check and for matching, and is not saved with your address. The pick-up queue keeps only a salted hash of it and deletes the entry when you are matched.</li>
   <li><strong>What a club stores.</strong> The wallet addresses of members, an optional nickname, lineups, and the Tropa Club buys made through the app: the transaction hash, token, amount and time. All of this is already public on the chain except the club membership.</li>
   <li><strong>One extra lookup.</strong> To keep two wallets with the same funder out of the same pick-up club, we record which address first funded a wallet.</li>
   <li><strong>The exclusion list is public.</strong> Founder and test wallets are listed and removed from counts.</li>

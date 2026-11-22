@@ -4,11 +4,11 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { TokenSummary, WalletTokenEntry } from '@shared/types';
 import { A, B, RC, PITCH_A, PITCH_B, buildLayout, tifo } from '../stadium';
-import { clubName, kitFor, PALETTE as C, type Kit } from '../clubs';
+import { kitFor, shortName, PALETTE as C, type Kit } from '../clubs';
 import { fmtDate, fmtInt, shortAddr } from '../format';
 import { barcode, barcodeWidth, seatIndexFor, statSentence } from '../ticket';
 import { seatLabel } from '../stadium';
-import { notAffiliated } from '@/lib/site';
+import { groundName, notAffiliated } from '@/lib/site';
 
 const ASSETS = path.join(process.cwd(), 'assets');
 let fontsP: Promise<{ name: string; data: Buffer; weight: 500 | 600 | 700; style: 'normal' }[]> | null = null;
@@ -83,11 +83,11 @@ export interface CardInput {
   badge?: string | null;
   /** Scout badge: "Scout" or "Captain's armband". Cosmetic. */
   scout?: string | null;
-  /** On the Founders' Pennant list. Cosmetic. */
+  /** Among the first 1,000 verified holders at D+7 (the "First 1,000" stamp). Cosmetic. */
   founders?: boolean;
 }
 
-const honoursOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [...(i.scout ? [i.scout] : []), ...(i.founders ? ['Founders’ Pennant'] : [])];
+const honoursOf = (i: Pick<CardInput, 'scout' | 'founders'>) => [...(i.scout ? [i.scout] : []), ...(i.founders ? ['First 1,000'] : [])];
 
 /** Honours as small inked stamps in a row, the same ink as the "Played" stamp. */
 function Honours({ items, size }: { items: string[]; size: number }) {
@@ -130,7 +130,7 @@ function SeatCells({ entry, token, address, big }: CardInput & { big: number }) 
         </div>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={label}>Real fan</div>
+        <div style={label}>Real holder</div>
         <div style={{ display: 'flex', alignItems: 'baseline' }}>
           <div style={{ fontSize: big, fontWeight: 700, lineHeight: 1.05 }}>{entry.rank != null ? fmtInt(entry.rank) : '—'}</div>
           <div style={{ fontSize: big * 0.42, fontWeight: 600, marginLeft: 10, opacity: 0.72 }}>{`of ${fmtInt(entry.of || token.realFans)}`}</div>
@@ -159,7 +159,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} width={173} height={48} alt="" />
-          <div style={{ fontSize: 22, fontWeight: 600, color: C.label }}>{`Matchday ticket, as of ${fmtDate(asOf)}`}</div>
+          <div style={{ fontSize: 22, fontWeight: 600, color: C.label }}>{`Ticket, as of ${fmtDate(asOf)}`}</div>
         </div>
         <div style={{ display: 'flex', marginTop: 28, height: 418 }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, background: C.chalk, color: C.midnight, padding: '30px 36px' }}>
@@ -167,8 +167,8 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={pennant} width={50} height={63} alt="" />
               <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 20 }}>
-                <div style={{ fontSize: 62, fontWeight: 700, lineHeight: 1, letterSpacing: -0.6 }}>{clubName(token.name)}</div>
-                <div style={{ fontSize: 22, fontWeight: 500, marginTop: 6, opacity: 0.75 }}>{`Home ground of ${token.symbol} holders on Base`}</div>
+                <div style={{ fontSize: groundName(token.name, token.symbol).length > 16 ? 48 : 62, fontWeight: 700, lineHeight: 1, letterSpacing: -0.6 }}>{groundName(token.name, token.symbol)}</div>
+                <div style={{ fontSize: 22, fontWeight: 500, marginTop: 6, opacity: 0.75 }}>{`Holders of ${token.symbol} on Base`}</div>
               </div>
             </div>
             <SeatCells {...input} big={68} />
@@ -193,7 +193,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24, fontSize: 22, fontWeight: 600, color: C.label }}>
           <div>tropaclub.xyz</div>
-          <div>{`${fmtInt(token.holdersTotal)} tickets sold. ${fmtInt(token.realFans)} fans showed up.`}</div>
+          <div>{`${fmtInt(token.holdersTotal)} wallets hold it. ${fmtInt(token.realFans)} are real holders.`}</div>
         </div>
       </div>
     );
@@ -217,7 +217,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pennant} width={44} height={56} alt="" />
-            <div style={{ fontSize: 58, fontWeight: 700, lineHeight: 1, marginLeft: 18, letterSpacing: -0.6 }}>{clubName(token.name)}</div>
+            <div style={{ fontSize: 58, fontWeight: 700, lineHeight: 1, marginLeft: 18, letterSpacing: -0.6 }}>{groundName(token.name, token.symbol)}</div>
           </div>
           <SeatCells {...input} big={60} />
           {honours.length ? <div style={{ display: 'flex', margin: '4px 0' }}><Honours items={honours} size={20} /></div> : null}
@@ -251,13 +251,13 @@ export async function defaultCard(token: TokenSummary) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} width={202} height={56} alt="" />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 30, fontWeight: 600, color: C.label }}>{`${clubName(token.name)} sold`}</div>
-          <div style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8 }}>{`${fmtInt(token.holdersTotal)} tickets.`}</div>
-          <div style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8, color: C.marigold, marginTop: 6 }}>{`${fmtInt(token.realFans)} fans showed up.`}</div>
+          <div style={{ fontSize: 30, fontWeight: 600, color: C.label }}>{`${shortName(token.name, token.symbol)}’s stock token`}</div>
+          <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8 }}>{`${fmtInt(token.holdersTotal)} wallets hold it.`}</div>
+          <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.04, letterSpacing: -0.8, color: C.marigold, marginTop: 6 }}>{`Only ${fmtInt(token.realFans)} are real holders.`}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', fontSize: 24, fontWeight: 500, color: C.label, lineHeight: 1.3 }}>
-          <div>Every stock token on Base is a club.</div>
-          <div>Every wallet is a seat. Find yours at tropaclub.xyz</div>
+          <div>Real holders of every stock token on Base.</div>
+          <div>Check any wallet at tropaclub.xyz</div>
         </div>
       </div>
       <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>

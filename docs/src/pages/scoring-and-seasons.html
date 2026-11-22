@@ -1,35 +1,35 @@
-<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, the lineup rule, fixtures and points, the Supporters table, the payday streak, Caps, Scouts and the Founders' Pennant crest. No prize is tied to returns.","updated":"Nov 22 2026"}-->
-<p class="lede">Tropa Club keeps score in gameweeks that follow the New York Stock Exchange calendar. You play a gameweek by buying at least ${{playUsd}} inside it. Clubs are scored on who showed up, with one fixture a week from GW1.</p>
+<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, what counts as played, weekly fixtures and points, open club rankings, streaks, Caps, Scouts and the Founders' Pennant crest. No prize is tied to returns.","updated":"Nov 22 2026"}-->
+<p class="lede">Tropa Club keeps score in gameweeks: trading weeks that follow the New York Stock Exchange calendar. You played a gameweek if you bought ${{playUsd}} or more through Tropa Club inside it. Clubs are scored on how many members bought, with one fixture a week from week 1 (GW1, Mon Nov 30).</p>
 
 <h2 id="clubs">Club types</h2>
 <table>
-  <thead><tr><th>Club</th><th>Who is in it</th><th>Plays fixtures</th></tr></thead>
+  <thead><tr><th>Club</th><th>Who is in it</th><th>Paired in fixtures</th></tr></thead>
   <tbody>
     <tr><td><strong>Private club</strong></td><td>Your group chat, by invite link.</td><td>Yes, from 3 members</td></tr>
-    <tr><td><strong>Pick-up club</strong></td><td>Solo joiners who opt in to automatic matching. It forms when three can be seated together and fills to five.</td><td>Yes, from 3 members</td></tr>
-    <tr><td><strong>Public stock club</strong></td><td>Anyone, one club per stock token.</td><td>No. It appears on the Supporters table.</td></tr>
+    <tr><td><strong>Pick-up club</strong></td><td>People without a group chat who ask to be matched. It forms when three can be matched together and fills to five.</td><td>Yes, from 3 members</td></tr>
+    <tr><td><strong>Open club</strong></td><td>Anyone, one club per stock token, such as the NVIDIA open club (anyone can join). Its members are people who joined there, so its member count differs from the number of holders in that token&rsquo;s ground.</td><td>No. It is ranked in the open club rankings.</td></tr>
   </tbody>
 </table>
 <h3 id="pickup">How pick-up matching works</h3>
 <ul>
   <li>Matching starts inside your country, widens to your region after 24 hours in the queue, and to the whole world after 48 hours.</li>
-  <li>Clubs get a region name and a generated crest. A club never shows a member&rsquo;s country, and the queue keeps only a salted hash of it, deleted once you are seated.</li>
-  <li>Two wallets funded by the same first sender are never seated in the same club.</li>
+  <li>Clubs get a region name and a generated crest. A club never shows a member&rsquo;s country, and the queue keeps only a salted hash of it, deleted once you are matched.</li>
+  <li>Two wallets funded by the same first sender are never put in the same club.</li>
   <li>You can opt out of matching at any time.</li>
 </ul>
 
-<h2 id="gameweeks">Gameweeks and Matchdays</h2>
-<p>A gameweek runs from the first NYSE session of the week to the last close of the week. Stock tokens trade around the clock on DEXs, so the rules say precisely which buys belong to which gameweek.</p>
+<h2 id="gameweeks">Gameweeks and the Matchday card</h2>
+<p>A gameweek (GW) is one trading week. It runs from the first NYSE session of the week to the last close of the week. Stock tokens trade around the clock on DEXs, so the rules say precisely which buys belong to which gameweek.</p>
 <ul>
   <li><strong>Buy window.</strong> A buy counts for the gameweek whose window it falls in. A window opens at the previous gameweek&rsquo;s final close and shuts at its own final close. A buy on Saturday counts for the <em>next</em> gameweek.</li>
-  <li><strong>Matchday.</strong> Standings are cut at the close of each trading day: 4:00 pm ET, or 1:00 pm ET on a half-day. Your club&rsquo;s Matchday card is refreshed at each cut.</li>
-  <li><strong>GW0 is the preseason.</strong> It opens with clubs on Tue Nov 24 2026 at 00:00 ET and has a table but no fixtures.</li>
+  <li><strong>Matchday card.</strong> Your club&rsquo;s weekly card: who has bought this gameweek, who hasn&rsquo;t, and the turnout. It is refreshed after each US trading day closes (4:00 pm ET, or 1:00 pm ET on a half-day).</li>
+  <li><strong>GW0 is the practice week.</strong> Its window opens on Tue Nov 24 2026 at 00:00 ET, and buying opens on Tue Nov 24, 14:30 UTC. It has a table but no fixtures.</li>
   <li><strong>Season 0</strong> runs from Nov 24 2026 to the close on Fri Jan 29 2027: GW0 to GW9.</li>
 </ul>
 <table class="wide">
-  <thead><tr><th>Gameweek</th><th>Dates</th><th>Matchdays</th><th>Calendar notes</th></tr></thead>
+  <thead><tr><th>Gameweek</th><th>Dates</th><th>Trading days</th><th>Calendar notes</th></tr></thead>
   <tbody>
-    <tr><td>GW0</td><td class="nw">Nov 24 &ndash; Nov 27</td><td class="num">3</td><td>Thu Nov 26 closed (Thanksgiving). Fri Nov 27 closes at 1:00 pm ET. Preseason, no fixtures.</td></tr>
+    <tr><td>GW0</td><td class="nw">Nov 24 &ndash; Nov 27</td><td class="num">3</td><td>Thu Nov 26 closed (Thanksgiving). Fri Nov 27 closes at 1:00 pm ET. Practice week, no fixtures.</td></tr>
     <tr><td>GW1</td><td class="nw">Nov 30 &ndash; Dec 4</td><td class="num">5</td><td>First gameweek with fixtures.</td></tr>
     <tr><td>GW2</td><td class="nw">Dec 7 &ndash; Dec 11</td><td class="num">5</td><td></td></tr>
     <tr><td>GW3</td><td class="nw">Dec 14 &ndash; Dec 18</td><td class="num">5</td><td></td></tr>
@@ -44,7 +44,7 @@
 <p>The calendar uses the NYSE schedule: full closures on Nov 26, Dec 25, Jan 1 and Jan 18, and early closes on Nov 27 and Dec 24. All times are America/New_York, so they follow daylight saving.</p>
 
 <h2 id="lineup">The lineup rule</h2>
-<p>A member <strong>plays</strong> a gameweek only by making a qualifying buy of <strong>at least ${{playUsd}} inside that gameweek&rsquo;s buy window</strong>. Everyone else is on the <strong>Bench</strong>. The rule is applied to the gameweek, so a buy last week does not make you a player this week.</p>
+<p>A member has <strong>played</strong> a gameweek only after a qualifying buy of <strong>${{playUsd}} or more inside that gameweek&rsquo;s buy window</strong>. Members who have not bought yet this gameweek are on the <strong>Bench</strong>. The rule is applied to the gameweek, so a buy last week does not count for this week.</p>
 <h3 id="qualifying">What counts as a qualifying buy</h3>
 <p>A buy qualifies when all of these hold:</p>
 <ul>
@@ -55,60 +55,60 @@
 </ul>
 <h3 id="matchday-card">What the Matchday card shows</h3>
 <ul>
-  <li>Only playing members count toward a fixture result and toward the 80% participation bonus.</li>
-  <li>Each Matchday card shows who has played, who is benched and a top scorer line: the playing member with the best gameweek return so far, shown as a percentage.</li>
-  <li>The Bench is free and always available. It is a seat on the team sheet. It is never described as a way to earn a perk or a prize.</li>
+  <li>Only members who bought this gameweek count toward a fixture result and toward the 80% bonus point.</li>
+  <li>Each Matchday card shows who has bought, who is on the Bench and a top scorer line: the member who bought with the best gameweek return so far, shown as a percentage.</li>
+  <li>Joining a club is free and needs no buy. Being on the Bench only means you have not bought yet this gameweek. It never earns a perk or a prize.</li>
 </ul>
 
 <h2 id="returns">Member return and the club score</h2>
 <p>A member&rsquo;s <strong>gameweek return</strong> is the time-weighted percentage return of the stock tokens they bought through Tropa Club, measured over the gameweek&rsquo;s window. Lots are matched first in, first out, and valued at the token&rsquo;s mark at the cut: the Chainlink round at the cut, or else the stored DEX marks. A return is a percentage, never a dollar amount.</p>
-<p>A club&rsquo;s gameweek score is the <strong>median return of its playing members</strong>. The median is used on purpose: one member&rsquo;s lucky pick or a larger buy cannot carry the club, and a larger bankroll earns no advantage. Stock clubs get no score.</p>
+<p>A club&rsquo;s gameweek score is the <strong>median return of the members who bought that gameweek</strong>. The median is used on purpose: one member&rsquo;s lucky pick or a larger buy cannot carry the club, and a larger bankroll earns no advantage. Open clubs get no score.</p>
 
 <h2 id="fixtures">Fixtures</h2>
-<p>Fixtures start in GW1 (Mon Nov 30 2026). They are played only between private and pick-up clubs that have at least three members when the fixtures are drawn. Public stock clubs never play fixtures.</p>
+<p>A fixture is a weekly pairing. Fixtures start in GW1 (Mon Nov 30 2026). Each week, private and pick-up clubs that have at least three members when the pairs are made are paired with a club of a similar size. The pair compare the median percentage return of the members who bought that week. It is for bragging rights only: no prize depends on it. Open clubs are never paired.</p>
 <h3 id="pairing">Pairing</h3>
 <p>Clubs are grouped into size bands of 3 to 5, 6 to 10, 11 to 20 and 21 or more members. Within a band the pairing is a shuffle seeded by the gameweek and the band, so it is reproducible. If a band has an odd club, it moves up into the next band. The last club left gets a bye.</p>
 <h3 id="points">Points</h3>
 <table>
   <thead><tr><th>Result</th><th class="num">Points</th></tr></thead>
   <tbody>
-    <tr><td>Win: higher median return of playing members</td><td class="num">3</td></tr>
-    <tr><td>Draw: medians less than 0.05 percentage points apart</td><td class="num">1</td></tr>
-    <tr><td>Loss</td><td class="num">0</td></tr>
-    <tr><td>Participation bonus: at least 80% of the club&rsquo;s members played</td><td class="num">+1</td></tr>
+    <tr><td>Higher median return of the members who bought</td><td class="num">3</td></tr>
+    <tr><td>Level: medians less than 0.05 percentage points apart (each club)</td><td class="num">1</td></tr>
+    <tr><td>Lower median return</td><td class="num">0</td></tr>
+    <tr><td>Bonus point: 80% or more of the club&rsquo;s members bought that gameweek</td><td class="num">+1</td></tr>
   </tbody>
 </table>
-<p>A club that nobody played for has no score and loses to any club that has one. If both clubs have no score, the fixture is void and each gets zero. The league table orders clubs by points.</p>
+<p>If nobody in a club bought, it has no score and the other club takes the 3 points. If nobody in either club bought, the fixture is void and each gets zero. A club left without a pair (a bye) can still take the bonus point. The league table orders clubs by points.</p>
 
-<h2 id="callups">Call-ups</h2>
-<p>A playing member can tap a benched teammate on the Matchday card. That opens a ready-made WhatsApp or Telegram message: &ldquo;we need you for the 80% bonus this week&rdquo;. It is a nudge between friends and carries no prize. Limits: one call-up per teammate per gameweek from each caller, and call-ups are hidden wherever buying is unavailable.</p>
+<h2 id="callups">Nudges (call-ups)</h2>
+<p>A member who has bought this gameweek can tap a teammate on the Bench on the Matchday card. That opens a ready-made WhatsApp or Telegram message: &ldquo;we need you for the 80% bonus this week&rdquo;. It is a nudge between friends and carries no prize. Limits: one nudge per teammate per gameweek from each sender, and nudges are hidden wherever buying is unavailable.</p>
 
-<h2 id="supporters">The Supporters table</h2>
-<p>Public stock clubs are ranked in their own table on <strong>participation and streaks only</strong>. No returns appear on it, and no stock is ranked against another by price.</p>
+<h2 id="supporters">Open club rankings</h2>
+<p>Open clubs are ranked in their own table (once called the Supporters table) on <strong>participation and streaks only</strong>. No returns appear on it, and no stock is ranked against another by price.</p>
 <ol>
-  <li>Participation: the share of the club&rsquo;s members who played the gameweek.</li>
-  <li>Streaks: the share of members with a live payday streak.</li>
+  <li>Participation: the share of the club&rsquo;s members who bought that gameweek.</li>
+  <li>Streaks: the share of members with a live streak.</li>
   <li>Ties go to the club with more members, then by name.</li>
 </ol>
 
-<h2 id="streak">Payday streak</h2>
-<p>The payday streak is a personal habit badge. It does not change fixtures or tables.</p>
+<h2 id="streak">Streak</h2>
+<p>A streak is a personal habit badge. It does not change fixtures or tables.</p>
 <ul>
-  <li>One qualifying buy of ${{playUsd}} or more in any rolling 14 days keeps the streak alive.</li>
+  <li>One qualifying buy of ${{playUsd}} or more through Tropa Club in any rolling 14 days keeps the streak alive.</li>
   <li>Each calendar month has <strong>one free skip</strong>: a gap of up to 28 days survives if the month in which the missed 14-day deadline fell has not used its skip.</li>
   <li>Same-day buys count once.</li>
 </ul>
-<p>The streak is there for people who earn irregularly: a fixture asks for a buy this gameweek, but the streak only asks for a buy every fortnight or so.</p>
+<p>The streak is there for people who earn irregularly: the Matchday card asks for a buy this gameweek, but the streak only asks for a buy every 14 days or so.</p>
 
 <h2 id="caps">Caps</h2>
-<p><strong>Caps</strong> are the season scoreboard: a cap is an appearance. They are earned only from verified onchain actions, a buy through Tropa Club that passed every check above, at small fixed values with a hard cap per wallet per gameweek. The Caps table is on <a href="https://tropaclub.xyz/league?tab=caps">the league page</a>.</p>
+<p><strong>Caps</strong> are scoreboard points. You get Caps for buying each gameweek and for still holding a week later. They are earned only from verified onchain actions, a buy through Tropa Club that passed every check above, at small fixed values with a fixed most per wallet per gameweek. The Caps table is on <a href="https://tropaclub.xyz/league?tab=caps">the league page</a>.</p>
 <table>
   <thead><tr><th>For</th><th class="num">Caps</th></tr></thead>
   <tbody>
-    <tr><td>Played the gameweek: a qualifying verified buy of ${{playUsd}} or more in it</td><td class="num">{{caps.played:2}}</td></tr>
-    <tr><td>That gameweek&rsquo;s buy still held, ${{scouts.holdUsd}} or more, seven days after it (D+7)</td><td class="num">{{caps.heldD7:2}}</td></tr>
+    <tr><td>Played the gameweek: you bought ${{playUsd}} or more through Tropa Club in it</td><td class="num">{{caps.played:2}}</td></tr>
+    <tr><td>That gameweek&rsquo;s buy still held, ${{scouts.holdUsd}} or more, 7 days after it (day 7, or D+7)</td><td class="num">{{caps.heldD7:2}}</td></tr>
     <tr><td>Each credited scout referral (see <a href="#scouts">Scouts</a>), up to {{caps.scoutPerGw}} a gameweek</td><td class="num">{{caps.scout:2}}</td></tr>
-    <tr><td>Hard cap per wallet per gameweek</td><td class="num">{{caps.perGw:2}}</td></tr>
+    <tr><td>Most you can earn per wallet per gameweek</td><td class="num">{{caps.perGw:2}}</td></tr>
   </tbody>
 </table>
 <ul>
@@ -122,24 +122,24 @@
 </callout>
 
 <h2 id="scouts">Scouts</h2>
-<p>Every member has a personal invite link, <code>tropaclub.xyz/j/</code> followed by a code. Club invite links a member sends carry the same code. A scout gets credit only when a friend really becomes a fan.</p>
+<p>Every member has a personal invite link: <code>tropaclub.xyz/j/</code> followed by a code. Club invite links a member sends carry the same code. A scout is a member who refers friends, and gets a credit only when a friend&rsquo;s first buy through Tropa Club is still held at ${{scouts.holdUsd}} or more on day 7.</p>
 <ul>
-  <li><strong>First touch.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
-  <li><strong>What counts.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at ${{scouts.holdUsd}} or more of that token at D+7. Sign-ups and joins earn nothing.</li>
-  <li><strong>Not the same money.</strong> No credit when the friend was funded by the scout, or both share a first funder (the first USDC or WETH sender in the 30 days before the check).</li>
+  <li><strong>First link counts.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
+  <li><strong>Only real buys count.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at ${{scouts.holdUsd}} or more of that token on day 7. Sign-ups and joins earn nothing. (This ${{scouts.holdUsd}} line is not the ${{realFanUsd}} real-fan line.)</li>
+  <li><strong>No credit for wallets you funded.</strong> No credit when the friend was funded by the scout, or both share a first funder (the first USDC or WETH sender in the 30 days before the check).</li>
   <li><strong>Limit.</strong> At most {{scouts.creditsPerGw}} credits per scout per gameweek, counted in the gameweek of the friend&rsquo;s first buy.</li>
-  <li><strong>Stamps.</strong> A Scout stamp on the ticket at {{scouts.scoutAt}} credited mate, a Captain&rsquo;s armband at {{scouts.captainAt}}. The Top scouts table ranks scouts by credited mates who still hold ${{scouts.holdUsd}} or more.</li>
-  <li><strong>Founders&rsquo; Pennant stamp.</strong> The first {{scouts.foundersLimit}} wallets whose first verified buy was still held at ${{scouts.holdUsd}} or more at D+7 get a Founders&rsquo; Pennant stamp on their ticket.</li>
+  <li><strong>Stamps.</strong> A Scout stamp on the ticket at {{scouts.scoutAt}} credited friend, a Captain&rsquo;s armband at {{scouts.captainAt}}. The Top scouts table ranks scouts by credited friends who still hold ${{scouts.holdUsd}} or more.</li>
+  <li><strong>First 1,000 stamp.</strong> The first {{scouts.foundersLimit}} wallets whose first verified buy was still held at ${{scouts.holdUsd}} or more at D+7 get a &ldquo;First 1,000&rdquo; stamp on their ticket. It is separate from the Founders&rsquo; Pennant crest below.</li>
 </ul>
-<callout title="Nothing to win">
+<callout title="No prizes">
 <p>{{scouts.copy}}</p>
 </callout>
 
 <h2 id="prizes">No prizes tied to returns</h2>
 <callout title="The rule">
-<p>Returns can appear as a status on a Matchday card or in a fixture. <strong>Nothing of value depends on them.</strong> No prize, rebate, fee or access is given for a higher return, and the brand never uses win language, odds or jackpots around money. Fixtures compare the median of members who showed up, and the bonus rewards showing up.</p>
+<p>Returns can appear as a status on a Matchday card or in a fixture. <strong>Nothing of value depends on them.</strong> No prize, rebate, fee or access is given for a higher return, and the brand never uses odds, bets, jackpots or &ldquo;win&rdquo; language around money: a fixture is described as a higher or lower return and the points it takes. Fixtures compare the median return of members who bought, and the bonus point rewards turnout.</p>
 </callout>
 
 <h2 id="pennant">Founders&rsquo; Pennant</h2>
-<p>The <strong>Founders&rsquo; Pennant</strong> is an onchain crest, an attestation on Base through the Ethereum Attestation Service, with no money in it. It goes to every member who played GW0 (Nov 24 to Nov 27) and still held the position seven days after their first buy. Every eligible member gets the same crest, with no ranking.</p>
+<p>The <strong>Founders&rsquo; Pennant</strong> is an onchain crest, an attestation on Base through the Ethereum Attestation Service, with no money in it. It goes to every member who bought in GW0 (Nov 24 to Nov 27) and still held the position seven days after their first buy. Every eligible member gets the same crest, with no ranking.</p>
 <p>No partner perk is shown here or on the site until one is signed. If a partner perk is agreed, it is paid by the partner through its own tool to an eligibility list we publish, and Tropa Club never holds those funds. Crests for table positions in later gameweeks and seasons are planned, and they carry no money either.</p>

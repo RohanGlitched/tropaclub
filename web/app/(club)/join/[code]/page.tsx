@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Crumbs } from '@/components/nav/Wayfinding';
 import { InviteCodeForm, JoinButton } from '@/components/club/Actions';
 import { Crest } from '@/components/ds/Pennant';
 import { crestOf, tryClubs } from '@/lib/server/clubs';
 import { fmtInt } from '@/lib/format';
+import { REGION_LINE } from '@/lib/site';
 
-export const metadata: Metadata = { title: 'You are invited to a club', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'You are invited to a club', description: 'A Tropa Club invite: friends who each buy about $10 of stock tokens a week from their own wallets. Joining is free and needs no buy.', robots: { index: false, follow: false } };
 
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = await params;
@@ -29,23 +31,24 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   return (
     <main id="main">
       <section className="wrap page-head empty">
+        <Crumbs trail={[{ label: 'Clubs', href: '/clubs' }, { label: 'Invite' }]} />
         <div className="club-title">
           <Crest recipe={crestOf(club)} width={64} raise title={`Crest of ${club.name}`} />
           <div>
             <h1>You are invited to {club.name}</h1>
-            <p className="ground-line"><span className="num">{fmtInt(club.memberCount)}</span> {club.memberCount === 1 ? 'member' : 'members'}, <span className="num">{fmtInt(club.playingCount)}</span> playing</p>
+            <p className="ground-line"><span className="num">{fmtInt(club.memberCount)}</span> {club.memberCount === 1 ? 'member' : 'members'}, <span className="num">{fmtInt(club.playingCount)}</span> bought this week</p>
           </div>
         </div>
         <p className="lede">
-          {club.name} is a Tropa Club: friends who each put $10 a week into stock tokens from their own wallets. Taking a seat on the Bench is free and needs no buy.
+          {club.name} is a club on Tropa Club: friends who each buy about $10 of stock tokens a week, from their own wallets. There is no shared pot. Joining the club is free and needs no buy.
         </p>
         <div className="join-go">
-          {full ? <p className="notice">This club is full. Ask the founder to make room, or found your own.</p> : <JoinButton inviteCode={code} />}
+          {full ? <p className="notice">This club is full. Ask the person who started it to make room, or start your own.</p> : <JoinButton inviteCode={code} />}
           <Link className="btn" href={`/club/${club.id}`}>Look around first</Link>
         </div>
         <ul className="ticks">
-          <li>Connecting shares only your wallet address. One free signature proves it is yours.</li>
-          <li>Buying is not offered to US persons.</li>
+          <li>Connecting shares only your wallet address. One free signature proves it is yours. It moves no funds.</li>
+          <li>Buying: {REGION_LINE}</li>
         </ul>
       </section>
     </main>

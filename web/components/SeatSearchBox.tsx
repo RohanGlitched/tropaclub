@@ -5,7 +5,7 @@ import { useId, useState } from 'react';
 import { resolveInput } from '@/lib/client';
 
 /** A plain "paste a wallet" field that opens the ticket page. */
-export default function SeatSearchBox({ label = 'Find your seat', button = 'Find seat', note }: { label?: string; button?: string; note?: string }) {
+export default function SeatSearchBox({ label = 'Check a wallet', button = 'Check wallet', note }: { label?: string; button?: string; note?: string }) {
   const router = useRouter();
   const id = useId();
   const [value, setValue] = useState('');

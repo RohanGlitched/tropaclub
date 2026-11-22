@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { tryClubs } from '@/lib/server/clubs';
 import { boardNames } from '@/lib/server/honours';
-import { SCOUT_COPY } from '@/lib/site';
+import { REGION_LINE, SCOUT_COPY } from '@/lib/site';
 
 // A scout's personal invite link. The referral cookie is set by middleware; this page only says who sent it.
-export const metadata: Metadata = { title: 'You are invited to Tropa Club', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'You are invited to Tropa Club', description: 'Tropa Club shows who really holds each stock token, and helps your group chat each buy about $10 a week from your own wallets.', robots: { index: false, follow: false } };
 
 export default async function ScoutInvitePage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = await params;
@@ -29,17 +29,17 @@ export default async function ScoutInvitePage({ params }: { params: Promise<{ co
       <section className="wrap page-head empty">
         <h1><span className={name.startsWith('0x') ? 'num addr' : undefined}>{name}</span> invited you to Tropa Club</h1>
         <p className="lede">
-          Tropa Club is a free investing club for your group chat: friends who each put $10 a week into stock tokens from their own wallets, with the score kept for you. Taking a seat is free and needs no buy.
+          Tropa Club shows who really holds each stock token, and helps your group chat each buy about $10 a week from your own wallets. There is no shared pot and no fee. Joining a club is free and needs no buy.
         </p>
         <div className="join-go">
-          <Link className="btn btn-accent" href="/clubs#join">Join a pick-up club</Link>
-          <Link className="btn" href="/clubs#start">Start or join a club</Link>
+          <Link className="btn btn-accent" href="/clubs#start">Start a club</Link>
+          <Link className="btn" href="/clubs#join">Get matched into a club</Link>
         </div>
-        <p className="muted">A club invite link from a friend works too: open it and take your seat.</p>
+        <p className="muted">A club invite link from a friend works too: open it and join.</p>
         <ul className="ticks">
           <li>{SCOUT_COPY}</li>
-          <li>Connecting shares only your wallet address. One free signature proves it is yours.</li>
-          <li>Buying is not offered to US persons.</li>
+          <li>Connecting shares only your wallet address. One free signature proves it is yours. It moves no funds.</li>
+          <li>Buying: {REGION_LINE}</li>
         </ul>
       </section>
     </main>

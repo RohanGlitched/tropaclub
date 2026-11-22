@@ -7,16 +7,18 @@ import ShareBar from '@/components/ShareBar';
 import SeatSearchBox from '@/components/SeatSearchBox';
 import BuyCta from '@/components/buy/BuyCta';
 import { Pennant } from '@/components/ds/Pennant';
+import Term from '@/components/nav/Term';
+import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
 import { playedStamps, tryClubs } from '@/lib/server/clubs';
 import { capsLine, honourStamps, walletHonours } from '@/lib/server/honours';
 import { sessionWallet } from '@/lib/server/session';
-import { clubName, groundPath, kitFor } from '@/lib/clubs';
+import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
 import { ticketOgVersion } from '@/lib/og';
 import { honoursTagOf } from '@/lib/server/cardmake';
-import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt, notAffiliated, scoutUrl } from '@/lib/site';
+import { COUNT_EVERY, PLAY_USD, SITE_URL, buyOpenAt, groundName, notAffiliated, openClubName, scoutUrl } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
 export const dynamic = 'force-dynamic';
@@ -37,19 +39,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { address: raw } = await params;
   const d = await load(raw);
   const robots = { index: false, follow: true };
-  if (!d.valid) return { title: 'No such seat', robots };
+  if (!d.valid) return { title: 'Page not found', robots };
   const top = d.real[0];
   if (!top) {
     const t = d.index.data.tokens[0];
-    const title = `Take a seat at ${clubName(t.name)} for $10`;
-    return { title, description: `${shortAddr(d.address)} has no real-fan seat yet. A seat needs $10 of one stock token, held in your own wallet.`, robots };
+    const title = `Become a real holder of ${t.symbol}`;
+    return { title, description: `${shortAddr(d.address)} is not a real holder of any stock token yet. That needs $10 or more of one stock token, bought and held in your own wallet.`, robots };
   }
   const token = d.bySymbol.get(top.symbol)!;
-  const title = `Matchday ticket: ${clubName(token.name)}, real fan ${fmtInt(top.rank!)} of ${fmtInt(top.of || token.realFans)}`;
-  const description = `${statSentence(top.bestStat)}. ${shortAddr(d.address)} has ${d.real.length === 1 ? 'a seat' : `${d.real.length} seats`} in The Ground. Find yours.`;
+  const title = `Ticket: ${groundName(token.name, token.symbol)}, real holder ${fmtInt(top.rank!)} of ${fmtInt(top.of || token.realFans)}`;
+  const description = `${statSentence(top.bestStat)}. ${shortAddr(d.address)} is a real holder of ${d.real.length === 1 ? '1 stock token' : `${d.real.length} stock tokens`}. Check yours.`;
   // This wallet's own ticket picture, drawn on demand by /api/card/og and stored (see that route).
   // The version changes with each count and with a new "Played" stamp, so each URL can be cached long.
-  // (and with a new scout badge or Founders' Pennant: the same version the og route expects)
+  // (and with a new scout badge or First 1,000 stamp: the same version the og route expects)
   const [played, h] = await Promise.all([playedStamps(d.address, 1500), walletHonours(d.address)]);
   const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(ticketOgVersion(d.index.data.asOf, played.byToken.get(token.address.toLowerCase()) ?? null, honoursTagOf(h)))}`;
   return {
@@ -61,7 +63,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-const ghostWhy = (e: WalletTokenEntry) => (e.kind === 'dust' ? 'holds under $10' : e.kind === 'farmer' ? 'only received from a giveaway' : 'a contract, not a person');
+const ghostWhy = (e: WalletTokenEntry) => (e.kind === 'dust' ? 'holds under $10' : e.kind === 'farmer' ? 'only received a giveaway, never bought' : 'a contract, not a person');
 
 export default async function TicketPage({ params }: Params) {
   const { address: raw } = await params;
@@ -73,10 +75,10 @@ export default async function TicketPage({ params }: Params) {
   const pageUrl = `${SITE_URL}/ticket/${address}`;
   const openAt = buyOpenAt();
   const isCode = ghosts.length > 0 && ghosts.every((g) => g.kind === 'contract' || g.kind === 'pool');
-  // The club to take a seat at: where this wallet is closest to one, else the biggest crowd.
+  // The token to suggest: the one this wallet is closest to being a real holder of, else the biggest.
   const near = ghosts.find((g) => g.kind === 'dust' || g.kind === 'farmer');
   const target = (near && bySymbol.get(near.symbol)) || index.data.tokens[0];
-  const targetClub = clubName(target.name);
+  const targetGround = groundName(target.name, target.symbol);
   const top = real[0];
   const topToken = top ? bySymbol.get(top.symbol)! : null;
   const [neighbours, played, honours, viewer] = await Promise.all([
@@ -102,13 +104,14 @@ export default async function TicketPage({ params }: Params) {
       {real.length > 0 && topToken ? (
         <>
           <section className="wrap page-head">
-            <h1>{real.length === 1 ? 'One matchday ticket' : `${real.length} matchday tickets`} for <span className="num addr">{shortAddr(address)}</span></h1>
+            <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span> }]} />
+            <h1><span className="num addr">{shortAddr(address)}</span> is a real {real.length === 1 ? `${shortName(topToken.name, topToken.symbol)} holder` : `holder of ${real.length} stock tokens`}</h1>
             <p className="lede">
-              This wallet is a real fan at {real.length === 1 ? clubName(topToken.name) : `${real.length} clubs`}. Each ticket shows its seat and the thing it does better than most of the crowd.
+              This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? `${topToken.symbol}` : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders, by how long they&rsquo;ve held, and its best stat. It shows no dollar amounts, so it&rsquo;s safe to share. It is a picture, not an NFT, and has no value. <Link href="/about#method">What “real” means</Link>
             </p>
             {honours.caps && (
               <p className="caps-line">
-                {capsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the Caps table</Link>
+                {capsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the Caps (points) table</Link>
               </p>
             )}
             <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
@@ -122,9 +125,9 @@ export default async function TicketPage({ params }: Params) {
                     <Ticket address={address} entry={e} token={token} asOf={index.data.asOf} headingLevel={2} printIn={i === 0} stamp={played?.byToken.get(token.address.toLowerCase()) ?? null} badge={played?.badge} honours={stamps} />
                   </div>
                   <div className="ticket-actions">
-                    <ShareBar address={address} symbol={e.symbol} club={clubName(token.name)} line={statSentence(e.bestStat)} pageUrl={shareUrl} scoutLink={code ? scoutUrl(code) : null} />
-                    <Link className="btn" href={groundPath(e.symbol)}>See it in the ground</Link>
-                    {i === 0 && <Link className="btn" href={`/statement/${address}`} prefetch={false}>Statement</Link>}
+                    <ShareBar address={address} symbol={e.symbol} club={groundName(token.name, token.symbol)} line={statSentence(e.bestStat)} pageUrl={shareUrl} scoutLink={code ? scoutUrl(code) : null} />
+                    <Link className="btn" href={groundPath(e.symbol)}>See it in the stadium drawing</Link>
+                    {i === 0 && <Link className="btn" href={`/statement/${address}`} prefetch={false}>Cost-basis statement</Link>}
                   </div>
                   {i === 0 && real.length > 1 && <p className="tickets-more">More tickets for this wallet</p>}
                 </div>
@@ -135,23 +138,23 @@ export default async function TicketPage({ params }: Params) {
           <section className="band">
             <div className="wrap">
               <div className="section-head">
-                <h2>Do more with this seat</h2>
-                <p>A seat is the start. Clubs turn it into a weekly habit with the people you already talk to.</p>
+                <h2>Next: buy with friends</h2>
+                <p>Clubs turn holding into a weekly habit with the people you already talk to. Each person buys from their own wallet; there is no shared pot.</p>
               </div>
               <ul className="next-steps">
                 <li>
-                  <h3>Support {clubName(topToken.name)}</h3>
-                  <p>Every stock has a public club. Take a free seat on its Bench and count toward its turnout in the Supporters table.</p>
-                  <Link className="btn btn-accent" href={`/club/stock-${topToken.symbol.toLowerCase()}`} prefetch={false}>Support {clubName(topToken.name)}</Link>
+                  <h3>Join the {openClubName(topToken.name, topToken.symbol)}</h3>
+                  <p>Every stock token has an <Term id="stock-club">open club</Term> anyone can join for free. Each week you buy ${PLAY_USD} or more of {topToken.symbol} through Tropa Club, you count toward its weekly score.</p>
+                  <Link className="btn btn-accent" href={`/club/stock-${topToken.symbol.toLowerCase()}`} prefetch={false}>See the {openClubName(topToken.name, topToken.symbol)}</Link>
                 </li>
                 <li>
-                  <h3>Found a club with this seat</h3>
-                  <p>Name a club, get an invite link for the group chat. Everyone buys from their own wallet and the score is kept for you.</p>
-                  <Link className="btn" href="/clubs#start">Found a club</Link>
+                  <h3>Start a club with friends</h3>
+                  <p>Name a club, get an invite link for the group chat. Everyone buys from their own wallet, and Tropa Club shows who bought each week.</p>
+                  <Link className="btn" href="/clubs#start">Start a club</Link>
                 </li>
                 <li>
-                  <h3>Get the “Played” stamp</h3>
-                  <p>Buy through Tropa Club in a gameweek and this ticket, and its share picture, are stamped “Played GW0”, with your payday streak under it. {RULE_LINE}</p>
+                  <h3>Get the &ldquo;Played&rdquo; stamp</h3>
+                  <p>Buy ${PLAY_USD} or more through Tropa Club in a week (a <Term id="gameweek">gameweek</Term>) and this ticket gets a &ldquo;Played&rdquo; stamp for that week, starting with week 0 (GW0), plus your <Term id="payday-streak">streak</Term>: how many weeks running you&rsquo;ve bought.</p>
                   <BuyCta token={topToken.address} symbol={topToken.symbol} openAt={openAt} standalone compact label={`Buy $10 more of ${topToken.symbol}`} />
                 </li>
               </ul>
@@ -160,14 +163,14 @@ export default async function TicketPage({ params }: Params) {
 
           {neighbours && neighbours.length > 0 && top && (
             <section className="wrap section-tight">
-              <h2 className="h3">Neighbouring seats at {clubName(topToken.name)}</h2>
-              <p className="muted">The fans sitting either side of real fan {fmtInt(top.rank!)}. Seats go by time held, never by size.</p>
+              <h2 className="h3">Wallets ranked next to this one</h2>
+              <p className="muted">The real holders of {topToken.symbol} either side of real holder {fmtInt(top.rank!)}. Ranked by time held, never by size.</p>
               <ul className="ghost-list neighbours">
                 {neighbours.map((n) => (
                   <li key={n.address}>
                     <Pennant kit={kitFor(topToken.symbol)} width={18} />
                     <Link href={`/ticket/${n.address}`} prefetch={false} className="num">{shortAddr(n.address)}</Link>
-                    <span>Real fan {fmtInt(n.rank)}, {n.rank < top.rank! ? 'has held longer' : 'arrived after'}</span>
+                    <span>Real holder {fmtInt(n.rank)}, {n.rank < top.rank! ? 'has held longer' : 'arrived after'}</span>
                   </li>
                 ))}
               </ul>
@@ -176,33 +179,34 @@ export default async function TicketPage({ params }: Params) {
         </>
       ) : isCode ? (
         <section className="wrap page-head empty">
+          <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span> }]} />
           <div className="gate-shut" aria-hidden="true">
             {Array.from({ length: 28 }, (_, i) => <i key={i} />)}
           </div>
-          <h1>No seat for <span className="num addr">{shortAddr(address)}</span></h1>
-          <p className="lede">This address is a contract, such as a pool, vault or router. It holds stock tokens, but it is code, not a person, so its seat is a ghost seat.</p>
-          <p className="closing-links"><Link className="btn" href={groundPath(ghosts[0].symbol)}>See the ground</Link><Link href="/attendance">The Attendance</Link></p>
+          <h1><span className="num addr">{shortAddr(address)}</span> is a contract, not a real holder</h1>
+          <p className="lede">This address is a contract, such as a pool, vault or router. It holds stock tokens, but it is code, not a person, so it shows as a <Term id="ghost-seat">ghost seat</Term> and gets no ticket.</p>
+          <p className="closing-links"><Link className="btn" href={groundPath(ghosts[0].symbol)}>See the stadium drawing</Link><Link href="/attendance">Stock rankings</Link></p>
         </section>
       ) : (
         <section className="wrap page-head convert">
           <div className="convert-text">
-            <p className="crumbs">No seat yet for <span className="num addr">{shortAddr(address)}</span></p>
-            <h1>Take a seat at {targetClub} for $10</h1>
-            <p className="convert-seat">About seat <span className="num">{fmtInt(target.realFans + 1)}</span> at the next count. Seats are recounted {COUNT_EVERY} and ranked by time held, so the newest fan starts at the back and moves forward by holding.</p>
+            <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <>Not a real holder yet: <span className="num addr">{shortAddr(address)}</span></> }]} />
+            <h1>Become a real holder: buy $10 of {target.symbol}</h1>
+            <p className="convert-seat">You&rsquo;d be about real holder number <span className="num">{fmtInt(target.realFans + 1)}</span> in the {targetGround} at the next count. We recount {COUNT_EVERY} and rank by time held, so the newest holder starts at the back and moves forward by holding.</p>
             <p className="lede">
               {near
                 ? near.kind === 'dust'
-                  ? `This wallet already holds ${target.symbol}, just under the $10 line. Top it up and the next count gives it a seat.`
-                  : `This wallet was sent ${target.symbol} in a giveaway but has never bought. One buy of its own makes it a real fan.`
-                : `This wallet holds no stock tokens on Base yet. ${fmtInt(target.realFans)} real fans are in the ground at ${targetClub}. The next seat is yours.`}
+                  ? `This wallet already holds ${target.symbol}, just under the $10 line. Top it up and the next count makes it a real holder.`
+                  : `This wallet was sent ${target.symbol} in a giveaway but has never bought. One buy of its own makes it a real holder.`
+                : <>This wallet holds no stock tokens on Base yet. {fmtInt(target.realFans)} wallets are <Term id="real-fan">real holders</Term> of {target.symbol}, {shortName(target.name, target.symbol)}&rsquo;s <Term id="stock-token">stock token</Term>.</>}
             </p>
             {honoursNote}
             <BuyCta token={target.address} symbol={target.symbol} openAt={openAt} standalone />
-            <p className="muted small">Seats are handed out at each count, {COUNT_EVERY}. {target.symbol} is a stock token that tracks the share price; it is not the share. Not advice.</p>
+            <p className="muted small">Real holders are counted {COUNT_EVERY}. Buying is optional: holding $10 or more in any wallet of your own counts. {target.symbol} is a stock token that tracks the share price; it is not the share. Not advice.</p>
           </div>
           <div className="convert-ticket">
             <Ticket address={address} entry={{ symbol: target.symbol, usd: 10, kind: 'real', rank: target.realFans + 1, of: target.realFans + 1, bestStat: null }} token={target} headingLevel={2} preview />
-            <p className="caption">A preview. The real ticket, with its exact seat, prints once the wallet holds $10 of {target.symbol} at a count.</p>
+            <p className="caption">A preview. The real ticket, with its exact rank, appears once the wallet holds $10 of {target.symbol} at a count.</p>
           </div>
         </section>
       )}
@@ -211,17 +215,17 @@ export default async function TicketPage({ params }: Params) {
         <section className="band">
           <div className="wrap split">
             <div className="split-text">
-              <h2>What a seat needs</h2>
+              <h2>What makes a real holder</h2>
               <ul className="ticks">
                 <li>$10 or more of one stock token, held in a wallet a person controls.</li>
                 <li>At least one purchase. Tokens that were only sent by a giveaway do not count.</li>
-                <li>A count. Seats are handed out again {COUNT_EVERY}.</li>
+                <li>A count. Real holders are counted again {COUNT_EVERY}.</li>
               </ul>
             </div>
             <div className="split-text">
-              <h2>Take it with a club</h2>
-              <p>Tropa Club is a free investing club for your group chat, each buying from their own wallet, with the score kept for you. {RULE_LINE}</p>
-              <p className="closing-links"><Link className="btn" href="/clubs#start">Found a club</Link><Link href="/clubs">How clubs work</Link></p>
+              <h2>Or buy with friends</h2>
+              <p>A <Term id="club">club</Term> is you and your friends each buying about $10 of stock tokens a week from your own wallets. Tropa Club shows who bought and keeps your streaks. There is no shared pot.</p>
+              <p className="closing-links"><Link className="btn" href="/clubs#start">Start a club</Link><Link href="/clubs">How clubs work</Link></p>
             </div>
           </div>
         </section>
@@ -229,16 +233,16 @@ export default async function TicketPage({ params }: Params) {
 
       {(ghosts.length > 0 || real.length > 1) && (
         <section className="wrap section-tight">
-          <h2 className="h3">{real.length > 0 ? 'Every ground this wallet is in' : 'Ghost seats'}</h2>
-          <p className="muted">{real.length > 0 ? 'Real-fan seats first, then tickets that do not count as a real fan.' : 'Tickets this wallet holds that do not count as a real fan.'}</p>
+          <h2 className="h3">{real.length > 0 ? 'Every stock token this wallet holds' : 'What this wallet holds'}</h2>
+          <p className="muted">{real.length > 0 ? 'Tokens it is a real holder of first, then holdings that do not count as real.' : 'Holdings that do not count as a real holder, and why.'}</p>
           <ul className="ghost-list">
             {[...real, ...ghosts].map((e) => {
               const token = bySymbol.get(e.symbol)!;
               return (
                 <li key={e.symbol}>
                   <Pennant kit={kitFor(e.symbol)} width={18} />
-                  <Link href={groundPath(e.symbol)} prefetch={false}>{clubName(token.name)}</Link>
-                  <span>{e.rank != null ? `Real fan ${fmtInt(e.rank)} of ${fmtInt(e.of || token.realFans)}` : `${KIND_LABEL[e.kind] ?? 'Ghost seat'}: ${ghostWhy(e)}`}</span>
+                  <Link href={groundPath(e.symbol)} prefetch={false}>{groundName(token.name, token.symbol)}</Link>
+                  <span>{e.rank != null ? `Real holder ${fmtInt(e.rank)} of ${fmtInt(e.of || token.realFans)}` : `Not counted as real (${(KIND_LABEL[e.kind] ?? 'ghost seat').toLowerCase()}): ${ghostWhy(e)}`}</span>
                 </li>
               );
             })}
@@ -251,14 +255,14 @@ export default async function TicketPage({ params }: Params) {
           <div className="split-text">
             <h2>{real.length > 0 ? 'Not your wallet? Paste yours' : 'Try another wallet'}</h2>
             <p>Any address on Base works. Nothing to connect, nothing to sign.</p>
-            <SeatSearchBox label="Wallet address or name" button="Find seat" />
+            <SeatSearchBox label="Wallet address or name" button="Check wallet" />
           </div>
           <div className="split-text">
             <h2>How to read a ticket</h2>
             <dl className="defs">
-              <div><dt>Block, row, seat</dt><dd>Where the wallet sits in that club&rsquo;s ground. Lower rows near halfway go to the longest holders.</dd></div>
-              <div><dt>Real fan number</dt><dd>Rank among the club&rsquo;s real fans by unbroken days held, then by first buy. Never by size.</dd></div>
-              <div><dt>The line in bold</dt><dd>The wallet&rsquo;s best true stat: hold time, arrival, entry price against the median fan, or weekly streak.</dd></div>
+              <div><dt>Block, row, seat</dt><dd>Your spot in the stadium drawing of that token&rsquo;s holders. Lower rows near halfway go to the longest holders.</dd></div>
+              <div><dt>Real holder number</dt><dd>Rank among that token&rsquo;s real holders by unbroken days held, then by first buy. Never by size.</dd></div>
+              <div><dt>The bold line</dt><dd>This wallet&rsquo;s best stat: hold time, arrival, entry price against the median real holder, or weekly streak.</dd></div>
               <div><dt>Barcode</dt><dd>Drawn from the bytes of the address. It is a pattern, not a code anyone can scan for value.</dd></div>
             </dl>
           </div>
@@ -270,6 +274,13 @@ export default async function TicketPage({ params }: Params) {
           {notAffiliated((real.length ? real : ghosts.length ? ghosts : [{ symbol: target.symbol }]).slice(0, 6).map((e) => bySymbol.get(e.symbol)?.name ?? ''))}
         </p>
       </section>
+
+      <NextStrip
+        items={[
+          { title: 'Start a club with friends', sub: 'Your group chat, about $10 a week each, from your own wallets', href: '/clubs#start' },
+          { title: 'Club rankings', sub: 'Club scores and weekly rankings', href: '/league' },
+        ]}
+      />
     </main>
   );
 }

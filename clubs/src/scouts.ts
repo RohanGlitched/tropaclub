@@ -13,7 +13,7 @@
  *   - At most 20 credits per scout per gameweek (the gameweek of the friend's first buy).
  *   - A "Scout" stamp at 1 credited mate, a "Captain's armband" at 3. The Top scouts table ranks
  *     scouts by credited mates still holding $5 or more.
- *   - The Founders' Pennant goes on the ticket of the first 1,000 wallets whose first verified buy
+ *   - The "First 1,000" stamp goes on the ticket of the first 1,000 wallets whose first verified buy
  *     was still held ($5 or more) at D+7.
  */
 // the values live in web/lib/rules.json, which the site and the docs build read too
@@ -251,7 +251,7 @@ export async function scoutBadgeOf(ctx: ClubsContext, wallet: string): Promise<s
 }
 
 /**
- * The Founders' Pennant list: the first 1,000 wallets whose first verified buy was still held
+ * The "First 1,000" list (a ticket stamp, apart from the GW0 Founders' Pennant crest): the first 1,000 wallets whose first verified buy was still held
  * ($5 or more) at D+7, in order of that buy. Stored as one board doc by the job, read by tickets.
  */
 export async function refreshFoundersPennants(ctx: ClubsContext): Promise<string[]> {

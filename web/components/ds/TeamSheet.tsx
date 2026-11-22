@@ -27,8 +27,8 @@ interface Props {
   busyId?: string | null;
 }
 
-/** A printed team sheet: who played this gameweek, and who is on the Bench. */
-export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLabel = 'Playing', benchLabel = 'Bench', busyId }: Props) {
+/** The member list: who played this gameweek, and who is on the Bench (has not bought yet). */
+export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLabel = 'Played', benchLabel = 'Bench', busyId }: Props) {
   const playing = members.filter((m) => m.status === 'playing');
   const bench = members.filter((m) => m.status === 'bench');
   return (
@@ -36,7 +36,7 @@ export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLa
       <section aria-label={playingLabel}>
         <h4>{playingLabel} <span className="num">{playing.length}</span></h4>
         {playing.length === 0 ? (
-          <p className="sheet-empty">Nobody has played yet this gameweek. $5 or more in a gameweek counts as played, and puts a name here.</p>
+          <p className="sheet-empty">Nobody has bought yet this gameweek. Buying $5 or more through Tropa Club counts as played, and puts a name here.</p>
         ) : (
           <ol>
             {playing.map((m, i) => (
@@ -55,7 +55,7 @@ export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLa
       <section aria-label={benchLabel}>
         <h4>{benchLabel} <span className="num">{bench.length}</span></h4>
         {bench.length === 0 ? (
-          <p className="sheet-empty">{members.length === 0 ? 'No members yet. Invite people to take a seat on the Bench.' : 'Nobody on the Bench. Full team this week.'}</p>
+          <p className="sheet-empty">{members.length === 0 ? 'No members yet. Invite people: joining is free and needs no buy.' : 'Nobody on the Bench. Everyone has bought this week.'}</p>
         ) : (
           <ul>
             {bench.map((m) => (
@@ -63,11 +63,11 @@ export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLa
                 <span className="sheet-no" aria-hidden="true">–</span>
                 <span className="sheet-name">
                   {m.name}{m.you && <em> (you)</em>}
-                  <small>{m.calledUp ? 'Call-up sent' : [m.badge, m.note ?? 'Has not bought this week'].filter(Boolean).join(', ')}</small>
+                  <small>{m.calledUp ? 'Nudge sent' : [m.badge, m.note ?? 'Has not bought this week'].filter(Boolean).join(', ')}</small>
                 </span>
                 {onCallUp && (m.canCallUp || m.calledUp) && (
                   <button type="button" className="btn btn-sm" onClick={() => onCallUp(m.id)} disabled={m.calledUp || busyId === m.id}>
-                    {m.calledUp ? 'Sent' : busyId === m.id ? 'Sending…' : 'Call up'}
+                    {m.calledUp ? 'Sent' : busyId === m.id ? 'Getting the message…' : 'Send a nudge'}
                   </button>
                 )}
               </li>
