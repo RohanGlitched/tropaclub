@@ -55,13 +55,19 @@ export default function PageSections({ sections, label = 'On this page' }: { sec
     const later = () => {
       if (!raf) raf = requestAnimationFrame(pick);
     };
-    const io = new IntersectionObserver(later, { rootMargin: '-33% 0px -60% 0px', threshold: [0, 1] });
-    els.forEach((el) => io.observe(el));
+    // an old browser without IntersectionObserver still gets the scroll listener below
+    let io: IntersectionObserver | null = null;
+    try {
+      io = typeof IntersectionObserver === 'function' ? new IntersectionObserver(later, { rootMargin: '-33% 0px -60% 0px', threshold: [0, 1] }) : null;
+      els.forEach((el) => io?.observe(el));
+    } catch {
+      io = null;
+    }
     // the bottom of the page crosses no line, so a scroll listener catches the last section
     window.addEventListener('scroll', later, { passive: true });
     pick();
     return () => {
-      io.disconnect();
+      io?.disconnect();
       window.removeEventListener('scroll', later);
       if (raf) cancelAnimationFrame(raf);
     };

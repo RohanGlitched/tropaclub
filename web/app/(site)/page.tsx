@@ -19,7 +19,7 @@ import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { LAUNCH_AT, PAUSED_MESSAGE, PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyState, groundName } from '@/lib/site';
 
-export const revalidate = 300;
+export const revalidate = 60;
 export const metadata: Metadata = {
   title: { absolute: 'Tropa Club: who really holds each stock token' },
   description: TAGLINE,

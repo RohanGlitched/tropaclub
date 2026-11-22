@@ -15,7 +15,7 @@ import { BUILDER, BUILDER_CODE, BUILDER_CODE_DOCS, BUY_ROUTER, CAPS_COPY, CHANGE
 /** The site glossary terms, in reading order. */
 const GLOSSARY_ORDER: TermId[] = ['stock-token', 'ground', 'holders', 'real-fan', 'ghost-seat', 'attendance', 'ticket', 'weekly-run', 'club', 'stock-club', 'gameweek', 'bench', 'matchday', 'payday-streak', 'fixture', 'caps', 'scout'];
 
-export const revalidate = 300;
+export const revalidate = 60;
 export const metadata: Metadata = {
   title: 'How it works: real holders, clubs and the rules we keep',
   description: 'Tropa Club does two things: it counts who really holds each stock token on Base, and it lets friends each buy about $10 a week from their own wallets. How both work, and the rules it keeps: no advice, no ranking by size, no custody.',

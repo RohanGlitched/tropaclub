@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider, createConfig, fallback, http, useAccount, useSignMessage } from 'wagmi';
+import { WagmiProvider, createConfig, createStorage, fallback, http, useAccount, useSignMessage } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { coinbaseWallet, injected } from 'wagmi/connectors';
 
@@ -14,6 +14,32 @@ export const wagmiConfig = createConfig({
   connectors: [coinbaseWallet({ appName: 'Tropa Club', appLogoUrl: 'https://tropaclub.xyz/brand/icon-512.png', preference: 'smartWalletOnly' }), injected({ shimDisconnect: true })],
   transports: { [base.id]: fallback([http('https://base-rpc.publicnode.com'), http('https://mainnet.base.org')]) },
   ssr: true,
+  // Storage that never throws: with site data blocked, touching localStorage raises SecurityError.
+  storage: createStorage({
+    storage: {
+      getItem: (k) => {
+        try {
+          return window.localStorage.getItem(k);
+        } catch {
+          return null;
+        }
+      },
+      setItem: (k, v) => {
+        try {
+          window.localStorage.setItem(k, v);
+        } catch {
+          /* no storage: the wallet reconnects by hand */
+        }
+      },
+      removeItem: (k) => {
+        try {
+          window.localStorage.removeItem(k);
+        } catch {
+          /* no storage */
+        }
+      },
+    },
+  }),
 });
 
 interface Session {

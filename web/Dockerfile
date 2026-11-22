@@ -16,6 +16,8 @@ COPY --from=deps /app/web/node_modules ./web/node_modules
 # buy/ and clubs/ sources resolve their packages from /app/node_modules
 RUN ln -s /app/web/node_modules /app/node_modules
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG BUILD_TAG=
+ENV BUILD_TAG=$BUILD_TAG
 RUN cd web && npm run build
 
 FROM node:20-slim AS run
@@ -23,6 +25,9 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=8080 HOSTNAME=0.0.0.0
 WORKDIR /srv
 # standalone output mirrors the tracing root (app/), so the server is at web/server.js
 COPY --from=build --chown=node:node /app/web/.next/standalone ./
+# Files of earlier builds first (infra/cloudbuild-web.yaml copies them out of the previous image),
+# then this build's on top: a page cached or left open across a deploy can still load its chunks.
+COPY --chown=node:node web/.prev-static ./web/.next/static
 COPY --from=build --chown=node:node /app/web/.next/static ./web/.next/static
 COPY --from=build --chown=node:node /app/web/public ./web/public
 COPY --from=build --chown=node:node /app/web/assets ./web/assets

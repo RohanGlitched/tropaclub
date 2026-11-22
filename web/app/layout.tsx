@@ -7,6 +7,7 @@ import { SITE_URL, TAGLINE } from '@/lib/site';
 import { homeOgVersion } from '@/lib/og';
 import { getIndex } from '@/lib/server/data';
 import ScoutCapture from '@/components/ScoutCapture';
+import ErrorReporter from '@/components/ErrorReporter';
 
 const display = localFont({
   src: [
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ScoutCapture />
+        <ErrorReporter />
         <a className="skip" href="#main">Skip to content</a>
         {children}
       </body>

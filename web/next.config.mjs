@@ -13,9 +13,12 @@ const nextConfig = {
     '/api/card/default': ['./assets/fonts/*.woff', './assets/*.svg'],
   },
   experimental: { externalDir: true },
-  // Static pages revalidate every 5 minutes. A CDN may serve a stale copy for 10 more minutes at most
-  // (Cache-Control: s-maxage=300, stale-while-revalidate=600), not for a year.
-  expireTime: 900,
+  // Static pages revalidate every minute, and a CDN may serve a stale copy for one more minute at
+  // most (Cache-Control: s-maxage=60, stale-while-revalidate=60): a page cached before a deploy
+  // never names files of an old build for long. (Old builds' files are kept in the image as well.)
+  expireTime: 120,
+  // which build a client error report came from (lib/client-errors.ts)
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.BUILD_TAG || new Date().toISOString().slice(0, 16) },
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['@google-cloud/storage', 'firebase-admin', 'sharp'],

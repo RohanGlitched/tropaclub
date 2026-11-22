@@ -17,7 +17,7 @@ import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { buildLayout } from '@/lib/stadium';
 import { PRE_IPO_TAG, isPreIpo, preIpoPriceNote } from '@/lib/preipo';
 
-export const revalidate = 300;
+export const revalidate = 60;
 type Params = { params: Promise<{ symbol: string }> };
 
 // Rendered on first visit, then served from cache and refreshed every five minutes.

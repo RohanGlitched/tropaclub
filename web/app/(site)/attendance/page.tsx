@@ -12,7 +12,7 @@ import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { groundName } from '@/lib/site';
 import { fmtDate, fmtInt, fmtPct } from '@/lib/format';
 
-export const revalidate = 300;
+export const revalidate = 60;
 export const metadata: Metadata = {
   title: 'Stock rankings: real holders of every stock token on Base',
   description: 'All 90 Coinbase stock tokens on Base, ranked by how many real holders they have: all holders, real holders, real share, weekly buyers and new buyers.',

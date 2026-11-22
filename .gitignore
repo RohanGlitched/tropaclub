@@ -13,3 +13,4 @@ web/shots/
 web/.cards/
 **/test-results/
 *.tsbuildinfo
+web/.prev-static/

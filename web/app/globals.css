@@ -2516,3 +2516,15 @@ code {
   margin-top: 24px !important;
   margin-bottom: 24px;
 }
+.error-details {
+  margin-top: 24px;
+  max-width: 64ch;
+}
+.error-details summary {
+  cursor: pointer;
+  color: var(--muted, inherit);
+  font-size: 0.875rem;
+}
+.error-details code {
+  overflow-wrap: anywhere;
+}

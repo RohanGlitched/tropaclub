@@ -1,5 +1,23 @@
 steps:
+  # Keep the static files of the builds before this one (they are inside the image tagged :current),
+  # so pages cached or left open across a deploy still find their JavaScript. Hashed names never clash.
   - name: gcr.io/cloud-builders/docker
-    args: ['build', '-f', 'web/Dockerfile', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:$_TAG', '.']
-images: ['us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:$_TAG']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -u
+        mkdir -p web/.prev-static
+        if docker pull us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:current >/dev/null 2>&1; then
+          cid=$$(docker create us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:current)
+          docker cp "$$cid:/srv/web/.next/static/." web/.prev-static/ && echo "kept $$(find web/.prev-static -type f | wc -l) earlier static files"
+          docker container rm "$$cid" >/dev/null
+        else
+          echo "no previous image: nothing to keep"
+        fi
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'web/Dockerfile', '--build-arg', 'BUILD_TAG=$_TAG', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:$_TAG', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:current', '.']
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:$_TAG'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/tropa/web:current'
 timeout: 1200s
