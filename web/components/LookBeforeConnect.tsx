@@ -11,7 +11,11 @@ export default function LookBeforeConnect({ className, site }: { className?: str
   const amounts = BUY_AMOUNTS.map((n) => `$${n}`);
   return (
     <details className={`look${className ? ` ${className}` : ''}`}>
-      <summary>What you&rsquo;ll see before you connect</summary>
+      <summary>
+        <span className="look-label look-show">Show what you&rsquo;ll see before you connect</span>
+        <span className="look-label look-hide">Hide what you&rsquo;ll see</span>
+        <svg className="look-chev" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </summary>
       <div className="look-body">
         <section>
           <h3>1. Sign in: one free signature</h3>

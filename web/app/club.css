@@ -1371,18 +1371,49 @@ abbr.ref {
 /* "What you'll see": a closed preview of the sign-in message, the buy screen and the wallet prompts */
 .look {
   margin-top: 16px;
-  border-top: 1px solid var(--line-2);
   max-width: 68ch;
 }
 .look > summary {
   min-height: 44px;
+  margin-top: 12px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
-  font: 600 1rem var(--display);
+  justify-content: space-between;
+  gap: 12px;
+  font: 600 1rem/1.25 var(--display);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
   cursor: pointer;
+  list-style: none;
+}
+.look > summary::-webkit-details-marker {
+  display: none;
 }
 .look > summary:hover {
-  text-decoration: underline;
+  border-color: var(--ink);
+}
+.look-chev {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.look[open] > summary .look-chev {
+  transform: rotate(180deg);
+}
+.look-hide,
+.look[open] .look-show {
+  display: none;
+}
+.look[open] .look-hide {
+  display: inline;
+}
+.look[open] > .look-body {
+  padding-top: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .look-chev {
+    transition: none;
+  }
 }
 .look > summary:focus-visible {
   outline: 2px solid var(--ink);
