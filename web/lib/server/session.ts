@@ -12,6 +12,7 @@ import { baseClient, within } from './chain';
 import { getClubs } from './clubs';
 import { isAddress } from '@/lib/format';
 import { SITE_URL } from '@/lib/site';
+import { encodeSession, parseSession } from '@/lib/session-token';
 
 const COOKIE = '__session';
 const WEEK = 7 * 24 * 3600;
@@ -77,22 +78,63 @@ export async function verifyChallenge(p: { address: string; token: string; messa
   }
 }
 
+// Each wallet has a session version in Firestore. A cookie carries the version it was issued at,
+// and every authenticated route checks it, so signing out (which raises the version) ends every
+// session of that wallet everywhere, including a cookie someone copied.
+const VERSIONS = 'sessionVersions';
+const versionMemo = new Map<string, { at: number; v: number }>();
+const VERSION_TTL_MS = 5_000;
+
+async function sessionVersion(wallet: string, fresh = false): Promise<number> {
+  const hit = versionMemo.get(wallet);
+  if (!fresh && hit && Date.now() - hit.at < VERSION_TTL_MS) return hit.v;
+  const svc = await getClubs();
+  const doc = await svc.ctx.store.get<{ version?: number }>(VERSIONS, wallet);
+  const v = typeof doc?.version === 'number' ? doc.version : 0;
+  if (versionMemo.size > 5000) versionMemo.clear();
+  versionMemo.set(wallet, { at: Date.now(), v });
+  return v;
+}
+
+function readToken(raw: string | undefined) {
+  return parseSession(raw, (body, mac) => same(sign(body), mac), Date.now() / 1000);
+}
+
 export async function startSession(address: string): Promise<void> {
+  const wallet = address.toLowerCase();
   const exp = Math.floor(Date.now() / 1000) + WEEK;
-  const body = `${address.toLowerCase()}.${exp}`;
-  (await cookies()).set(COOKIE, `${body}.${sign(body)}`, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: WEEK });
+  const version = await sessionVersion(wallet, true);
+  (await cookies()).set(COOKIE, encodeSession({ wallet, exp, version }, sign), { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: WEEK });
 }
 
+/** Sign out: every session of this wallet ends, here and on every other device. */
 export async function endSession(): Promise<void> {
-  (await cookies()).delete(COOKIE);
+  const jar = await cookies();
+  const t = readToken(jar.get(COOKIE)?.value);
+  if (t) {
+    try {
+      const svc = await getClubs();
+      const now = Math.floor(Date.now() / 1000);
+      const current = await sessionVersion(t.wallet, true);
+      const next = Math.max(current, t.version) + 1;
+      await svc.ctx.store.set(VERSIONS, t.wallet, { wallet: t.wallet, version: next, revokedAt: now });
+      versionMemo.set(t.wallet, { at: Date.now(), v: next });
+    } catch (e) {
+      console.warn('[session] sign-out could not revoke other sessions:', (e as Error).message?.slice(0, 120));
+    }
+  }
+  jar.delete(COOKIE);
 }
 
-/** The signed-in wallet, lowercase, or null. */
+/** The signed-in wallet, lowercase, or null. The session version is checked; if it cannot be read, nobody is signed in. */
 export async function sessionWallet(): Promise<string | null> {
-  const raw = (await cookies()).get(COOKIE)?.value;
-  if (!raw) return null;
-  const [addr, exp, mac] = raw.split('.');
-  if (!addr || !exp || !mac || !isAddress(addr)) return null;
-  if (!same(sign(`${addr}.${exp}`), mac) || Number(exp) < Date.now() / 1000) return null;
-  return addr.toLowerCase();
+  const t = readToken((await cookies()).get(COOKIE)?.value);
+  if (!t || !isAddress(t.wallet)) return null;
+  try {
+    if ((await sessionVersion(t.wallet)) !== t.version) return null;
+  } catch (e) {
+    console.warn('[session] session version unreadable, treating as signed out:', (e as Error).message?.slice(0, 120));
+    return null;
+  }
+  return t.wallet;
 }

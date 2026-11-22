@@ -1,5 +1,7 @@
 /** Dependencies shared by every service function. createClubsService() builds one of these. */
 import type { ChainReader } from './chain/types';
+import type { PoolCheck } from './chain/pools';
+import { KYBER_EXECUTORS } from './chain/swap';
 import type { FundingSourceResolver } from './funding';
 import { type GeoPolicy, createGeoPolicy } from './geo';
 import type { WalletHistorySource } from './history';
@@ -18,6 +20,11 @@ export interface ClubsConfig {
   maxPrivateMembers: number;
   pickupSize: number;
   pickupPlaysAt: number;
+  /**
+   * KyberSwap executors a buy's payment may go to and its stock may come from (chain/swap.ts).
+   * KYBER_EXECUTORS (comma-separated) adds to the pinned one if KyberSwap ever moves it.
+   */
+  kyberExecutors: string[];
 }
 
 export interface ClubsContext {
@@ -26,6 +33,8 @@ export interface ClubsContext {
   prices?: PriceSource;
   history?: WalletHistorySource;
   funding?: FundingSourceResolver;
+  /** A second opinion on a pool a buy came out of (the indexer's list of known pools). */
+  poolCheck?: PoolCheck;
   geo: GeoPolicy;
   now: () => number;
   config: ClubsConfig;
@@ -41,6 +50,7 @@ export function defaultConfig(over: Partial<ClubsConfig> = {}): ClubsConfig {
     maxPrivateMembers: 50,
     pickupSize: 5,
     pickupPlaysAt: 3,
+    kyberExecutors: [...KYBER_EXECUTORS, ...(process.env.KYBER_EXECUTORS ?? '').split(',').map((a) => a.trim().toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a))],
     ...over,
   };
 }

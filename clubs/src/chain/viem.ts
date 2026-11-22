@@ -2,10 +2,19 @@
  * viem ChainReader for Base mainnet. Attribution goes through @tropaclub/buy's verifyAttribution.
  * RPC: BASE_RPC_URL (keyed Alchemy/QuickNode free tier) first, then the public fallbacks from the buy package.
  */
-import { DEFAULT_RPC_URLS, ETH_USD_FEED, aggregatorV3Abi, b20Abi, verifyAttribution } from '@tropaclub/buy';
-import { type PublicClient, createPublicClient, fallback, getAddress, http, parseAbiItem } from 'viem';
+import { DEFAULT_RPC_URLS, ETH_USD_FEED, SLIPSTREAM_FACTORIES, aggregatorV3Abi, b20Abi, verifyAttribution } from '@tropaclub/buy';
+import { type PublicClient, createPublicClient, fallback, getAddress, http, parseAbi, parseAbiItem } from 'viem';
 import { base } from 'viem/chains';
 import type { AttributionLite, ChainReader, ReceiptLite, TransferLog, TxLite } from './types';
+
+const slipstreamPoolAbi = parseAbi([
+  'function factory() view returns (address)',
+  'function token0() view returns (address)',
+  'function token1() view returns (address)',
+  'function tickSpacing() view returns (int24)',
+]);
+const slipstreamFactoryAbi = parseAbi(['function getPool(address tokenA, address tokenB, int24 tickSpacing) view returns (address)']);
+const FACTORIES = new Set(SLIPSTREAM_FACTORIES.map((f) => f.toLowerCase()));
 
 const transferEvent = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
@@ -33,6 +42,7 @@ export function createViemChainReader(opts: ViemChainReaderOptions = {}): ChainR
   const maxAddr = opts.maxAddresses ?? 10;
   const maxTopics = opts.maxTopicAddresses ?? 50;
   const blockTimes = new Map<bigint, number>();
+  const pools = new Map<string, { at: number; ok: boolean }>();
 
   return {
     async verifyAttribution(txHash: string): Promise<AttributionLite> {
@@ -94,6 +104,34 @@ export function createViemChainReader(opts: ViemChainReaderOptions = {}): ChainR
       } catch {
         return null;
       }
+    },
+    async isAerodromePool(address: string): Promise<boolean> {
+      const a = address.toLowerCase();
+      const hit = pools.get(a);
+      // a pool stays a pool; a "no" is asked again after ten minutes
+      if (hit && (hit.ok || Date.now() - hit.at < 10 * 60_000)) return hit.ok;
+      let ok = false;
+      try {
+        const pool = getAddress(a);
+        const [factory, token0, token1, tickSpacing] = await Promise.all([
+          client.readContract({ address: pool, abi: slipstreamPoolAbi, functionName: 'factory' }),
+          client.readContract({ address: pool, abi: slipstreamPoolAbi, functionName: 'token0' }),
+          client.readContract({ address: pool, abi: slipstreamPoolAbi, functionName: 'token1' }),
+          client.readContract({ address: pool, abi: slipstreamPoolAbi, functionName: 'tickSpacing' }),
+        ]);
+        if (FACTORIES.has(factory.toLowerCase())) {
+          // anything can answer factory(): the factory itself must name this address as the pool
+          const named = await client.readContract({ address: getAddress(factory), abi: slipstreamFactoryAbi, functionName: 'getPool', args: [token0, token1, tickSpacing] });
+          ok = named.toLowerCase() === a;
+        }
+      } catch (e) {
+        // an address with no code, or one that is not a pool, reverts or returns nothing: that is a "no".
+        // A network error is not an answer, so it is passed on and the buy is tried again.
+        if (!/revert|returned no data|ContractFunctionExecutionError|ContractFunctionZeroDataError|AbiDecoding/i.test(`${(e as Error).name} ${(e as Error).message}`)) throw e;
+      }
+      if (pools.size > 500) pools.clear();
+      pools.set(a, { at: Date.now(), ok });
+      return ok;
     },
     async getTransferLogs(q): Promise<TransferLog[]> {
       const out: TransferLog[] = [];

@@ -32,7 +32,7 @@ const ACTIONS: CorporateActionsFile = {
 const e = (o: Partial<HistoryEntry> & Pick<HistoryEntry, 'block' | 'ts' | 'dir' | 'raw' | 'counterpartyKind'>): HistoryEntry => ({ logIndex: 1, txHash: `0x${o.block.toString(16).padStart(64, '0')}`, priceUsd: null, ...o });
 
 async function statementOf(h: WalletHistory, live: Record<string, number>, tropa?: Map<string, number>) {
-  const { transfers, marks, symbols } = transfersFromHistory(h);
+  const { transfers, marks, symbols, priceSources } = transfersFromHistory(h);
   const all = multipliersFromFile(ACTIONS);
   return labelDayPrices(
     await buildStatement({
@@ -44,6 +44,7 @@ async function statementOf(h: WalletHistory, live: Record<string, number>, tropa
       symbols,
       tropaBuys: tropa,
     }),
+    priceSources,
   );
 }
 
@@ -64,6 +65,16 @@ describe('the reported wallet, from the published history', () => {
     expect(s.lines[0].note).toBe('bought on a DEX: cost estimated at the day’s price');
     expect(s.warnings[0]).toBe(DAY_PRICE_NOTE);
     expect(() => assertMatchesHoldings([{ token: NVDA, symbol: 'NVDAc', usd: 23.88 }], s.lots)).not.toThrow();
+  });
+  it('says where an estimated price came from when the indexer names its source', async () => {
+    const withSource = (src: NonNullable<HistoryEntry['priceSource']>): WalletHistory => ({ ...reported, tokens: reported.tokens.map((t) => ({ ...t, entries: t.entries.map((x) => ({ ...x, priceSource: src })) })) });
+    const labels = { chainlink: 'est. at Chainlink close', pool: 'est. at pool average', carry: 'est. at last close', reference: 'est. at reference price' } as const;
+    for (const [src, label] of Object.entries(labels) as [keyof typeof labels, string][]) {
+      const s = await statementOf(withSource(src), { [NVDA]: 131.2 });
+      expect(s.lines[0].note).toBe(`bought on a DEX: cost estimated at the day’s price · ${label}`);
+      // the price itself is unchanged: raw / 1e8 x the day's priceUsd
+      expect(s.lots[0].basisUsd).toBeCloseTo(0.18204497 * 208.5921, 2);
+    }
   });
   it('uses the recorded dollars, not the day’s price, when the buy was made through Tropa Club', async () => {
     const s = await statementOf(reported, { [NVDA]: 131.2 }, new Map([[NVDA_BUY.txHash, 40]]));

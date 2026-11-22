@@ -21,4 +21,6 @@ export function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ['/((?!_next/|brand/|.*\\.(?:png|jpg|svg|ico|webmanifest|txt|xml|woff2?)$).*)'] };
+// /api/* always runs the middleware, whatever the path ends in (/api/card/x.png is still the API).
+// Everything else skips Next's own assets and static files.
+export const config = { matcher: ['/api/:path*', '/((?!_next/|brand/|api/|.*\\.(?:png|jpg|svg|ico|webmanifest|txt|xml|woff2?)$).*)'] };

@@ -51,7 +51,18 @@ export interface IndexedHistory {
   /** Day price per raw whole token, by `${token}|${unix seconds}`. */
   marks: Map<string, number>;
   symbols: Map<string, string>;
+  /** Where each entry's day price came from, by `${token}|${txHash}` (the indexer's priceSource). */
+  priceSources: Map<string, PriceSourceKind>;
 }
+
+export type PriceSourceKind = NonNullable<HistoryEntry['priceSource']>;
+/** The small label shown next to an estimated basis or proceeds, by the price's source. */
+export const PRICE_SOURCE_LABEL: Record<PriceSourceKind, string> = {
+  chainlink: 'est. at Chainlink close',
+  pool: 'est. at pool average',
+  carry: 'est. at last close',
+  reference: 'est. at reference price',
+};
 
 /**
  * History entries as engine transfers. No payment legs exist, so the kind of counterparty decides
@@ -67,6 +78,7 @@ export interface IndexedHistory {
 export function transfersFromHistory(h: WalletHistory): IndexedHistory {
   const marks = new Map<string, number>();
   const symbols = new Map<string, string>();
+  const priceSources = new Map<string, PriceSourceKind>();
   const rows: { token: string; e: HistoryEntry }[] = [];
   for (const t of h.tokens) {
     const token = String(t.address).toLowerCase();
@@ -81,6 +93,7 @@ export function transfersFromHistory(h: WalletHistory): IndexedHistory {
   const transfers = rows.map(({ token, e }, i): HistTransfer => {
     const traded = e.counterpartyKind === 'pool' || e.counterpartyKind === 'router';
     if (typeof e.priceUsd === 'number' && isFinite(e.priceUsd) && e.priceUsd > 0) marks.set(`${token}|${e.ts}`, e.priceUsd);
+    if (e.priceSource && e.priceSource in PRICE_SOURCE_LABEL) priceSources.set(`${token}|${e.txHash.toLowerCase()}`, e.priceSource);
     return {
       token,
       dir: e.dir,
@@ -94,7 +107,7 @@ export function transfersFromHistory(h: WalletHistory): IndexedHistory {
       legs: { paidUsd: null, receivedUsd: null, otherOut: traded && e.dir === 'in', otherIn: traded && e.dir === 'out' },
     };
   });
-  return { transfers, marks, symbols };
+  return { transfers, marks, symbols, priceSources };
 }
 
 /** corporate-actions.json as the engine's multiplier events, by lowercase token address. */
@@ -117,15 +130,22 @@ export function netRaw(transfers: HistTransfer[]): Map<string, bigint> {
   return out;
 }
 
-/** Say what the estimates are: the engine's wording assumes payment legs were read, and here they were not. */
-export function labelDayPrices(s: Statement): Statement {
+/**
+ * Say what the estimates are: the engine's wording assumes payment legs were read, and here they
+ * were not. With the indexer's price sources, each estimate also says where its price came from.
+ */
+export function labelDayPrices(s: Statement, priceSources?: Map<string, PriceSourceKind>): Statement {
   let estimated = false;
+  const label = (l: Statement['lines'][number]) => {
+    const src = l.txHash ? priceSources?.get(`${l.token.toLowerCase()}|${l.txHash.toLowerCase()}`) : undefined;
+    return src ? ` · ${PRICE_SOURCE_LABEL[src]}` : '';
+  };
   for (const l of s.lines) {
     if (l.note.startsWith('paid in another token: cost estimated at the mark')) {
-      l.note = 'bought on a DEX: cost estimated at the day’s price';
+      l.note = `bought on a DEX: cost estimated at the day’s price${label(l)}`;
       estimated = true;
     } else if (l.note.startsWith('sold for another token: proceeds estimated at the mark')) {
-      l.note = l.note.replace('sold for another token: proceeds estimated at the mark', 'sold on a DEX: proceeds estimated at the day’s price');
+      l.note = `${l.note.replace('sold for another token: proceeds estimated at the mark', 'sold on a DEX: proceeds estimated at the day’s price')}${label(l)}`;
       estimated = true;
     }
   }

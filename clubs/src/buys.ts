@@ -4,9 +4,16 @@
  *   2. receipt exists and succeeded,
  *   3. ERC-8021 suffix with our Builder Code (@tropaclub/buy verifyAttribution: tx input or UserOp callData),
  *   4. signer (tx.from, or the 4337 account) is the member's wallet,
- *   5. a stock token Transfer to the wallet in the receipt (token + raw amount),
- *   6. USD in: net USDC out of the wallet, else WETH x ETH/USD, else tx ETH value x ETH/USD, else mark x qty,
- *   7. wash rule (buy -> sell -> buy of the same token within 24 h scores 0, both buys).
+ *   5. the receipt shows our swap (chain/swap.ts): the pinned KyberSwap router logged Swapped for this
+ *      wallet, the payment left the wallet, and the wallet's stock balance rose by what the router returned,
+ *   6. the stock came out of a real Aerodrome pool in that receipt (factory-checked on chain, and known
+ *      to the indexer),
+ *   7. USD in is what the router logged as spent (USDC, or ETH/WETH x ETH/USD), and the price that implies
+ *      is within 3% of the mark at that block. Outside it the buy is refused and logged to buyRejects,
+ *   8. the buy's cost basis for club returns is that MARK, never the fill,
+ *   9. wash rule (buy -> sell -> buy of the same token within 24 h scores 0, both buys).
+ * The Builder Code alone proves nothing: anyone can append it to a batch that passes $5 one way and a
+ * share the other between their own wallets. Nothing is recorded, scored or counted without 5 to 8.
  * A qualifying buy (attributed, >= $5, not wash, wallet not excluded) promotes the seat to playing.
  * A nightly/hourly sweep (sweepTransfers) catches missed attributed buys and records member outflows.
  */
@@ -16,7 +23,8 @@ import { gameweekForBuy } from './calendar';
 import { buyGate } from './geo';
 import { isExcluded, loadLedger } from './ledger';
 import { WASH_WINDOW_SEC, washBuys } from './lots';
-import { legUsd, parseTransfers, paymentLeg, receiptOk, stockLegs } from './chain/receipt';
+import { parseTransfers, receiptOk } from './chain/receipt';
+import { MAX_FILL_DEVIATION, fillDeviation, poolCandidates, routerSwaps, verifyRouterBuy } from './chain/swap';
 import { AlreadyExistsError, inc } from './store/docstore';
 import {
   COL,
@@ -43,13 +51,42 @@ const MESSAGES: Record<BuyRejectReason, string> = {
   not_attributed: "That transaction wasn't made through Tropa Club (no Tropa Builder Code).",
   not_from_wallet: "That transaction wasn't signed by this wallet.",
   no_stock_received: 'No stock token reached this wallet in that transaction.',
+  not_router_swap: "That transaction isn't a Tropa Club buy: it has no swap by this wallet on the router we use.",
+  payment_mismatch: "That transaction's payment doesn't match its swap, so it isn't counted.",
+  not_from_pool: "The stock in that transaction didn't come from a known Aerodrome pool, so it isn't counted.",
+  price_off_mark: "That buy's price is more than 3% away from the market price at the time, so it isn't counted.",
+  cannot_verify_now: 'The buy went through, but it could not be checked just now. Try again in a minute.',
   not_member: 'Join the club before recording a buy for it.',
   region_blocked: 'Buying is not available in your region.',
 };
 
-async function reject(ctx: ClubsContext, txHash: string, wallet: string, reason: BuyRejectReason, attributed: boolean | null, persist = true): Promise<RecordBuyResult> {
-  if (persist) await ctx.store.set<BuyRejectDoc>(COL.buyRejects, txHash, { txHash, wallet, reason, attributed, at: ctx.now() });
-  return { ok: false, reason, message: MESSAGES[reason], retryable: reason === 'not_found' };
+async function reject(ctx: ClubsContext, txHash: string, wallet: string, reason: BuyRejectReason, attributed: boolean | null, persist = true, detail?: string): Promise<RecordBuyResult> {
+  if (persist) await ctx.store.set<BuyRejectDoc>(COL.buyRejects, txHash, { txHash, wallet, reason, attributed, at: ctx.now(), ...(detail ? { detail: detail.slice(0, 300) } : {}) });
+  return { ok: false, reason, message: MESSAGES[reason], retryable: reason === 'not_found' || reason === 'cannot_verify_now' };
+}
+
+/**
+ * Which of these addresses are real Aerodrome pools: factory-checked on chain, and known to the
+ * indexer. null when a check could not be made right now (the buyer is asked to try again).
+ */
+async function verifiedPools(ctx: ClubsContext, candidates: string[], token: { address: string; symbol: string | null }): Promise<Set<string> | null> {
+  const chain = ctx.chain;
+  const out = new Set<string>();
+  if (!chain?.isAerodromePool) return out;
+  let unknown = false;
+  // a route never has more than a few pools; the largest senders come first
+  for (const a of candidates.slice(0, 8)) {
+    let real: boolean | null;
+    try {
+      real = await chain.isAerodromePool(a);
+      if (real && ctx.poolCheck) real = await ctx.poolCheck(a, token);
+    } catch {
+      real = null;
+    }
+    if (real === null) unknown = true;
+    else if (real) out.add(a);
+  }
+  return unknown ? null : out;
 }
 
 export async function logGeoDecision(ctx: ClubsContext, d: Omit<GeoLogDoc, 'at'>): Promise<void> {
@@ -97,33 +134,46 @@ export async function recordBuy(
   const signer = (attribution.from ?? tx?.from ?? receipt.from).toLowerCase();
   if (signer !== wallet) return reject(ctx, txHash, wallet, 'not_from_wallet', true);
 
+  // The receipt must show our swap. Everything scored below comes from the router's own log.
   const transfers = parseTransfers(receipt.logs);
-  const legs = stockLegs(transfers, wallet, new Set(ctx.config.tokens.keys()));
-  const leg = legs[0];
-  if (!leg) return reject(ctx, txHash, wallet, 'no_stock_received', true);
+  const knownTokens = new Set(ctx.config.tokens.keys());
+  const shapeOnly = verifyRouterBuy(receipt.logs, wallet, { knownTokens, executors: ctx.config.kyberExecutors });
+  // not_from_pool (and a short delivery) can only be decided once the pools are checked below
+  if (!shapeOnly.ok && shapeOnly.reason !== 'not_from_pool' && shapeOnly.reason !== 'no_stock_received') return reject(ctx, txHash, wallet, shapeOnly.reason, true, true, shapeOnly.detail);
+  const candidates = poolCandidates(receipt.logs, wallet, knownTokens, ctx.config.kyberExecutors);
+  const dst = routerSwaps(receipt.logs).find((x) => x.sender === wallet && x.dstReceiver === wallet)?.dstToken ?? '';
+  const pools = await verifiedPools(ctx, candidates, { address: dst, symbol: ctx.config.tokens.get(dst) ?? null });
+  if (pools === null) return reject(ctx, txHash, wallet, 'cannot_verify_now', true, false);
+  const swap = verifyRouterBuy(receipt.logs, wallet, { knownTokens, pools, executors: ctx.config.kyberExecutors });
+  if (!swap.ok) {
+    const detail = swap.reason === 'not_from_pool' ? `${swap.detail}; senders: ${candidates.slice(0, 4).join(', ') || 'none'}` : swap.detail;
+    return reject(ctx, txHash, wallet, swap.reason, true, true, detail);
+  }
+  const leg = { token: swap.token, raw: swap.raw, logIndexes: swap.logIndexes };
+  const symbol = ctx.config.tokens.get(leg.token) ?? null;
 
   const blockNumber = receipt.blockNumber;
   const blockTime = await chain.getBlockTime(blockNumber);
   const tokens = Number(leg.raw) / 1e8;
   const notes: string[] = [];
-  if (legs.length > 1) notes.push(`multi-token receipt: scored ${leg.token}, ignored ${legs.length - 1} other leg(s)`);
+  if (swap.ignoredSwaps) notes.push(`${swap.ignoredSwaps} other router swap(s) in this transaction were not scored`);
 
-  let usdIn: number | null = null;
-  let usdSource: UsdSource | null = null;
-  const pay = paymentLeg(transfers, wallet, tx);
-  if (pay) {
-    usdIn = legUsd(pay, pay.source === 'usdc' ? null : await chain.ethUsd(blockNumber));
-    usdSource = usdIn != null ? pay.source : null;
+  let usdIn: number | null;
+  const usdSource: UsdSource = swap.paidWith;
+  if (swap.paidWith === 'usdc') usdIn = Number(swap.spent) / 1e6;
+  else {
+    const ethUsd = await chain.ethUsd(blockNumber);
+    usdIn = ethUsd == null ? null : (Number(swap.spent) / 1e18) * ethUsd;
   }
-  if (usdIn == null && ctx.prices) {
-    const m = await ctx.prices.markAt(leg.token, blockTime);
-    if (m) {
-      usdIn = m.usd * tokens;
-      usdSource = 'mark';
-      notes.push(`USD in estimated from ${m.source} mark`);
-    }
-  }
-  const priceAtBuy = usdIn != null && tokens > 0 ? usdIn / tokens : null;
+  // The price check. Without a mark, or an ETH price, nothing can be compared: try again later.
+  const mark = ctx.prices ? await ctx.prices.markAt(leg.token, blockTime) : null;
+  if (usdIn == null || !mark || !(mark.usd > 0) || !(tokens > 0)) return reject(ctx, txHash, wallet, 'cannot_verify_now', true, false);
+  const fillPrice = usdIn / tokens;
+  const off = fillDeviation(fillPrice, mark.usd);
+  if (Math.abs(off) > MAX_FILL_DEVIATION)
+    return reject(ctx, txHash, wallet, 'price_off_mark', true, true, `fill $${fillPrice.toFixed(4)} vs ${mark.source} mark $${mark.usd.toFixed(4)} (${(off * 100).toFixed(1)}%)`);
+  // Club returns start from the mark, never from the fill.
+  const priceAtBuy: number | null = mark.usd;
 
   // Prior balance (head of FIFO) on the wallet's first Tropa buy of this token.
   const ledger = await loadLedger(ctx, wallet);
@@ -162,11 +212,14 @@ export async function recordBuy(
     wallet,
     clubId,
     token: leg.token,
-    symbol: ctx.config.tokens.get(leg.token) ?? null,
+    symbol,
     rawAmount: leg.raw.toString(),
     usdIn: usdIn == null ? null : round(usdIn, 6),
     usdSource,
     priceAtBuy: priceAtBuy == null ? null : round(priceAtBuy, 8),
+    fillPrice: round(fillPrice, 8),
+    markSource: mark.source,
+    verified: true,
     blockNumber: Number(blockNumber),
     blockTime,
     attributed: true,
@@ -188,9 +241,14 @@ export async function recordBuy(
     if (e instanceof AlreadyExistsError) return reject(ctx, txHash, wallet, 'duplicate', true, false);
     throw e;
   }
-  for (const li of leg.logIndexes) {
-    const t = transfers.find((x) => x.logIndex === li)!;
-    await upsertTransfer(ctx, { wallet, token: leg.token, dir: 'in', raw: t.value, blockNumber: Number(blockNumber), blockTime, txHash, logIndex: li, counterparty: t.from, tropa: true });
+  // Only what the router returned, delivered by the router side or a verified pool, is a Tropa lot.
+  // Anything else that arrived in the same transaction is stored as an ordinary transfer in.
+  const allowed = new Set(leg.logIndexes);
+  let left = leg.raw;
+  for (const t of transfers.filter((x) => x.token === leg.token && x.to === wallet && x.from !== wallet)) {
+    const ours = allowed.has(t.logIndex) && left > 0n && t.value <= left;
+    if (ours) left -= t.value;
+    await upsertTransfer(ctx, { wallet, token: leg.token, dir: 'in', raw: t.value, blockNumber: Number(blockNumber), blockTime, txHash, logIndex: t.logIndex, counterparty: t.from, tropa: ours });
   }
   // A buy's own fill price is never stored as a shared mark: anyone can craft a transaction with an
   // absurd price. Marks come from the close captures and the Chainlink feeds only.

@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // Public stock clubs and pick-up clubs (no invite code, no member list inside the doc).
     match /clubs/{clubId} {
-      allow read: if resource.data.kind in ['stock', 'pickup'];
+      allow read: if resource.data.kind in ['stock', 'pickup'] && resource.data.get('hidden', false) != true;
       allow write: if false;
     }
 

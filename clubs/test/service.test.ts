@@ -1,4 +1,4 @@
-﻿/**
+/**
  * End-to-end season walk-through against every store under test (memory always; the Firestore emulator
  * too when FIRESTORE_EMULATOR_HOST is set, e.g. `npm run test:emulator`).
  */
@@ -22,9 +22,16 @@ const E = addr(0xe5);
 const F = addr(0xf6);
 const X = addr(0x99); // outsider
 
+// A buy's cost basis is the mark at its block (never its fill), and a fill more than 3% from the
+// mark is refused. The intraday marks just before each buy equal its fill, so the arithmetic below
+// reads the same either way.
 const prices = () =>
   new StaticPriceSource({
     [TOK.NVDAc]: [
+      [at('2026-11-24T14:59:00Z'), 10 / 0.07650616],
+      [at('2026-11-25T13:59:00Z'), 12 / 0.09],
+      [at('2026-12-01T14:59:00Z'), 15 / 0.11111111],
+      [at('2026-12-02T15:29:00Z'), 10 / 0.07352941],
       [at('2026-11-24T21:00:00Z'), 131.5],
       [at('2026-11-25T21:00:00Z'), 133],
       [at('2026-11-27T18:00:00Z'), 134],
@@ -32,6 +39,8 @@ const prices = () =>
       [at('2026-12-04T21:00:00Z'), 137],
     ],
     [TOK.TSLAc]: [
+      [at('2026-11-24T15:59:00Z'), 20 / 0.045],
+      [at('2026-12-02T14:59:00Z'), 25 / 0.055],
       [at('2026-11-24T21:00:00Z'), 450],
       [at('2026-11-25T21:00:00Z'), 440],
       [at('2026-11-27T18:00:00Z'), 455],

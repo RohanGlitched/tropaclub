@@ -52,6 +52,12 @@ export interface ChainReader {
   ethUsd(blockNumber?: bigint): Promise<number | null>;
   /** balanceOf at a block (needs state for that block; recent blocks only on free RPCs). */
   balanceOf(token: string, wallet: string, blockNumber?: bigint): Promise<bigint | null>;
+  /**
+   * Is this address a real Aerodrome Slipstream pool: made by one of the known factories, which
+   * also names it as the pool for its own token pair and tick spacing? Absent on a reader that
+   * cannot tell, and then no buy can be verified.
+   */
+  isAerodromePool?(address: string): Promise<boolean>;
   /** Transfer logs of the given tokens filtered by from/to wallets (OR within each list). */
   getTransferLogs?(q: { tokens: string[]; from?: string[]; to?: string[]; fromBlock: bigint; toBlock: bigint }): Promise<TransferLog[]>;
 }

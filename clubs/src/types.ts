@@ -49,6 +49,13 @@ export interface ClubDoc {
   playingCount: number;
   maxMembers: number;
   status: 'open' | 'forming' | 'full';
+  /**
+   * Set by the server only (setClubHidden), never from a request: the club is left off every
+   * public list. Its members still see it.
+   */
+  hidden?: boolean;
+  hiddenReason?: string | null;
+  hiddenAt?: number | null;
 }
 
 export interface ClubSecretDoc {
@@ -98,8 +105,21 @@ export interface BuyDoc {
   rawAmount: string;
   usdIn: number | null;
   usdSource: UsdSource | null;
-  /** USD per whole raw token (10^8 raw units) implied by the fill. Same unit as the Chainlink total-return feed. */
+  /**
+   * USD per whole raw token (10^8 raw units) that club returns start from: the MARK at the buy's
+   * block, never the fill. A fill is something a buyer can arrange; the mark is not.
+   */
   priceAtBuy: number | null;
+  /** USD per whole raw token the buyer actually paid (usdIn / tokens). Within 3% of the mark, or the buy was refused. */
+  fillPrice?: number | null;
+  /** Where the mark came from, e.g. "chainlink". */
+  markSource?: string | null;
+  /**
+   * The receipt showed our swap: the pinned router's Swapped log for this wallet, payment leaving
+   * the wallet, the stock coming out of a real Aerodrome pool, at a price within 3% of the mark.
+   * Only such buys are recorded; a record without it never counts.
+   */
+  verified?: boolean;
   blockNumber: number;
   blockTime: number;
   attributed: boolean;
@@ -126,6 +146,11 @@ export type BuyRejectReason =
   | 'not_attributed'
   | 'not_from_wallet'
   | 'no_stock_received'
+  | 'not_router_swap'
+  | 'payment_mismatch'
+  | 'not_from_pool'
+  | 'price_off_mark'
+  | 'cannot_verify_now'
   | 'not_member'
   | 'region_blocked';
 
@@ -135,6 +160,8 @@ export interface BuyRejectDoc {
   reason: BuyRejectReason;
   attributed: boolean | null;
   at: number;
+  /** What exactly failed, for whoever reads the log. */
+  detail?: string;
 }
 
 export interface TransferDoc {

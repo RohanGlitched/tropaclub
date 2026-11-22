@@ -65,7 +65,8 @@ export async function computeStats(ctx: ClubsContext, opts: { now?: number } = {
   ]);
   const ex = new Set(exclusions.map((e) => e.wallet));
   const ours = buys.filter((b) => !ex.has(b.wallet) && b.blockTime <= now);
-  const attributed = ours.filter((b) => b.attributed);
+  // only buys whose receipt showed our swap at a market price are counted anywhere on the stats page
+  const attributed = ours.filter((b) => b.attributed && b.verified === true);
   const notAttributed = rejects.filter((r) => r.reason === 'not_attributed' && !ex.has(r.wallet)).length;
   const wallets = [...new Set(attributed.map((b) => b.wallet))];
 

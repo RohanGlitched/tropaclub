@@ -33,6 +33,7 @@ export interface ClubsDeps {
   prices?: PriceSource;
   history?: WalletHistorySource;
   funding?: FundingSourceResolver;
+  poolCheck?: import('./chain/pools').PoolCheck;
   geo?: GeoPolicy;
   now?: () => number;
   config?: Partial<ClubsConfig>;
@@ -64,6 +65,7 @@ export function createClubsService(deps: ClubsDeps) {
     prices: deps.prices,
     history: deps.history,
     funding: deps.funding,
+    poolCheck: deps.poolCheck,
     ...(deps.geo ? { geo: deps.geo } : {}),
     ...(deps.now ? { now: deps.now } : {}),
     config: defaultConfig(deps.config),
@@ -131,7 +133,7 @@ export function createClubsService(deps: ClubsDeps) {
       markAt: async (token, t) => (await prices.markAt(token, t))?.usd ?? null,
       now: ctx.now(),
       symbols: ctx.config.tokens,
-      tropaBuys: new Map(mine.filter((b) => b.usdIn != null).map((b) => [b.txHash, b.usdIn!])),
+      tropaBuys: new Map(mine.filter((b) => b.verified === true && b.usdIn != null).map((b) => [b.txHash, b.usdIn!])),
     });
   }
 
@@ -160,6 +162,8 @@ export function createClubsService(deps: ClubsDeps) {
     getInvite: (i: Parameters<typeof clubs.getInvite>[1]) => clubs.getInvite(ctx, i),
     getClub: (id: string) => clubs.getClub(ctx, id),
     listClubs: (kind?: ClubDoc['kind']) => clubs.listClubs(ctx, kind),
+    /** Server-side only (no API route): hide a club from every public list. */
+    setClubHidden: (clubId: string, hidden: boolean, reason?: string) => clubs.setClubHidden(ctx, clubId, hidden, reason),
     walletClubs: (wallet: string) => clubs.walletClubs(ctx, wallet),
     getClubPage,
     // buys
@@ -236,5 +240,6 @@ export async function createProductionClubs(opts: { indexUrl?: string } = {}): P
     ? new hist.EtherscanHistorySource({ ethUsd: (bn) => chain.ethUsd(BigInt(bn)) })
     : new hist.RpcHistorySource(chain, { tokens: [...tokens.keys()] });
   const funding = hasEs ? new fund.EtherscanFundingResolver() : undefined;
-  return createClubsService({ store, chain, prices, history, funding, config: { tokens } });
+  const { indexerPoolCheck } = await import('./chain/pools');
+  return createClubsService({ store, chain, prices, history, funding, poolCheck: indexerPoolCheck(), config: { tokens } });
 }

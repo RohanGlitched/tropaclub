@@ -7,6 +7,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
 import { fmtInt } from '@/lib/format';
+import { isListedClub, publicName } from '@tropaclub/clubs';
 import { DOCS_URL, OPENS, RULE_LINE } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -25,11 +26,18 @@ export default async function LeaguePage() {
   ]);
   const byId = new Map((data?.clubs ?? []).map((c) => [c.id, c]));
   const crest = (id: string, seed: string) => crestOf(byId.get(id) ?? { crestSeed: seed });
-  const league = (data?.league.rows ?? []).map((r) => ({ ...r, crest: crest(r.clubId, r.crestSeed), note: r.form.length ? `Form ${r.form.slice(-5).join(' ')}` : null }));
-  const pre = (data?.pre ?? []).map((r) => ({ ...r, crest: crest(r.clubId, r.crestSeed), note: null }));
+  // Names are public here: cleaned and capped, and a hidden club, or one whose name is not allowed, is never named.
+  const shown = (id: string, name: string) => {
+    const c = byId.get(id);
+    return c && c.kind !== 'stock' && (c.hidden === true || !isListedClub({ ...c, memberCount: Math.max(c.memberCount, 2) })) ? 'Name withheld' : publicName(name);
+  };
+  const league = (data?.league.rows ?? []).map((r) => ({ ...r, name: shown(r.clubId, r.name), crest: crest(r.clubId, r.crestSeed), note: r.form.length ? `Form ${r.form.slice(-5).join(' ')}` : null }));
+  const pre = (data?.pre ?? []).map((r) => ({ ...r, name: shown(r.clubId, r.name), crest: crest(r.clubId, r.crestSeed), note: null }));
   const sup = (data?.sup.rows ?? []).filter((r) => r.members > 0).map((r) => ({ ...r, crest: crest(r.clubId, r.crestSeed), note: r.stockSymbol }));
   const season = league.length > 0;
-  const founding = (data?.clubs ?? []).filter((c) => c.kind !== 'stock').sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
+  const founded = (data?.clubs ?? []).filter((c) => c.kind !== 'stock');
+  // A club is listed once it has a second member or a member has made a qualifying buy.
+  const founding = founded.filter((c) => isListedClub(c)).sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
   const stock = new Map((data?.clubs ?? []).filter((c) => c.kind === 'stock').map((c) => [c.stockSymbol, c]));
   const stockRows = index.tokens.map((t) => ({ symbol: t.symbol, name: t.name, realFans: t.realFans, supporters: stock.get(t.symbol)?.memberCount ?? 0, playing: stock.get(t.symbol)?.playingCount ?? 0 }));
 
@@ -63,13 +71,13 @@ export default async function LeaguePage() {
               <h2 className="h3 table-title">Founding clubs</h2>
               {founding.length ? (
                 <>
-                  <p className="muted">Clubs founded before the first gameweek, in the order they were founded. A club needs three members to enter the table.</p>
+                  <p className="muted">Clubs founded before the first gameweek, in the order they were founded. A club is listed once a second member joins or a member buys, and needs three members to enter the table.</p>
                   <ol className="founding">
                     {founding.slice(0, 30).map((c, i) => (
                       <li key={c.id}>
                         <span className="founding-no num">No. {i + 1}</span>
                         <Pennant kit={crestOf(c)} width={20} />
-                        <Link href={`/club/${c.id}`} prefetch={false}>{c.name}</Link>
+                        <Link href={`/club/${c.id}`} prefetch={false}>{publicName(c.name)}</Link>
                         <span className="founding-n">{fmtInt(c.memberCount)} {c.memberCount === 1 ? 'member' : 'members'}{c.memberCount < 3 ? `, ${3 - c.memberCount} more to enter the table` : ''}</span>
                       </li>
                     ))}
@@ -77,9 +85,9 @@ export default async function LeaguePage() {
                   {founding.length > 30 && <p className="muted small">And {fmtInt(founding.length - 30)} more.</p>}
                 </>
               ) : (
-                <p className="notice">No club has been founded yet. The first one is listed here as founding club No. 1.</p>
+                <p className="notice">{founded.length ? 'No club has a second member yet. A club is listed here once one joins or a member buys.' : 'No club has been founded yet. The first one is listed here as founding club No. 1.'}</p>
               )}
-              <p className="after-table"><Link className="btn btn-accent" href="/clubs#start">Found club No. {fmtInt(founding.length + 1)}</Link></p>
+              <p className="after-table"><Link className="btn btn-accent" href="/clubs#start">Found club No. {fmtInt(founded.length + 1)}</Link></p>
             </div>
             <div className="split-text">
               <h2 className="h3 table-title">A Matchday, in preview</h2>

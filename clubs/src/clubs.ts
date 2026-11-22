@@ -4,23 +4,44 @@ import { newCrestSeed, stockClubId, stockClubName } from './crest';
 import { AlreadyExistsError, inc } from './store/docstore';
 import { COL, type ClubDoc, type ClubKind, type ClubSecretDoc, type InviteDoc, type MemberDoc, type WalletDoc } from './types';
 import { ClubsError, newId, normAddr, randomCode } from './util';
+import { MAX_CLUB_NAME, type NameProblem, cleanName, nameProblem } from './names';
 
 export const memberId = (clubId: string, wallet: string) => `${clubId}__${wallet.toLowerCase()}`;
 
+const NAME_MESSAGES: Record<NameProblem, string> = {
+  empty: 'Club names are 2 to 40 characters.',
+  too_long: 'Club names are 2 to 40 characters.',
+  link: 'Club names cannot contain links or handles.',
+  reserved: 'Club names cannot use Base, Coinbase, Tropa, official, admin, support or team.',
+  abusive: 'That club name is not allowed. Pick another.',
+};
+
+/** NFKC, invisible and control characters stripped, 2 to 40 characters, no reserved or abusive words. */
 export function validateClubName(name: string): string {
-  const n = name.replace(/\s+/g, ' ').trim();
-  if (n.length < 2 || n.length > 40) throw new ClubsError('bad_name', 'Club names are 2 to 40 characters.');
-  if (/https?:|www\.|\.(com|xyz|io|gg)\b|@/i.test(n)) throw new ClubsError('bad_name', 'Club names cannot contain links or handles.');
+  const n = cleanName(name);
+  const problem = nameProblem(n, { min: 2, max: MAX_CLUB_NAME });
+  if (problem) throw new ClubsError('bad_name', NAME_MESSAGES[problem]);
   return n;
 }
 
 export function validateNickname(nick: string | null | undefined): string | null {
   if (nick == null) return null;
-  const n = nick.replace(/\s+/g, ' ').trim();
+  const n = cleanName(nick);
   if (!n) return null;
-  if (n.length > 20) throw new ClubsError('bad_nickname', 'Nicknames are up to 20 characters.');
-  if (/https?:|www\.|@/i.test(n)) throw new ClubsError('bad_nickname', 'Nicknames cannot contain links or handles.');
+  const problem = nameProblem(n, { min: 1, max: 20 });
+  if (problem === 'too_long') throw new ClubsError('bad_nickname', 'Nicknames are up to 20 characters.');
+  if (problem === 'link') throw new ClubsError('bad_nickname', 'Nicknames cannot contain links or handles.');
+  if (problem) throw new ClubsError('bad_nickname', 'That nickname is not allowed. Pick another.');
   return n;
+}
+
+/**
+ * Hide a club from every public list, or show it again. Server-side only: no API route sets it,
+ * and the clubs collection is never written by clients (firestore.rules).
+ */
+export async function setClubHidden(ctx: ClubsContext, clubId: string, hidden: boolean, reason?: string): Promise<void> {
+  if (!(await ctx.store.get<ClubDoc>(COL.clubs, clubId))) throw new ClubsError('club_not_found', 'Club not found.', 404);
+  await ctx.store.update(COL.clubs, clubId, { hidden, hiddenReason: hidden ? (reason ?? null) : null, hiddenAt: hidden ? ctx.now() : null });
 }
 
 export async function ensureWallet(ctx: ClubsContext, wallet: string): Promise<WalletDoc> {

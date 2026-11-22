@@ -20,7 +20,9 @@ export const GET = (req: Request, ctx: { params: Promise<{ address: string }> })
       return ok({ status: 'ready', statement, countedAt: job.countedAt ?? null, source: job.source ?? null });
     }
     if (job.state === 'empty') return ok({ status: 'empty' });
-    if (job.state === 'holdings') return ok({ status: 'holdings', holdings: job.holdings ?? [], countedAt: job.countedAt ?? null });
+    if (job.state === 'holdings') return ok({ status: 'holdings', reason: job.holdingsReason ?? 'too_active', holdings: job.holdings ?? [], countedAt: job.countedAt ?? null });
+    // too many statements are reading the chain, or this one needs more reads than one may make
+    if (job.state === 'busy') return ok({ status: 'busy', holdings: job.holdings ?? [], countedAt: job.countedAt ?? null });
     if (job.state === 'failed') return ok({ status: 'failed' });
     return ok({ status: 'pending', step: job.step, done: job.done, total: job.total, seconds });
   });

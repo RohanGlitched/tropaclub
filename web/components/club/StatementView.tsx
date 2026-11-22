@@ -111,8 +111,39 @@ type State =
   | { status: 'pending'; step: string; done: number; total: number; seconds: number }
   | { status: 'ready'; statement: Statement; countedAt?: string | null }
   | { status: 'empty' }
-  | { status: 'holdings'; holdings: { symbol: string; usd: number }[]; countedAt?: string | null }
+  | { status: 'holdings'; reason?: 'too_active' | 'pool' | 'contract'; holdings: { symbol: string; usd: number }[]; countedAt?: string | null }
+  | { status: 'busy'; holdings: { symbol: string; usd: number }[]; countedAt?: string | null }
   | { status: 'failed' };
+
+type Holding = { symbol: string; usd: number };
+
+/** What a wallet holds now, from the last count: shown when its lots are not worked out. */
+function HoldingsTable({ holdings }: { holdings: Holding[] }) {
+  const total = holdings.reduce((sum, h) => sum + h.usd, 0);
+  if (!holdings.length) return null;
+  return (
+    <div className="programme-stage">
+      <article className="programme" aria-label="Current holdings">
+        <table className="programme-table">
+          <caption className="sr">Stock tokens this address holds now</caption>
+          <thead><tr><th scope="col">Token</th><th scope="col" className="r">Value now</th></tr></thead>
+          <tbody>
+            {holdings.map((h) => (
+              <tr key={h.symbol}><th scope="row" data-label="Token">{h.symbol}</th><td className="r num" data-label="Value now">{fmtUsd(h.usd)}</td></tr>
+            ))}
+          </tbody>
+          <tfoot><tr><th scope="row">Total</th><td className="r num">{fmtUsd(total)}</td></tr></tfoot>
+        </table>
+      </article>
+    </div>
+  );
+}
+
+const HOLDINGS_COPY: Record<'too_active' | 'pool' | 'contract', { title: string; body: string }> = {
+  too_active: { title: 'Too many transfers to itemise', body: 'This wallet has made more than 1,000 stock-token transfers, so its lots and cost basis are not worked out here. What it holds now is shown instead' },
+  pool: { title: 'A trading pool, not a wallet', body: 'This address is a DEX pool. Its transfers are trades by everyone who uses it, so it has no lots or cost basis of its own. What it holds now is shown instead' },
+  contract: { title: 'A contract, not a wallet', body: 'This address is a contract, not a person’s wallet, so no lots or cost basis are worked out for it. What it holds now is shown instead' },
+};
 
 /** How long to wait for a statement before saying its history is being prepared. */
 const SLOW_AFTER_MS = 10_000;
@@ -177,28 +208,23 @@ export default function StatementView({ address }: { address: string }) {
     );
   }
   if (state.status === 'holdings') {
-    const total = state.holdings.reduce((sum, h) => sum + h.usd, 0);
+    const copy = HOLDINGS_COPY[state.reason ?? 'too_active'];
     return (
       <div className="statement-state">
-        <h2 className="h3">Too many transfers to itemise</h2>
-        <p>This wallet has made more than 1,000 stock-token transfers, so its lots and cost basis are not worked out here. What it holds now is shown instead{state.countedAt ? `, as counted ${fmtDate(state.countedAt, true)}` : ''}.</p>
-        {state.holdings.length > 0 && (
-          <div className="programme-stage">
-            <article className="programme" aria-label="Current holdings">
-              <table className="programme-table">
-                <caption className="sr">Stock tokens this wallet holds now</caption>
-                <thead><tr><th scope="col">Token</th><th scope="col" className="r">Value now</th></tr></thead>
-                <tbody>
-                  {state.holdings.map((h) => (
-                    <tr key={h.symbol}><th scope="row" data-label="Token">{h.symbol}</th><td className="r num" data-label="Value now">{fmtUsd(h.usd)}</td></tr>
-                  ))}
-                </tbody>
-                <tfoot><tr><th scope="row">Total</th><td className="r num">{fmtUsd(total)}</td></tr></tfoot>
-              </table>
-            </article>
-          </div>
-        )}
+        <h2 className="h3">{copy.title}</h2>
+        <p>{copy.body}{state.countedAt ? `, as counted ${fmtDate(state.countedAt, true)}` : ''}.</p>
+        <HoldingsTable holdings={state.holdings} />
         <p className="closing-links"><Link className="btn" href={`/ticket/${address}`}>See this wallet</Link></p>
+      </div>
+    );
+  }
+  if (state.status === 'busy') {
+    return (
+      <div className="statement-state" role="status" aria-live="polite">
+        <h2 className="h3">Statements are busy just now</h2>
+        <p>Other wallets are being read from Base at the moment, or this one needs more reading than one statement is allowed at a time. No figures are guessed. What this wallet holds now is shown below{state.countedAt ? `, as counted ${fmtDate(state.countedAt, true)}` : ''}. Try again in a minute for the full statement.</p>
+        <HoldingsTable holdings={state.holdings} />
+        <p className="closing-links"><button type="button" className="btn btn-accent" onClick={retry}>Try again</button><Link className="btn" href={`/ticket/${address}`}>See this wallet</Link></p>
       </div>
     );
   }

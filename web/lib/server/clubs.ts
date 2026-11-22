@@ -89,7 +89,7 @@ export async function playedStamps(wallet: string, ms = 2500): Promise<{ byToken
   const none = { byToken: new Map<string, string>(), badge: null as string | null };
   const r = await tryClubs(async (svc) => {
     const w = wallet.toLowerCase();
-    const buys = (await svc.ctx.store.query<BuyDoc>(COL.buys, { where: [['wallet', '==', w]] })).filter((b) => b.qualifies && b.attributed && !b.wash && !b.excluded && b.gw);
+    const buys = (await svc.ctx.store.query<BuyDoc>(COL.buys, { where: [['wallet', '==', w]] })).filter((b) => b.verified === true && b.qualifies && b.attributed && !b.wash && !b.excluded && b.gw);
     if (!buys.length) return none;
     const byToken = new Map<string, string>();
     for (const b of buys.sort((x, y) => x.blockTime - y.blockTime)) byToken.set(b.token.toLowerCase(), `Played ${b.gw}`);
@@ -162,7 +162,7 @@ async function demo(): Promise<ClubsService> {
     const doc: BuyDoc = {
       txHash, wallet, clubId, token: t.address.toLowerCase(), symbol: t.symbol, rawAmount: raw.toString(), usdIn: usd, usdSource: 'usdc', priceAtBuy: price,
       blockNumber: 60_500_000 + n, blockTime: at, attributed: true, codes: ['bc_vdp89s9b'], via: 'tx', qualifies: usd >= 10, wash: false, excluded: false,
-      priorBalanceRaw: '0', gw: 'GW0', recordedAt: at + 30, source: 'client', notes: ['sample'],
+      priorBalanceRaw: '0', gw: 'GW0', recordedAt: at + 30, source: 'client', notes: ['sample'], verified: true, fillPrice: price, markSource: 'sample',
     };
     await store.set(COL.buys, txHash, doc);
     const tr: TransferDoc = { id: `${txHash}_0`, wallet, token: doc.token, dir: 'in', raw: raw.toString(), blockNumber: doc.blockNumber, blockTime: at, txHash, logIndex: 0, counterparty: '0x6131b5fae19ea4f9d964eac0408e4408b66337b5', tropa: true };

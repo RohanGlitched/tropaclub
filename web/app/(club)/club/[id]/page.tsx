@@ -6,6 +6,7 @@ import { InviteBox, JoinButton, Roster } from '@/components/club/Actions';
 import { Crest, Pennant } from '@/components/ds/Pennant';
 import Scoreboard from '@/components/ds/Scoreboard';
 import type { Member } from '@/components/ds/TeamSheet';
+import { isListedClub, publicName } from '@tropaclub/clubs';
 import { crestOf, tryClubs } from '@/lib/server/clubs';
 import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
@@ -18,7 +19,10 @@ type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const club = await tryClubs((svc) => svc.getClub(decodeURIComponent(id)), 8000);
-  return club ? { title: `${club.name}: team sheet and Matchday`, description: `${club.name} on Tropa Club: ${club.memberCount} members, ${club.playingCount} playing. $10 a week in stocks with the group chat.` } : { title: 'Club' };
+  if (!club) return { title: 'Club' };
+  const name = publicName(club.name);
+  // a club that is not on the public lists stays out of search results too
+  return { title: `${name}: team sheet and Matchday`, description: `${name} on Tropa Club: ${club.memberCount} members, ${club.playingCount} playing. $10 a week in stocks with the group chat.`, ...(isListedClub(club) ? {} : { robots: { index: false, follow: false } }) };
 }
 
 const KIND: Record<string, string> = { private: 'Private club', pickup: 'Pick-up club', stock: 'Stock club' };

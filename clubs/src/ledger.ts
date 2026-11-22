@@ -9,7 +9,7 @@ export interface WalletLedger {
   transfers: TransferDoc[];
   flows: Flow[];
   prior: Record<string, { raw: bigint; at: number }>;
-  /** Buys that count: attributed, >= min USD, wallet not excluded, and not in a wash pattern (re-checked). */
+  /** Buys that count: verified as our swap, attributed, >= min USD, wallet not excluded, and not in a wash pattern (re-checked). */
   qualifying: BuyDoc[];
   wash: Set<string>;
   excluded: boolean;
@@ -27,7 +27,7 @@ export async function loadLedger(ctx: ClubsContext, wallet: string): Promise<Wal
     isExcluded(ctx, w),
   ]);
   buys.sort((a, b) => a.blockTime - b.blockTime);
-  const price = new Map(buys.map((b) => [b.txHash, b.priceAtBuy]));
+  const price = new Map(buys.filter((b) => b.verified === true).map((b) => [b.txHash, b.priceAtBuy]));
   const flows: Flow[] = transfers.map((t) => ({
     t: t.blockTime,
     token: t.token,
@@ -36,6 +36,7 @@ export async function loadLedger(ctx: ClubsContext, wallet: string): Promise<Wal
     tropa: t.tropa,
     txHash: t.txHash,
     logIndex: t.logIndex,
+    // the mark at the buy's block (see BuyDoc.priceAtBuy), and only for a verified buy
     priceAtBuy: t.tropa ? price.get(t.txHash) ?? null : null,
   }));
   const prior: WalletLedger['prior'] = {};
@@ -50,13 +51,13 @@ export async function loadLedger(ctx: ClubsContext, wallet: string): Promise<Wal
     const fb = firstBuyAt.get(f.token);
     return fb !== undefined && (f.t > fb || (f.t === fb && (f.tropa || f.dir === 'out')));
   });
-  const attributed = buys.filter((b) => b.attributed);
+  const attributed = buys.filter((b) => b.attributed && b.verified === true);
   const wash = washBuys(
     attributed.map((b) => ({ txHash: b.txHash, token: b.token, t: b.blockTime })),
     transfers.filter((t) => t.dir === 'out').map((t) => ({ token: t.token, t: t.blockTime, txHash: t.txHash })),
   );
   const qualifying = buys.filter(
-    (b) => b.attributed && !excluded && !b.excluded && !b.wash && !wash.has(b.txHash) && (b.usdIn ?? 0) >= ctx.config.minBuyUsd,
+    (b) => b.verified === true && b.attributed && !excluded && !b.excluded && !b.wash && !wash.has(b.txHash) && (b.usdIn ?? 0) >= ctx.config.minBuyUsd,
   );
   return { wallet: w, buys, transfers, flows: scoped, prior, qualifying, wash, excluded };
 }

@@ -14,7 +14,8 @@ export const GET = (_req: Request, ctx: { params: Promise<{ address: string }> }
     const wallet = await sessionWallet();
     if (wallet !== address.toLowerCase()) return fail(403, 'Sign in with this wallet to download its statement.');
     const job = await statementStatus(address, 50_000);
-    if (job.state === 'holdings') return fail(404, 'This wallet has too many transfers to itemise, so there is no statement to download.');
+    if (job.state === 'holdings') return fail(404, job.holdingsReason === 'pool' || job.holdingsReason === 'contract' ? 'This address is a contract, not a wallet, so there is no statement to download.' : 'This wallet has too many transfers to itemise, so there is no statement to download.');
+    if (job.state === 'busy') return fail(503, 'Statements are busy just now. Try again in a minute.');
     if (job.state !== 'ready' || !job.value) return fail(job.state === 'empty' ? 404 : 503, job.state === 'empty' ? 'This wallet holds no stock tokens, so there is nothing to download.' : 'The statement is still being read from the chain. Try again in a minute.');
     const csv = statementCsv(job.value);
     return new Response(csv, {
