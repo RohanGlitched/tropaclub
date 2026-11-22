@@ -21,7 +21,7 @@ export const POST = (req: Request) =>
     if (!signedIn) return fail(401, 'Sign in with your wallet to record this buy.');
     if (signedIn !== wallet.toLowerCase()) return fail(403, 'You are signed in as a different wallet.');
     if (body?.notUsPerson !== true) return fail(400, 'Confirm that you are not a US person.');
-    const attribution = await within(verifyAttribution(txHash as `0x${string}`, { client: baseClient() }), 20_000, 'attribution check').catch(() => null);
+    const attribution = await within(verifyAttribution(txHash as `0x${string}`, { client: baseClient(), buyer: wallet.toLowerCase() }), 20_000, 'attribution check').catch(() => null);
     const clubs = await getClubs();
     const region = await regionOf(req.headers);
     // Every buyer ticks "I am not a US person" before the first buy. The answer is stored on the buy record.

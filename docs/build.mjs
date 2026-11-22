@@ -12,6 +12,9 @@ const BRAND = path.join(ROOT, '..', '..', 'brand');
 const SITE = 'https://docs.tropaclub.xyz';
 const MAIN_SITE = 'https://tropaclub.xyz';
 const X_URL = 'https://x.com/tropaclubxyz';
+// One set of rule values, shared with the web copy (web/lib/site.ts reads the same file).
+const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'web', 'lib', 'rules.json'), 'utf8'));
+const fillRules = (t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in RULES ? String(RULES[k]) : m));
 
 const NAV = [
   { group: 'Get started', items: ['index'] },
@@ -77,7 +80,7 @@ function loadPages() {
     const m = raw.match(/^<!--meta (\{[\s\S]*?\})-->\n?/);
     if (!m) throw new Error(`${f}: missing meta line`);
     const meta = JSON.parse(m[1]);
-    raw = raw.slice(m[0].length);
+    raw = fillRules(raw.slice(m[0].length));
     const lede = (raw.match(/<p class="lede">([\s\S]*?)<\/p>/) || [])[1] || '';
     raw = raw.replace(/<p class="lede">[\s\S]*?<\/p>\n?/, '');
     pages[meta.slug] = { ...meta, body: raw, lede };

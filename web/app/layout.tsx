@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   ],
 };
 
-const themeScript = `(function(){var d=document.documentElement;try{var q=new URLSearchParams(location.search).get('theme');var t=q||localStorage.getItem('tropa-theme');if(t==='light'||t==='dark')d.dataset.theme=t;}catch(e){}try{var m=document.cookie.match(/(?:^|; )tc_region=(us|ok|unknown)/);d.dataset.region=m?(m[1]==='us'?'restricted':m[1]):'pending';}catch(e){d.dataset.region='pending';}})();`;
+const themeScript = `(function(){var d=document.documentElement;try{var q=new URLSearchParams(location.search).get('theme');var t=q||localStorage.getItem('tropa-theme');if(t==='light'||t==='dark')d.dataset.theme=t;}catch(e){}try{var m=document.cookie.match(/(?:^|; )tc_region=(us|blocked|ok|unknown)/);d.dataset.region=m?(m[1]==='us'||m[1]==='blocked'?'restricted':m[1]):'pending';}catch(e){d.dataset.region='pending';}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

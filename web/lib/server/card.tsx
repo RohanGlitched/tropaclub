@@ -8,6 +8,7 @@ import { clubName, kitFor, PALETTE as C, type Kit } from '../clubs';
 import { fmtDate, fmtInt, shortAddr } from '../format';
 import { barcode, barcodeWidth, seatIndexFor, statSentence } from '../ticket';
 import { seatLabel } from '../stadium';
+import { notAffiliated } from '@/lib/site';
 
 const ASSETS = path.join(process.cwd(), 'assets');
 let fontsP: Promise<{ name: string; data: Buffer; weight: 500 | 600 | 700; style: 'normal' }[]> | null = null;
@@ -128,7 +129,8 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
   const pennant = uri(pennantSvg(kit));
   const bars = uri(barsSvg(address));
   const stat = statSentence(entry.bestStat);
-  const fine = `${token.symbol} is a stock token that tracks the share price. Past performance · not advice.`;
+  // no company logos are drawn on these pictures: our own lockup, a pennant and the ground only
+  const fine = notAffiliated(token.name);
 
   if (variant === 'landscape') {
     const plan = uri(groundSvg(token.holdersTotal, token.realFans, kit, idx, C.midnight));
@@ -152,7 +154,7 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
             <SeatCells {...input} big={68} />
             <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
               <div style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1 }}>{stat}</div>
-              <div style={{ fontSize: 17, fontWeight: 500, marginTop: 8, opacity: 0.72 }}>{fine}</div>
+              <div style={{ fontSize: 16, fontWeight: 500, marginTop: 8, opacity: 0.72 }}>{fine}</div>
               {stamp ? (
                 <div style={{ display: 'flex', position: 'absolute', right: 0, top: -262 }}>
                   <Stamp stamp={stamp} badge={badge} size={30} />
@@ -207,9 +209,9 @@ export async function ticketCard(input: CardInput, variant: 'landscape' | 'portr
           <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: 1 }}>{shortAddr(address)}</div>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontSize: 20, fontWeight: 600, color: C.label }}>
-        <div>tropaclub.xyz</div>
+      <div style={{ display: 'flex', flexDirection: 'column', marginTop: 18, fontSize: 20, fontWeight: 600, color: C.label }}>
         <div>{fine}</div>
+        <div style={{ marginTop: 6 }}>tropaclub.xyz</div>
       </div>
     </div>
   );

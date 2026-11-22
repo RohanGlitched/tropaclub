@@ -72,7 +72,8 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
               type="button"
               className="btn btn-accent buy-cta-btn"
               onClick={() => {
-                setUs(document.documentElement.dataset.region === 'restricted');
+                // a blocked region, or one that could not be told: no buying (pages stay open)
+                setUs(['restricted', 'unknown'].includes(document.documentElement.dataset.region ?? ''));
                 setLoaded(true);
                 setSheet(true);
               }}
@@ -92,7 +93,7 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
           </>
         )}
       </div>
-      <p className="us-only notice"><b>Not available to US persons.</b> Buying is not offered in the United States. Everything else here stays open.</p>
+      <p className="us-only notice"><b>Buying isn't available in your region.</b> Everything else here stays open.</p>
       {loaded && (standalone ? <BuyStandalone open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} /> : <BuySheet open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} />)}
     </div>
   );

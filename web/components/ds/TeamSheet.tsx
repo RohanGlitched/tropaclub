@@ -55,7 +55,7 @@ export default function TeamSheet({ members, kit, onCallUp, callUpOff, playingLa
       <section aria-label={benchLabel}>
         <h4>{benchLabel} <span className="num">{bench.length}</span></h4>
         {bench.length === 0 ? (
-          <p className="sheet-empty">Nobody on the Bench. Full team this week.</p>
+          <p className="sheet-empty">{members.length === 0 ? 'No members yet. Invite people to take a seat on the Bench.' : 'Nobody on the Bench. Full team this week.'}</p>
         ) : (
           <ul>
             {bench.map((m) => (

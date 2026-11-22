@@ -143,7 +143,7 @@ export async function recordBuy(
   if (gate) await logGeoDecision(ctx, { country: gate.country, decision: 'allow', reason: gate.reason, surface: 'record_buy' });
   if (!receiptOk(receipt)) return reject(ctx, txHash, wallet, 'reverted', null);
 
-  const attribution = await chain.verifyAttribution(txHash);
+  const attribution = await chain.verifyAttribution(txHash, wallet);
   if (!attribution.attributed) return reject(ctx, txHash, wallet, 'not_attributed', false);
 
   const tx = await chain.getTransaction(txHash);
@@ -360,7 +360,7 @@ export async function sweepTransfers(
       inbound++;
       if (!(await ctx.store.get<BuyDoc>(COL.buys, l.txHash)) && !seenTx.has(l.txHash)) {
         seenTx.add(l.txHash);
-        const att = await chain.verifyAttribution(l.txHash).catch(() => null);
+        const att = await chain.verifyAttribution(l.txHash, l.to).catch(() => null);
         if (att?.attributed) {
           const r = await recordBuy(ctx, { txHash: l.txHash, wallet: l.to, clubId: null, source: 'sweep' });
           if (r.ok) {

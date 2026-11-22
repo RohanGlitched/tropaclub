@@ -19,10 +19,20 @@ describe('geo', () => {
   it('self-certified US persons are blocked anywhere', () => {
     expect(buyGate(policy, 'BR', { selfCertifiedUsPerson: true })).toMatchObject({ allowed: false, reason: 'self_certified_us' });
   });
+  it('blocks sanctioned countries, Tor exits and an unknown country by default, whatever GEO_BLOCKED adds', () => {
+    const prev = process.env.GEO_BLOCKED;
+    process.env.GEO_BLOCKED = 'NG';
+    const p = createGeoPolicy();
+    for (const c of ['US', 'PR', 'CU', 'IR', 'KP', 'SY', 'RU', 'BY', 'T1', 'NG']) expect(buyGate(p, c)).toMatchObject({ allowed: false, reason: 'blocked_country' });
+    expect(buyGate(p, null)).toMatchObject({ allowed: false, reason: 'unknown_country' });
+    expect(buyGate(p, 'BR')).toMatchObject({ allowed: true });
+    if (prev === undefined) delete process.env.GEO_BLOCKED;
+    else process.env.GEO_BLOCKED = prev;
+  });
   it('reads the country from edge headers (Headers or plain object), ignoring unknown codes', () => {
     expect(countryFromHeaders(new Headers({ 'x-appengine-country': 'br' }))).toBe('BR');
     expect(countryFromHeaders({ 'cf-ipcountry': 'XX', 'x-vercel-ip-country': 'ph' })).toBe('PH');
-    expect(countryFromHeaders({ 'cf-ipcountry': 'T1' })).toBeNull();
+    expect(countryFromHeaders({ 'cf-ipcountry': 'T1' })).toBe('T1');
     expect(countryFromHeaders({})).toBeNull();
   });
   it('maps countries to regions for matching', () => {

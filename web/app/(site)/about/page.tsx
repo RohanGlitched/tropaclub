@@ -5,7 +5,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { getIndex, getStats } from '@/lib/server/data';
 import { groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt } from '@/lib/format';
-import { BUILDER_CODE, CHANGELOG, OPENS, UPCOMING, X_URL, DOCS_URL } from '@/lib/site';
+import { BUILDER_CODE, CHANGELOG, OPENS, PAY_WITH, REAL_FAN_LINE, RULE_LINE, STREAK_SHORT, UPCOMING, X_URL, DOCS_URL } from '@/lib/site';
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export default async function AboutPage() {
         <section className="wrap page-head">
           <h1>How Tropa Club works</h1>
           <p className="lede">
-            Stock tokens on Base report tens of thousands of holders. Most of those wallets hold cents. Tropa Club counts the ones who are really there, gives each a seat, and from {OPENS} lets them form clubs that put $10 a week in together.
+            Stock tokens on Base report tens of thousands of holders. Most of those wallets hold cents. Tropa Club counts the ones who are really there, gives each a seat, and from {OPENS} lets them form clubs with their group chats that put $10 a week in together.
           </p>
         </section>
 
@@ -40,7 +40,7 @@ export default async function AboutPage() {
           <div className="prose">
             <h2 id="idea">The idea</h2>
             <p>
-              Every stock token is treated as a football club, and every wallet holding it as a seat in that club&rsquo;s ground. A club such as &ldquo;{top.name} FC&rdquo; has sold {fmtInt(top.holdersTotal)} tickets, but only {fmtInt(top.realFans)} fans are in the ground. The picture makes one point: a holder count is not a crowd.
+              Every stock token is treated as a football club, and every wallet holding it as a seat in that stock&rsquo;s ground. A stock club such as &ldquo;{top.name} FC&rdquo; has sold {fmtInt(top.holdersTotal)} tickets, but only {fmtInt(top.realFans)} fans are in the ground. The picture makes one point: a holder count is not a crowd.
             </p>
             <div className="rail" aria-hidden="true">
               {index.tokens.slice(0, 8).map((t, i) => (
@@ -63,7 +63,7 @@ export default async function AboutPage() {
 
             <h2 id="seats">Seats and tickets</h2>
             <p>
-              Each ground is drawn to hold exactly its holders: a rounded bowl of rows around a pitch, split into 16 blocks per tier. Big clubs get two tiers. Small clubs get a small ground.
+              Each ground is drawn to hold exactly its holders: a rounded bowl of rows around a pitch, split into 16 blocks per tier. Big grounds get two tiers. Small ones get one.
             </p>
             <p>
               Real fans are ranked by unbroken days held, then by who bought first. Rank one takes the best seat, pitchside at halfway, and the rest fill outward with a little scatter, the way a real crowd sits. Ghost seats take what is left. <strong>How much a wallet holds never affects its rank or its seat.</strong> The top ten wallets own most of every token, so ranking by size would only ever show the same few.
@@ -75,7 +75,7 @@ export default async function AboutPage() {
             <div className="clubs-only">
               <h2 id="clubs">Clubs, from {OPENS}</h2>
               <p>
-                A club is a group of friends who each put $10 a week into stock tokens from their own wallets. $10 a week is the habit; $5 or more in a gameweek counts as played. Members who have not are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs sit in a separate Supporters table that ignores returns and ranks on turnout and streaks.
+                A club is a group of friends who each put $10 a week into stock tokens from their own wallets, paid in {PAY_WITH}. {RULE_LINE} {STREAK_SHORT} Members who have not played are on the Bench, and a teammate can call them up with one tap. Fixtures between private and pick-up clubs are decided on the median gameweek return of the members who played: three points for a win, one for a draw, and one more when 80% or more of the club played. Returns are status only: no prize ever depends on them. Stock clubs, one for each of the stocks, sit in a separate Supporters table that ignores returns and ranks on turnout and streaks. {REAL_FAN_LINE}
               </p>
               <p>Tropa Club holds no funds, takes no fee, and has no contract of its own in the path of your money.</p>
             </div>

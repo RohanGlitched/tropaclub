@@ -21,7 +21,7 @@ export const POST = (req: Request) =>
     const wallet = String(body?.wallet ?? '').toLowerCase();
     if (!/^0x[0-9a-f]{64}$/.test(txHash) || !isAddress(wallet)) return fail(400, 'Send the transaction hash and the wallet.');
     if (rateLimited('record', req, 30)) return fail(429, 'Too many requests. Wait a minute.');
-    const a = await within(verifyAttribution(txHash as `0x${string}`, { client: baseClient() }), 20_000, 'attribution check').catch(() => null);
+    const a = await within(verifyAttribution(txHash as `0x${string}`, { client: baseClient(), buyer: wallet.toLowerCase() }), 20_000, 'attribution check').catch(() => null);
     if (!a?.attributed || a.from?.toLowerCase() !== wallet) return ok({ recorded: false });
     const receipt = await within(baseClient().getTransactionReceipt({ hash: txHash as `0x${string}` }), 20_000, 'receipt').catch(() => null);
     const toRouter =

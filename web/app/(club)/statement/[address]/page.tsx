@@ -41,7 +41,7 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
             <h2>How to read it</h2>
             <dl className="defs">
               <div><dt>Lot</dt><dd>One purchase or receipt of a token. Lots are used up oldest first when you sell or send.</dd></div>
-              <div><dt>Cost basis</dt><dd>What the lot cost in dollars at the time, read from the payment in the same transaction.</dd></div>
+              <div><dt>Cost basis</dt><dd>What the lot cost in dollars at the time. A buy made through Tropa Club uses the market mark at that buy&rsquo;s block. Older history uses that day&rsquo;s price, labelled with its source (Chainlink close, pool average, last close or reference price). Otherwise it is the payment seen on chain in the same transaction.</dd></div>
               <div><dt>Basis unknown</dt><dd>The tokens arrived without a visible payment, such as a transfer from another wallet. Their value is shown, their result is not.</dd></div>
               <div><dt>Split</dt><dd>The token’s multiplier jumped by a whole number. Shares change, total basis does not.</dd></div>
               <div><dt>Stock dividend</dt><dd>A small rise in the multiplier. Shown as income, and as a new lot at that day’s value.</dd></div>

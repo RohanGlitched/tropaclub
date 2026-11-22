@@ -12,7 +12,7 @@ import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { OPENS, PLAY_USD, RULE_LINE, buyOpenAt } from '@/lib/site';
+import { OPENS, PLAY_USD, RULE_LINE, STREAK_SHORT, buyOpenAt } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -91,8 +91,8 @@ export default async function ClubPage({ params, searchParams }: Params) {
   const turnout = club.memberCount ? Math.round((played / club.memberCount) * 100) : 0;
   const callUpOff = !me?.member
     ? undefined
-    : region.us
-      ? 'Call-ups are not available to US persons.'
+    : region.blocked
+      ? "Call-ups aren't available in your region."
       : !md
         ? `Call-ups open with the first gameweek on ${OPENS}.`
         : !me.playedThisGw
@@ -171,6 +171,13 @@ export default async function ClubPage({ params, searchParams }: Params) {
 
         <div className="club-sheet" id="team">
           <h2 className="h3">Team sheet{md ? `, ${md.gw.id.replace('GW', 'gameweek ')}` : ''}</h2>
+          {members.length === 0 ? (
+            <div className="sheet-empty-club">
+              <h3>No members yet</h3>
+              <p>{me?.invite ? 'Nobody has taken a seat at this club yet. Send the invite link to your group chat and the first seat goes on the Bench.' : 'Nobody has taken a seat at this club yet. Be the first on the Bench: it is free and needs no buy.'}</p>
+              {me?.invite && <p><a className="btn btn-accent" href="#invite">Invite people</a></p>}
+            </div>
+          ) : (
           <Roster
             clubId={club.id}
             clubName={club.name}
@@ -180,7 +187,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
             playingLabel={md ? 'Played' : 'Playing'}
             joined={sp.joined === '1'}
           />
-          {members.length === 0 && <p className="notice">No members yet. Be the first on the Bench.</p>}
+          )}
         </div>
       </section>
 
@@ -214,7 +221,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
               <li><h3>Fixtures</h3><p>From gameweek 1, clubs of three or more are drawn against clubs their size. The higher median return among playing members takes three points.</p></li>
             </>
           )}
-          <li><h3>Payday streaks</h3><p>One buy of ${PLAY_USD} or more in any 14 days keeps a personal streak alive, with one free skip a month.</p></li>
+          <li><h3>Payday streaks</h3><p>{STREAK_SHORT}</p></li>
           <li><h3>Status, not prizes</h3><p>Scores are bragging rights. Nothing of value is ever handed out for a return.</p></li>
           <li><h3>Your records</h3><p>Every member can print their own cost-basis statement. {viewer ? <Link href={`/statement/${viewer}`}>Open yours</Link> : 'Connect a wallet to open yours.'}</p></li>
         </ul>

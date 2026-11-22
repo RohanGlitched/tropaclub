@@ -35,8 +35,8 @@ The hex example on the docs.base.org Builder Codes overview page appears to put 
 | `isBuyable(token, { client, announcements? })` | Returns `{ buyable, reason, reasons, mark, reopenGapRisk, corporateActions }`. |
 | `buildSwap(quote, { amountOutMin })` | Builds router calldata. It decodes Kyber's `minReturnAmount` and receiver and asserts both. |
 | `buildBuyCalls({ quote, swap, currentAllowance? })` | Returns the approve and swap calls. Every call ends in the suffix. |
-| `planSend(calls, from, capabilities)` | Returns a `wallet_sendCalls` request (with `capabilities.dataSuffix`) or sequential `eth_sendTransaction` requests. |
-| `verifyAttribution(txHash, { client })` | Returns `{ attributed, codes, via: 'tx' \| 'userop' \| 'none', innerOnly? }`. Handles EntryPoint v0.6, v0.7 and v0.8 `handleOps` matched to `UserOperationEvent`. |
+| `planSend(calls, from, capabilities, { code })` | Pure. `code` is `eth_getCode` at `from`. Wallet advertises `dataSuffix`: `wallet_sendCalls` with the capability and calls without our suffix (the wallet tags once). Contract or EIP-7702 account without it: `wallet_sendCalls` with the suffix on each inner call, or `kind: 'blocked'` (with `WALLET_CANT_TAG_MESSAGE`) if the wallet has no `wallet_sendCalls`. EOA without it: sequential suffixed `eth_sendTransaction` requests. |
+| `verifyAttribution(txHash, { client, buyer? })` | Returns `{ attributed, codes, via: 'tx' \| 'userop' \| 'none', match?, innerOnly?, from }`. Credits the suffix at the end of the tx input, of a userOp's callData (EntryPoint v0.6 / v0.7 / v0.8 `handleOps` and `handleAggregatedOps`, matched to `UserOperationEvent`), or of any inner call of the decoded account call (`execute`, the `executeBatch` variants, ERC-7579 `execute(bytes32,bytes)` single and batch). With `buyer`, only that sender's userOps count. `from` is the userOp sender for 4337. |
 | `simulateBuy({ sellToken, buyToken, sellAmount })` | Runs the full approve + swap via `eth_simulateV1`, funding a throwaway address through USDC storage slot 9. Returns `amountOut`, gas, policy checks and a decoded revert. |
 | `decodeRevert(data, message?)` | Turns a revert into one plain sentence. |
 | `AnnouncementWatcher`, `fetchAnnouncementLogs`, `evaluateCorporateActions` | Corporate-action state for a token. |
@@ -70,8 +70,9 @@ const guard = await guardMinOut({ token, quotedOut: quote.amountOut, sellToken: 
 if (!guard.quoteOk || !guard.unitCheck.ok) return showHold('Price is outside the 1.5% guard.');
 const swap = await buildSwap(quote, { amountOutMin: guard.amountOutMin });
 const calls = buildBuyCalls({ quote, swap, currentAllowance, sellSymbol: 'USDC', buySymbol: ok.symbol });
-const plan = planSend(calls, user, await provider.request({ method: 'wallet_getCapabilities', params: [user] }).catch(() => null));
-// plan.kind === 'sendCalls' ? provider.request(plan.request) : for (const r of plan.requests) await provider.request(r) (wait for each receipt)
+const caps = await provider.request({ method: 'wallet_getCapabilities', params: [user] }).catch(() => null);
+const plan = planSend(calls, user, caps, { code: await publicClient.getCode({ address: user }).catch(() => undefined) });
+// plan.kind === 'blocked' ? show plan.message, no buy : plan.kind === 'sendCalls' ? provider.request(plan.request) : for (const r of plan.requests) await provider.request(r) (wait for each receipt)
 ```
 
 After the tx confirms, call `verifyAttribution(hash, { client })` on the server and store `attributed` for /stats.

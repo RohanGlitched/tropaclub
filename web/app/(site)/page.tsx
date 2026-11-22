@@ -11,7 +11,7 @@ import { Pennant } from '@/components/ds/Pennant';
 import { getExamples, getIndex, getStats } from '@/lib/server/data';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
-import { OPENS, RULE_LINE } from '@/lib/site';
+import { OPENS, PAY_WITH, RULE_LINE, TAGLINE } from '@/lib/site';
 
 export const revalidate = 300;
 
@@ -43,12 +43,21 @@ export default async function Home() {
             tabs={tabs}
             initial={top.symbol}
             examples={examples}
+            pitch={TAGLINE}
             lede={
               <>
-                <strong className="num">{fmtInt(stats.realWallets)}</strong> real fans hold a seat across {tokens.length} clubs on Base{lastWeek ? <>, and <span className="num">{fmtInt(lastWeek.newBuyers)}</span> wallets bought for the first time last week</> : ''}. Every wallet holding a stock token is a seat in that stock&rsquo;s ground. The lit seats are the fans who are really there.
+                <strong className="num">{fmtInt(stats.realWallets)}</strong> real fans hold a seat across {tokens.length} stock grounds on Base{lastWeek ? <>, and <span className="num">{fmtInt(lastWeek.newBuyers)}</span> wallets bought for the first time last week</> : ''}. Every wallet holding a stock token is a seat in that stock&rsquo;s ground. The lit seats are the fans who are really there.
               </>
             }
           />
+        </section>
+
+        <section className="wrap how-strip" aria-label="How Tropa Club works">
+          <ol>
+            <li><b>1</b><span>Start a club with your group chat</span></li>
+            <li><b>2</b><span>Each member buys from their own wallet</span></li>
+            <li><b>3</b><span>Matchday scores the week</span></li>
+          </ol>
         </section>
 
         <section className="band" id="truth">
@@ -56,7 +65,7 @@ export default async function Home() {
             <div className="split-text">
               <h2>Who is in the ground</h2>
               <p>
-                {fmtInt(top.realFans)} wallets hold at least $10 of {top.symbol}, bought it themselves and belong to a person. Those are the seats lit in the plan above, and {fmtInt(top.newBuyers7d)} more wallets bought it for the first time in the last week.
+                {fmtInt(top.realFans)} wallets hold at least $10 of {top.symbol}, bought it themselves and belong to a person. Those are the seats lit in the plan above. Separately, {fmtInt(top.newBuyers7d)} wallets bought {top.symbol} for the first time in the last week, and some of them are already in that count.
               </p>
               <p>
                 An explorer counts every wallet with a balance above zero: {fmtInt(top.holdersTotal)} for {top.symbol}. Most of the difference is leftovers worth cents, giveaway recipients and contracts. Counting the fans apart gives an attendance of <strong className="num">{fmtPct(top.attendancePct)}</strong>, and a number that can grow for the right reason.
@@ -72,7 +81,7 @@ export default async function Home() {
             <div className="split-text">
               <h2>Your seat comes with a matchday ticket</h2>
               <p>
-                Paste any wallet. If it is one of the real fans, it gets a ticket for each club it supports: block, row and seat in that ground, and the one thing it does better than most of the crowd.
+                Paste any wallet. If it is one of the real fans, it gets a ticket for each ground it sits in: block, row and seat in that ground, and the one thing it does better than most of the crowd.
               </p>
               <ul className="ticks">
                 <li>Seats go by time held, then by who arrived first. Never by how much you hold.</li>
@@ -112,7 +121,7 @@ export default async function Home() {
               <li>
                 <div className="step-art" aria-hidden="true"><span className="tenner"><b>$10</b><small>a week</small></span></div>
                 <h3>Put in $10 a week</h3>
-                <p>Each member buys from their own wallet. {RULE_LINE} Tropa Club never holds the money and takes no fee.</p>
+                <p>Each member buys from their own wallet, paid in {PAY_WITH}. {RULE_LINE} Tropa Club never holds the money and takes no fee.</p>
               </li>
               <li>
                 <div className="step-art" aria-hidden="true">
@@ -151,7 +160,7 @@ export default async function Home() {
             </p>
           </div>
           <AttendanceTable rows={tokens.slice(0, 7)} controls={false} />
-          <p className="after-table"><Link className="btn" href="/attendance">See all {tokens.length} clubs</Link></p>
+          <p className="after-table"><Link className="btn" href="/attendance">See all {tokens.length} grounds</Link></p>
         </section>
 
         <section className="band" id="evidence">

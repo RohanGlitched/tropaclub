@@ -87,7 +87,7 @@
   <li><strong>Send.</strong>Wallets that support batched calls (<code>wallet_sendCalls</code>) get one request with the tag declared as a capability. Other wallets get the calls one after another as ordinary transactions, each with the tag already appended.</li>
   <li><strong>Verify.</strong>After the transaction confirms, the server checks the receipt and the tag, then counts the buy.</li>
 </ol>
-<p>You pay in USDC, ETH or another token the router accepts. In pre-launch simulations of a $10 USDC buy of NVDAc, the approval used about 56,000 gas and the swap about 451,000. Later buys skip the approval.</p>
+<p>You pay in USDC or ETH. In pre-launch simulations of a $10 USDC buy of NVDAc, the approval used about 56,000 gas and the swap about 451,000. Later buys skip the approval.</p>
 
 <h2 id="guard">The 1.5% guard<a class="anchor" href="#guard" aria-label="Link to The 1.5% guard">#</a></h2>
 <p>A swap is only as safe as its minimum output. The guard sets that minimum, in the token&rsquo;s raw units, to a fair price less <strong>1.5%</strong>. If the pool would give you less than that when the transaction runs, the swap reverts and your USDC stays where it is. A reverted transaction can still cost network gas.</p>

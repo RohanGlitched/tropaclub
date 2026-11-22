@@ -1,5 +1,7 @@
 // Region gate, server side. Buying and call-ups are hidden for the United States and its
-// territories (contest rules). Every read-only page is open everywhere.
+// territories (contest rules), for countries under comprehensive sanctions (CU, IR, KP, SY) and
+// RU and BY, and for Tor exits (T1). When the country cannot be told, buying is refused but every
+// page stays open. The list is the clubs engine's (createGeoPolicy), so both gates agree.
 //
 // Which headers are believed depends on how the request arrived (see lib/hosts.ts):
 //   through Firebase Hosting (our own host, and the connecting peer is a Google proxy address): its x-country-code if present, else the visitor IP
@@ -12,6 +14,7 @@ import 'server-only';
 import path from 'node:path';
 import { headers } from 'next/headers';
 import type { CountryResponse, Reader } from 'maxmind';
+import { createGeoPolicy } from '@tropaclub/clubs';
 import { allowedHost } from '@/lib/hosts';
 
 export const US_AND_TERRITORIES = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM']);
@@ -43,7 +46,8 @@ export function clientIp(h: HeaderBag): string | null {
 export async function countryOf(h: HeaderBag): Promise<string | null> {
   if (allowedHost(h)) {
     const c = h.get('x-country-code')?.trim().toUpperCase();
-    if (c && /^[A-Z]{2}$/.test(c) && c !== 'ZZ' && c !== 'XX' && c !== 'T1') return c;
+    // T1 is a Tor exit: kept as the country, so the gate blocks it
+    if (c && /^[A-Z][A-Z0-9]$/.test(c) && c !== 'ZZ' && c !== 'XX') return c;
   }
   const ip = clientIp(h);
   if (!ip) return null;
@@ -58,17 +62,26 @@ export async function countryOf(h: HeaderBag): Promise<string | null> {
 export const gateOff = () => process.env.REGION_GATE === 'off';
 export const isUs = (country: string | null) => !gateOff() && !!country && US_AND_TERRITORIES.has(country);
 
+let policy: ReturnType<typeof createGeoPolicy> | null = null;
+/** Is buying refused for this country (null = could not be told)? */
+export const buyBlocked = (country: string | null) => !gateOff() && (!country || (policy ??= createGeoPolicy()).blocked.has(country));
+
 export interface Region {
   country: string | null;
-  /** Buying and call-ups are hidden. */
+  /** In the US or its territories. */
   us: boolean;
   /** Country unknown. (Every buyer ticks "I am not a US person" in any case.) */
   unknown: boolean;
+  /** Buying and call-ups are refused here: a blocked country, a Tor exit, or an unknown country. */
+  blocked: boolean;
+  /** A blocked country that is known (US, sanctioned, Tor): club sections are hidden too. */
+  restricted: boolean;
 }
 
 export async function regionOf(h: HeaderBag): Promise<Region> {
   const country = await countryOf(h);
-  return { country, us: isUs(country), unknown: !gateOff() && !country };
+  const blocked = buyBlocked(country);
+  return { country, us: isUs(country), unknown: !gateOff() && !country, blocked, restricted: blocked && !!country };
 }
 
 /** For server components. */

@@ -2173,12 +2173,18 @@ code {
 
 /* ticket motion: print in on load, tear the stub on share */
 .ticket.print-in {
-  animation: print-in var(--dur-scene) steps(12, end) both;
+  /* drawn in its final place first: no backwards fill, so nothing is blank before the print starts */
+  animation: print-in var(--dur-scene) steps(12, end) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket.print-in {
+    animation: none;
+  }
 }
 @keyframes print-in {
   from {
-    clip-path: inset(0 0 100% 0);
-    transform: translateY(-14px);
+    clip-path: inset(0 0 62% 0);
+    transform: translateY(-8px);
   }
   to {
     clip-path: inset(0 0 0 0);
@@ -2339,4 +2345,59 @@ code {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
+}
+
+/* product line and how-it-works strip on the home hero */
+.hero-pitch {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 2.2vw, 1.5625rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin-bottom: 16px;
+  max-width: 28ch;
+}
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.how-strip {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.how-strip ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+}
+.how-strip li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+.how-strip li b {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+@media (max-width: 720px) {
+  .how-strip ol {
+    grid-template-columns: 1fr;
+  }
+}
+.sheet-empty-club {
+  border-top: 5px solid var(--ink);
+  padding: 16px 0;
+  max-width: 52ch;
+}
+.sheet-empty-club p {
+  color: var(--ink-2);
+  margin-top: 8px;
 }

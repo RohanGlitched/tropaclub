@@ -56,9 +56,9 @@ export function statSentence(b: WalletTokenEntry['bestStat']): string {
   const beat = Math.max(1, Math.min(99, Math.round(100 - b.pct)));
   switch (b.key) {
     case 'longestHold':
-      return `Held longer than ${beat}% of real fans`;
+      return beat >= 99 ? 'Longest holder in the ground' : `Held longer than ${beat}% of real fans`;
     case 'earliest':
-      return `Arrived before ${beat}% of real fans`;
+      return beat >= 99 ? 'First to arrive in the ground' : `Arrived before ${beat}% of real fans`;
     case 'entryVsMedian':
       return `Entry price lower than ${beat}% of real fans`;
     case 'streak':

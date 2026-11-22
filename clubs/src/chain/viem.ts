@@ -45,8 +45,8 @@ export function createViemChainReader(opts: ViemChainReaderOptions = {}): ChainR
   const pools = new Map<string, { at: number; ok: boolean }>();
 
   return {
-    async verifyAttribution(txHash: string): Promise<AttributionLite> {
-      const r = await verifyAttribution(txHash as `0x${string}`, { client: client as never });
+    async verifyAttribution(txHash: string, buyer?: string): Promise<AttributionLite> {
+      const r = await verifyAttribution(txHash as `0x${string}`, { client: client as never, buyer });
       return { attributed: r.attributed, codes: r.codes, via: r.via, from: r.from?.toLowerCase() };
     },
     async getReceipt(txHash: string): Promise<ReceiptLite | null> {

@@ -37,6 +37,13 @@ export function appendSuffix(data: Hex | undefined, suffix: Hex = TROPA_SUFFIX):
   return concat([d, suffix]);
 }
 
+/** Remove a trailing suffix if present (the inverse of appendSuffix). */
+export function stripSuffix(data: Hex, suffix: Hex = TROPA_SUFFIX): Hex {
+  const d = data.toLowerCase() as Hex;
+  const s = suffix.slice(2).toLowerCase();
+  return (d.endsWith(s) && d.length - s.length >= 2 ? d.slice(0, d.length - s.length) : d) as Hex;
+}
+
 export interface ParsedAttribution {
   schemaId: number;
   codes: string[];

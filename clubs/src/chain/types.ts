@@ -43,7 +43,7 @@ export interface TransferLog {
 
 export interface ChainReader {
   /** @tropaclub/buy verifyAttribution (ERC-8021 suffix on tx input or UserOp callData). */
-  verifyAttribution(txHash: string): Promise<AttributionLite>;
+  verifyAttribution(txHash: string, buyer?: string): Promise<AttributionLite>;
   getReceipt(txHash: string): Promise<ReceiptLite | null>;
   getTransaction(txHash: string): Promise<TxLite | null>;
   getBlockTime(blockNumber: bigint): Promise<number>;

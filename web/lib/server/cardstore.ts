@@ -9,12 +9,15 @@ const PREFIX = (process.env.CARDS_PREFIX || 'public/cards').replace(/^\/|\/$/g, 
 const FORCE_LOCAL = process.env.CARDS_LOCAL === '1';
 const LOCAL_DIR = path.join(process.cwd(), '.cards');
 
-/** v3: tickets can carry a "Played GW0" stamp. A stamped ticket is a different file, so a new stamp shows at once. */
+/**
+ * v3: tickets can carry a "Played GW0" stamp. A stamped ticket is a different file, so a new stamp shows at once.
+ * v4: the not-affiliated line, so every picture drawn before it is replaced.
+ */
 export const cardName = (address: string, symbol: string, variant: 'landscape' | 'portrait', stamp?: string | null) =>
-  `${address.toLowerCase()}-${symbol.replace(/[^A-Za-z0-9.]/g, '')}-v3${stamp ? `-${stamp.replace(/[^A-Za-z0-9]/g, '').toLowerCase().slice(0, 12)}` : ''}${variant === 'portrait' ? '-portrait' : ''}.jpg`;
+  `${address.toLowerCase()}-${symbol.replace(/[^A-Za-z0-9.]/g, '')}-v4${stamp ? `-${stamp.replace(/[^A-Za-z0-9]/g, '').toLowerCase().slice(0, 12)}` : ''}${variant === 'portrait' ? '-portrait' : ''}.jpg`;
 export const publicCardUrl = (name: string) => `https://storage.googleapis.com/${BUCKET}/${PREFIX}/${encodeURIComponent(name)}`;
 export const localCardUrl = (name: string) => `/api/card/file/${encodeURIComponent(name)}`;
-export const isCardName = (name: string) => /^0x[0-9a-f]{40}-[A-Za-z0-9.]{1,12}-v3(-[a-z0-9]{1,12})?(-portrait)?\.jpg$/.test(name);
+export const isCardName = (name: string) => /^0x[0-9a-f]{40}-[A-Za-z0-9.]{1,12}-v4(-[a-z0-9]{1,12})?(-portrait)?\.jpg$/.test(name);
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);

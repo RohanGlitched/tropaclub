@@ -8,12 +8,11 @@ import SeatSearchBox from '@/components/SeatSearchBox';
 import BuyCta from '@/components/buy/BuyCta';
 import { Pennant } from '@/components/ds/Pennant';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
-import { ogCardUrl } from '@/lib/server/cardmake';
 import { playedStamps } from '@/lib/server/clubs';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
-import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt } from '@/lib/site';
+import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt, notAffiliated } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
 export const dynamic = 'force-dynamic';
@@ -34,7 +33,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { address: raw } = await params;
   const d = await load(raw);
   const robots = { index: false, follow: true };
-  if (!d.valid) return { title: 'Not a wallet address', robots };
+  if (!d.valid) return { title: 'No such seat', robots };
   const top = d.real[0];
   if (!top) {
     const t = d.index.data.tokens[0];
@@ -44,10 +43,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const token = d.bySymbol.get(top.symbol)!;
   const title = `Matchday ticket: ${clubName(token.name)}, real fan ${fmtInt(top.rank!)} of ${fmtInt(top.of || token.realFans)}`;
   const description = `${statSentence(top.bestStat)}. ${shortAddr(d.address)} has ${d.real.length === 1 ? 'a seat' : `${d.real.length} seats`} in The Ground. Find yours.`;
-  // This wallet's own ticket picture: a plain stored file. If there is none yet it is drawn now, in the background.
+  // This wallet's own ticket picture, drawn on demand by /api/card/og and stored (see that route).
+  // The version changes with each count and with a new "Played" stamp, so each URL can be cached long.
   const played = await playedStamps(d.address, 1500);
-  const made = await ogCardUrl({ address: d.address, entry: top, token, asOf: d.index.data.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge }).catch(() => null);
-  const image = made ?? '/og-default.png';
+  const stamp = played.byToken.get(token.address.toLowerCase()) ?? '';
+  const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(`${d.index.data.asOf.slice(0, 16)}${stamp ? `-${stamp}` : ''}`)}`;
   return {
     title,
     description,
@@ -237,6 +237,12 @@ export default async function TicketPage({ params }: Params) {
             </dl>
           </div>
         </div>
+      </section>
+
+      <section className="wrap section-tight">
+        <p className="muted small fine">
+          {notAffiliated((real.length ? real : ghosts.length ? ghosts : [{ symbol: target.symbol }]).slice(0, 6).map((e) => bySymbol.get(e.symbol)?.name ?? ''))}
+        </p>
       </section>
     </main>
   );

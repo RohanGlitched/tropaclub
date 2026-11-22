@@ -1,29 +1,29 @@
 {
-  "at": "2026-11-21T19:16:17.516Z",
+  "at": "2026-11-22T02:04:38.851Z",
   "phase": "closed",
   "NVDAc_$10": {
     "ok": true,
     "venues": [
       "aero-cl"
     ],
-    "quotedOut": "7650616",
-    "amountOut": "7649244",
-    "amountOutMin": "7538641",
-    "routerMin": "7538916",
-    "headroomBps": 146,
-    "quoteVsMarkBps": -3,
+    "quotedOut": "7645440",
+    "amountOut": "7645354",
+    "amountOutMin": "7528845",
+    "routerMin": "7529228",
+    "headroomBps": 154,
+    "quoteVsMarkBps": 2,
     "mark": {
       "source": "twap",
-      "usd": 130.66013165,
+      "usd": 130.83014991,
       "reopenGapRisk": true,
       "lastCloseUsd": 129.82480034
     },
     "multiplier": 1.0005379395763696,
-    "uiShares": "7657561",
+    "uiShares": "7647609",
     "gas": {
       "approve": "55895",
-      "swap": "450691",
-      "total": "506586"
+      "swap": "448391",
+      "total": "504286"
     },
     "policy": true,
     "policyChecks": [
@@ -41,24 +41,24 @@
     "venues": [
       "aero-cl"
     ],
-    "quotedOut": "19123328",
-    "amountOut": "19123109",
-    "amountOutMin": "18846580",
-    "routerMin": "18847951",
-    "headroomBps": 146,
-    "quoteVsMarkBps": -5,
+    "quotedOut": "19113679",
+    "amountOut": "19113383",
+    "amountOutMin": "18822135",
+    "routerMin": "18823150",
+    "headroomBps": 154,
+    "quoteVsMarkBps": 2,
     "mark": {
       "source": "twap",
-      "usd": 130.66030585,
+      "usd": 130.82999729,
       "reopenGapRisk": true,
       "lastCloseUsd": 129.82480034
     },
     "multiplier": 1.0005379395763696,
-    "uiShares": "19143877",
+    "uiShares": "19119046",
     "gas": {
       "approve": "55907",
-      "swap": "450823",
-      "total": "506730"
+      "swap": "448595",
+      "total": "504502"
     },
     "policy": true,
     "policyChecks": [
@@ -74,26 +74,26 @@
   "SNDKc_$10": {
     "ok": true,
     "venues": [
-      "aerodrome-cl-3"
+      "aero-cl"
     ],
-    "quotedOut": "1548377",
-    "amountOut": "1548359",
-    "amountOutMin": "1525757",
-    "routerMin": "1525769",
-    "headroomBps": 148,
-    "quoteVsMarkBps": -3,
+    "quotedOut": "1536983",
+    "amountOut": "1536935",
+    "amountOutMin": "1513451",
+    "routerMin": "1513466",
+    "headroomBps": 155,
+    "quoteVsMarkBps": 3,
     "mark": {
       "source": "twap",
-      "usd": 645.5807323,
+      "usd": 650.8299682,
       "reopenGapRisk": true,
       "lastCloseUsd": 649.44
     },
     "multiplier": 8,
-    "uiShares": "12391943",
+    "uiShares": "12291996",
     "gas": {
       "approve": "55895",
-      "swap": "296088",
-      "total": "351983"
+      "swap": "500723",
+      "total": "556618"
     },
     "policy": true,
     "policyChecks": [
@@ -111,24 +111,24 @@
     "venues": [
       "aero-cl"
     ],
-    "quotedOut": "3871620",
-    "amountOut": "3871570",
-    "amountOutMin": "3814390",
-    "routerMin": "3814706",
-    "headroomBps": 149,
-    "quoteVsMarkBps": -2,
+    "quotedOut": "3842465",
+    "amountOut": "3842337",
+    "amountOutMin": "3783617",
+    "routerMin": "3783674",
+    "headroomBps": 155,
+    "quoteVsMarkBps": 3,
     "mark": {
       "source": "twap",
-      "usd": 645.58137785,
+      "usd": 650.83213752,
       "reopenGapRisk": true,
       "lastCloseUsd": 649.44
     },
     "multiplier": 8,
-    "uiShares": "30979827",
+    "uiShares": "30729890",
     "gas": {
       "approve": "55907",
-      "swap": "498940",
-      "total": "554847"
+      "swap": "502139",
+      "total": "558046"
     },
     "policy": true,
     "policyChecks": [
@@ -144,26 +144,26 @@
   "TSLAc_$10": {
     "ok": true,
     "venues": [
-      "aerodrome-cl-3"
+      "aero-cl"
     ],
-    "quotedOut": "2823084",
-    "amountOut": "2823049",
-    "amountOutMin": "2784434",
-    "routerMin": "2784689",
-    "headroomBps": 138,
-    "quoteVsMarkBps": -13,
+    "quotedOut": "2814437",
+    "amountOut": "2814407",
+    "amountOutMin": "2771264",
+    "routerMin": "2771375",
+    "headroomBps": 155,
+    "quoteVsMarkBps": 3,
     "mark": {
       "source": "twap",
-      "usd": 353.75222473,
+      "usd": 355.43324198,
       "reopenGapRisk": true,
       "lastCloseUsd": 350.45
     },
     "multiplier": 1,
-    "uiShares": "2826837",
+    "uiShares": "2813467",
     "gas": {
       "approve": "55895",
-      "swap": "295997",
-      "total": "351892"
+      "swap": "450363",
+      "total": "506258"
     },
     "policy": true,
     "policyChecks": [
@@ -181,24 +181,24 @@
     "venues": [
       "aero-cl"
     ],
-    "quotedOut": "7058742",
-    "amountOut": "7058661",
-    "amountOutMin": "6961055",
-    "routerMin": "6961330",
-    "headroomBps": 140,
-    "quoteVsMarkBps": -11,
+    "quotedOut": "7036113",
+    "amountOut": "7036014",
+    "amountOutMin": "6928168",
+    "routerMin": "6928459",
+    "headroomBps": 155,
+    "quoteVsMarkBps": 3,
     "mark": {
       "source": "twap",
-      "usd": 353.75379689,
+      "usd": 355.43300504,
       "reopenGapRisk": true,
       "lastCloseUsd": 350.45
     },
     "multiplier": 1,
-    "uiShares": "7067061",
+    "uiShares": "7033674",
     "gas": {
       "approve": "55907",
-      "swap": "444137",
-      "total": "500044"
+      "swap": "450483",
+      "total": "506390"
     },
     "policy": true,
     "policyChecks": [
@@ -214,26 +214,26 @@
   "TSLAc_$10_best": {
     "ok": true,
     "venues": [
-      "uniswap-v4-fee"
+      "aero-cl"
     ],
-    "quotedOut": "2824822",
-    "amountOut": "2824783",
-    "amountOutMin": "2784412",
-    "routerMin": "2784426",
-    "headroomBps": 144,
-    "quoteVsMarkBps": -7,
+    "quotedOut": "2814446",
+    "amountOut": "2814172",
+    "amountOutMin": "2771269",
+    "routerMin": "2771383",
+    "headroomBps": 154,
+    "quoteVsMarkBps": 3,
     "mark": {
       "source": "twap",
-      "usd": 353.75497601,
+      "usd": 355.43268912,
       "reopenGapRisk": true,
       "lastCloseUsd": 350.45
     },
     "multiplier": 1,
-    "uiShares": "2826815",
+    "uiShares": "2813472",
     "gas": {
       "approve": "55895",
-      "swap": "587513",
-      "total": "643408"
+      "swap": "453217",
+      "total": "509112"
     },
     "policy": true,
     "policyChecks": [
@@ -251,24 +251,24 @@
     "venues": [
       "aero-cl"
     ],
-    "quotedOut": "5146001",
-    "amountOut": "5145807",
-    "amountOutMin": "5075654",
-    "routerMin": "5076014",
-    "headroomBps": 138,
-    "quoteVsMarkBps": -13,
+    "quotedOut": "5147419",
+    "amountOut": "5147357",
+    "amountOutMin": "5069423",
+    "routerMin": "5069691",
+    "headroomBps": 153,
+    "quoteVsMarkBps": 1,
     "mark": {
       "source": "twap",
-      "usd": 130.66113333,
+      "usd": 130.82908879,
       "reopenGapRisk": true,
       "lastCloseUsd": 129.82480034
     },
     "multiplier": 1.0005379395763696,
-    "uiShares": "5155721",
+    "uiShares": "5149391",
     "gas": {
       "approve": "0",
-      "swap": "439358",
-      "total": "439358"
+      "swap": "441277",
+      "total": "441277"
     },
     "policy": true,
     "policyChecks": [
@@ -285,9 +285,9 @@
     "nowPhase": "closed",
     "liveSource": "twap",
     "liveReopenGapRisk": true,
-    "twapUsd": 645.58474906,
+    "twapUsd": 650.84291196,
     "frozenCloseUsd": 649.44,
-    "driftBps": -59
+    "driftBps": 22
   },
   "isBuyable": {
     "NVDAc": {
@@ -327,10 +327,9 @@
     "detail": "Return amount is not enough"
   },
   "liveAttribution": {
-    "tx": "0x882079cbb040cabd24aecc642030c98f7db19ab9850f0dbc16f24f02737fb4de",
+    "tx": "0x3f2722a36ea96133df8c146eb2fc6e5caa403dcc857fa01218057fd01099a59f",
     "codes": [
-      "bc_tyhmcm97",
-      "cdp_facil1"
+      "bc_rbwbcf2x"
     ],
     "via": "tx"
   }

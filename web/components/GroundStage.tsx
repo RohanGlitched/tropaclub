@@ -21,6 +21,8 @@ interface Props {
   examples?: string[];
   /** Hero only: the paragraph under the headline. */
   lede?: ReactNode;
+  /** The product line, shown above the analytics headline (hero only). */
+  pitch?: string;
   /** Live data: where the seat files are (the public bucket). */
   seatsBase?: string | null;
 }
@@ -28,7 +30,7 @@ interface Props {
 type Focus = { index: number; address?: string; mine: boolean; rank?: number | null; of?: number; kind?: string };
 type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: string; links?: { href: string; label: string }[] };
 
-export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, seatsBase }: Props) {
+export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, pitch, seatsBase }: Props) {
   const [symbol, setSymbol] = useState(initial);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [emphasis, setEmphasis] = useState<Emphasis>('all');
@@ -278,6 +280,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
     return (
       <div className="hero-grid">
         <div className="hero-head">
+          {pitch && <p className="hero-pitch">{pitch}</p>}
           <h1>
             {clubName(club.name)} sold <span className="num">{fmtInt(club.holdersTotal)}</span> tickets.{' '}
             <span className="h1-fans"><span className="num">{fmtInt(club.realFans)}</span> fans showed up.</span>
@@ -285,6 +288,12 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           <p className="lede">
             {lede ?? <>Every wallet holding a stock token on Base is a seat in that stock&rsquo;s ground. Tropa Club counts the fans who are really there, across all {clubs.length} tokens.</>}
           </p>
+          {pitch && (
+            <p className="hero-cta">
+              <Link className="btn btn-accent" href="/clubs#start">Start a club</Link>
+              <a className="btn" href="#hero-find">Find your seat</a>
+            </p>
+          )}
         </div>
         <div className="hero-stage">
           {stage}
@@ -304,7 +313,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
             </p>
           </div>
         </div>
-        <div className="hero-find">{form}</div>
+        <div className="hero-find" id="hero-find">{form}</div>
       </div>
     );
   }

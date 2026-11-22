@@ -1,0 +1,10 @@
+{
+  "_note": "Shared rule values. The web copy (lib/site.ts) and the docs build (docs/build.mjs) both read this file. Source of truth in code: clubs/src/context.ts minBuyUsd, clubs/src/streaks.ts, and the indexer real-fan line.",
+  "playUsd": 5,
+  "habitUsd": 10,
+  "realFanUsd": 10,
+  "payWith": "USDC or ETH",
+  "streakRule": "One qualifying buy of $5 or more in any rolling 14 days keeps the payday streak alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
+  "streakShort": "One buy of $5 or more in any rolling 14 days keeps a payday streak alive, with one free skip a calendar month (a gap of up to 28 days).",
+  "realFanLine": "A real fan holds $10 or more of the token. That is a different line from the $5 play rule."
+}

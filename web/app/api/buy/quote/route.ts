@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const POST = (req: Request) =>
   guarded(async () => {
-    if ((await regionOf(req.headers)).us) return fail(403, 'Not available to US persons.');
+    if ((await regionOf(req.headers)).blocked) return fail(403, "Buying isn't available in your region.");
     if (!buyIsOpen()) return ok({ ok: false, message: `Buying opens ${new Date(buyOpenAt()).toUTCString().replace(':00 GMT', ' UTC')}.`, retry: false });
     const body = await readJson<{ token?: string; pay?: string; usd?: number; taker?: string; notUsPerson?: boolean }>(req);
     if (body?.notUsPerson !== true) return fail(400, 'Confirm that you are not a US person to see a quote.');

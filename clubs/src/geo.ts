@@ -1,13 +1,23 @@
 /**
  * Geo: buy-gate policy and the country -> region map used by pick-up matching.
  *
- * Owner decision (Nov 22): the buy flow is blocked for the US and its territories only (hackathon
- * eligibility: projects that enable trading for US users are ineligible). The policy is pluggable:
- * pass more ISO codes to createGeoPolicy() or set GEO_BLOCKED="US,PR,..." to change it.
+ * The buy flow is blocked for:
+ *   - the US and its territories (hackathon eligibility: projects that enable trading for US users
+ *     are ineligible; buyers also self-certify they are not US persons),
+ *   - countries under comprehensive OFAC sanctions (CU, IR, KP, SY), plus RU and BY: Coinbase
+ *     restricts stock tokens there,
+ *   - Tor exit traffic (country code T1),
+ *   - a country that cannot be told: blocked for buying (never for browsing).
+ * GEO_BLOCKED="NG,..." adds codes to that list; it cannot remove any. Tests pass an explicit list.
  * Country comes from the edge header only, and is never stored against a wallet.
  */
 
 export const US_AND_TERRITORIES = ['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM'] as const;
+/** Comprehensive OFAC sanctions, plus Russia and Belarus. */
+export const SANCTIONED_COUNTRIES = ['CU', 'IR', 'KP', 'SY', 'RU', 'BY'] as const;
+/** The pseudo-country edges and DB-IP use for Tor exit nodes. */
+export const TOR_EXIT_COUNTRY = 'T1';
+export const ALWAYS_BLOCKED: readonly string[] = [...US_AND_TERRITORIES, ...SANCTIONED_COUNTRIES, TOR_EXIT_COUNTRY];
 
 export interface GeoPolicy {
   blocked: ReadonlySet<string>;
@@ -19,8 +29,8 @@ export function createGeoPolicy(opts: { blocked?: readonly string[]; unknown?: '
   const fromEnv = process.env.GEO_BLOCKED?.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
   const unknownEnv = process.env.GEO_UNKNOWN === 'block' ? 'block' : process.env.GEO_UNKNOWN === 'allow' ? 'allow' : undefined;
   return {
-    blocked: new Set((opts.blocked ?? fromEnv ?? US_AND_TERRITORIES).map((c) => c.toUpperCase())),
-    unknown: opts.unknown ?? unknownEnv ?? 'allow',
+    blocked: new Set((opts.blocked ?? [...ALWAYS_BLOCKED, ...(fromEnv ?? [])]).map((c) => c.toUpperCase())),
+    unknown: opts.unknown ?? unknownEnv ?? 'block',
   };
 }
 
@@ -38,8 +48,8 @@ export function countryFromHeaders(h: HeaderBag): string | null {
       v = Array.isArray(raw) ? raw[0] : raw;
     }
     const c = v?.trim().toUpperCase();
-    // ZZ / XX = unknown, T1 = Tor (Cloudflare)
-    if (c && /^[A-Z]{2}$/.test(c) && c !== 'ZZ' && c !== 'XX' && c !== 'T1') return c;
+    // ZZ / XX = unknown. T1 = Tor exit: kept, so the gate blocks it.
+    if (c && /^[A-Z][A-Z0-9]$/.test(c) && c !== 'ZZ' && c !== 'XX') return c;
   }
   return null;
 }

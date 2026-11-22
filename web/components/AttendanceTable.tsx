@@ -35,7 +35,7 @@ export default function AttendanceTable({ rows, controls = true }: { rows: Row[]
             </span>
           ),
       },
-      { key: 'weeklyBuyers', label: 'Buyers, 7 days', value: (r) => r.weeklyBuyers, render: (r) => fmtInt(r.weeklyBuyers) },
+      { key: 'weeklyBuyers', label: 'Buyers, 7 days', value: (r) => r.weeklyBuyers, render: (r) => (r.weeklyBuyers > r.holdersTotal ? <span title="Includes wallets that bought and sold again">{fmtInt(r.weeklyBuyers)}</span> : fmtInt(r.weeklyBuyers)) },
       { key: 'newBuyers7d', label: 'New buyers, 7 days', value: (r) => r.newBuyers7d, render: (r) => fmtInt(r.newBuyers7d) },
     ];
   }, [rows]);
@@ -45,7 +45,9 @@ export default function AttendanceTable({ rows, controls = true }: { rows: Row[]
       rows={rows}
       columns={columns}
       rowKey={(r) => r.symbol}
-      leadLabel="Club"
+      leadLabel="Ground"
+      noun="grounds"
+      searchPlaceholder="Ground or ticker"
       leadText={(r) => `${r.name} ${r.symbol}`}
       lead={(r) => (
         <Link href={groundPath(r.symbol)} prefetch={false}>

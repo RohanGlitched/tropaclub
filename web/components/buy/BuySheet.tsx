@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, usePublicClient, useSwitchChain } from 'wagmi';
-import { planSend, type Call } from '@buy/calls';
+import { WALLET_CANT_TAG_MESSAGE, accountKind, planSend, type Call } from '@buy/calls';
 import { decodeRevert } from '@buy/revert';
 import ConnectButton from '@/components/wallet/ConnectButton';
 import { useSession } from '@/components/wallet/WalletProvider';
@@ -71,6 +71,8 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
   const [txHash, setTxHash] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [record, setRecord] = useState<{ recorded: boolean; attributed: boolean | null; message: string | null; promoted: boolean } | null>(null);
+  // a contract wallet that can neither tag the buy itself nor take wallet_sendCalls: no buy button
+  const [blocked, setBlocked] = useState(false);
   const seq = useRef(0);
 
   // Everyone confirms "I am not a US person" before their first buy. The tick is remembered on this device.
@@ -117,6 +119,34 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
     };
   }, [open, us, tokens, token]);
 
+  /** Code at the address (smart wallet, EIP-7702 delegation) and the wallet's ERC-5792 capabilities. */
+  const readAccount = useCallback(async () => {
+    if (!address || !connector) return null;
+    // undefined (no code, or the read failed) plans as an EOA
+    const code = publicClient ? await publicClient.getCode({ address }).catch(() => undefined) : undefined;
+    const provider = (await connector.getProvider()) as Eip1193;
+    const caps = (await provider.request({ method: 'wallet_getCapabilities', params: [address] }).catch(() => null)) as Record<string, Record<string, unknown>> | null;
+    return { code, caps, provider };
+  }, [address, connector, publicClient]);
+
+  // before any quote: can this wallet carry the Builder Code for this account?
+  useEffect(() => {
+    setBlocked(false);
+    if (!open || us || !ready || !address || !connector || !publicClient) return;
+    let live = true;
+    void (async () => {
+      const code = await publicClient.getCode({ address }).catch(() => undefined);
+      // a plain EOA is never blocked, so only a contract account is asked for its capabilities here
+      if (!live || accountKind(code) === 'eoa') return;
+      const provider = (await connector.getProvider()) as Eip1193;
+      const caps = (await provider.request({ method: 'wallet_getCapabilities', params: [address] }).catch(() => null)) as Record<string, Record<string, unknown>> | null;
+      if (live) setBlocked(planSend([], address, caps, { code }).kind === 'blocked');
+    })().catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [open, us, ready, address, connector, publicClient]);
+
   const fetchQuote = useCallback(async (): Promise<QuoteState> => {
     if (!address || !sel || !notUs) return { status: 'idle' };
     try {
@@ -131,7 +161,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
 
   // live quote: on every change, and refreshed while the form is open
   useEffect(() => {
-    if (!open || us || phase !== 'form' || !ready || !address || !sel || !notUs) return;
+    if (!open || us || blocked || phase !== 'form' || !ready || !address || !sel || !notUs) return;
     let live = true;
     const run = async (quiet: boolean) => {
       const id = ++seq.current;
@@ -145,13 +175,13 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
       live = false;
       clearInterval(t);
     };
-  }, [open, us, phase, ready, address, sel, pay, usd, notUs, fetchQuote]);
+  }, [open, us, blocked, phase, ready, address, sel, pay, usd, notUs, fetchQuote]);
 
   const picked = tokens?.find((t) => t.address === sel) ?? null;
   const onHold = tokens?.filter((t) => !t.buyable) ?? [];
 
   async function buy() {
-    if (!address || !connector) return;
+    if (!address || !connector || blocked) return;
     setError('');
     setPhase('sending');
     setTxHash(null);
@@ -167,13 +197,20 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
         }
         q = fresh.q;
       }
+      // plan first: a wallet that cannot tag the buy is stopped before anything reaches it to sign
+      const acct = await readAccount();
+      if (!acct) throw new Error('no wallet');
+      const { provider, caps, code } = acct;
+      const calls: Call[] = q.calls.map((c) => ({ to: c.to as `0x${string}`, data: c.data as `0x${string}`, value: BigInt(c.value), label: c.label }));
+      const plan = planSend(calls, address, caps, { code });
+      if (plan.kind === 'blocked') {
+        setBlocked(true);
+        setPhase('form');
+        return;
+      }
       setSteps([...q.calls.map((c) => ({ label: c.label, state: 'todo' as StepState })), { label: 'Confirm on Base', state: 'todo' as StepState }]);
       const mark = (i: number, state: StepState) => setSteps((s) => s.map((x, k) => (k === i ? { ...x, state } : x)));
-      const provider = (await connector.getProvider()) as Eip1193;
       if (chainId !== 8453) await switchChainAsync({ chainId: 8453 });
-      const caps = (await provider.request({ method: 'wallet_getCapabilities', params: [address] }).catch(() => null)) as Record<string, Record<string, unknown>> | null;
-      const calls: Call[] = q.calls.map((c) => ({ to: c.to as `0x${string}`, data: c.data as `0x${string}`, value: BigInt(c.value), label: c.label }));
-      const plan = planSend(calls, address, caps);
       const last = q.calls.length;
       let hash: string | null = null;
 
@@ -248,14 +285,16 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
       ? 'Sign in with one free signature, so the buy is recorded for your wallet.'
       : !notUs
         ? 'Tick “I am not a US person” to see a live quote.'
-        : !sel
+        : blocked
+          ? ''
+          : !sel
       ? 'Pick a stock.'
       : quote.status === 'loading' || quote.status === 'idle'
         ? 'Getting a live quote…'
         : quote.status === 'hold'
           ? ''
           : '';
-  const canBuy = !!q && !why && phase === 'form';
+  const canBuy = !!q && !why && !blocked && phase === 'form';
 
   return (
     <dialog ref={ref} className="sheet-dialog" onClose={close} onCancel={(e) => { if (phase === 'sending' || phase === 'recording') e.preventDefault(); }} aria-labelledby="buy-title">
@@ -267,7 +306,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
 
         {us ? (
           <div className="buy-body">
-            <p className="notice"><b>Not available to US persons.</b> Buying stock tokens through Tropa Club is not offered in the United States. The Ground, the tickets and The Attendance stay open to you.</p>
+            <p className="notice"><b>Buying isn't available in your region.</b> The Ground, the tickets and The Attendance stay open to you.</p>
             <button type="button" className="btn" onClick={close}>Close</button>
           </div>
         ) : phase === 'done' ? (
@@ -352,6 +391,8 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
             <div className="buy-quote" aria-live="polite">
               {!ready || !notUs ? (
                 <p className="muted">{why}</p>
+              ) : blocked ? (
+                <p className="buy-hold" role="alert">{WALLET_CANT_TAG_MESSAGE}</p>
               ) : quote.status === 'hold' ? (
                 <p className="buy-hold">{quote.message} {quote.retry && <button type="button" className="linklike" onClick={() => { setQuote({ status: 'loading' }); void fetchQuote().then(setQuote); }}>Get a new quote</button>}</p>
               ) : q ? (
@@ -364,7 +405,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
               ) : (
                 <div className="buy-skel" aria-busy="true"><span /><span /><span /><span /></div>
               )}
-              {quote.status === 'hold' && quote.needsFunds && address && (
+              {!blocked && quote.status === 'hold' && quote.needsFunds && address && (
                 <div className="buy-funds">
                   <h3>Add funds to this wallet</h3>
                   {connector?.id === 'coinbaseWalletSDK' && (
@@ -396,7 +437,7 @@ export default function BuySheet({ open, onClose, clubId = null, token = null, u
                   <p><button type="button" className="linklike" onClick={() => { setQuote({ status: 'loading' }); void fetchQuote().then(setQuote); }}>Get a new quote</button></p>
                 </div>
               )}
-              {q?.reopenGapRisk && (
+              {!blocked && q?.reopenGapRisk && (
                 <p className="buy-gap" role="note">
                   <b>The stock market is closed.</b>{' '}
                   {q.markSource === 'twap'

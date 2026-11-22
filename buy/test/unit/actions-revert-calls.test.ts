@@ -102,8 +102,10 @@ describe('buildBuyCalls + send strategy', () => {
     const plan = planSend(buildBuyCalls({ quote, swap }), from, caps);
     expect(plan.kind).toBe('sendCalls');
     if (plan.kind === 'sendCalls') {
-      expect(plan.request.params[0].capabilities.dataSuffix.value).toBe(TROPA_SUFFIX);
+      expect(plan.request.params[0].capabilities?.dataSuffix.value).toBe(TROPA_SUFFIX);
       expect(plan.request.params[0].atomicRequired).toBe(true);
+      // the wallet tags once: our calls go without the suffix
+      for (const c of plan.request.params[0].calls) expect(parseSuffix(c.data)).toBeNull();
     }
   });
   it('MetaMask-style 7702 batching without dataSuffix -> sequential suffixed txs', () => {

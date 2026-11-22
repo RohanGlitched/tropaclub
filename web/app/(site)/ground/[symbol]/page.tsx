@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import BuyCta from '@/components/buy/BuyCta';
-import { buyOpenAt } from '@/lib/site';
+import { buyOpenAt, notAffiliated } from '@/lib/site';
 import { notFound } from 'next/navigation';
 import GroundStage from '@/components/GroundStage';
 import GateReport from '@/components/GateReport';
@@ -23,7 +23,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { symbol } = await params;
   const { token } = await getToken(decodeURIComponent(symbol));
-  if (!token) return { title: 'Ground not found' };
+  if (!token) return { title: 'No such seat' };
   return {
     title: `${clubName(token.name)}: ${fmtInt(token.holdersTotal)} tickets sold, ${fmtInt(token.realFans)} fans showed up`,
     description: `The seating plan of ${token.symbol} holders on Base. ${fmtInt(token.realFans)} real fans from ${fmtInt(token.holdersTotal)} wallets: an attendance of ${fmtPct(token.attendancePct)}. Find your seat.`,
@@ -90,7 +90,7 @@ export default async function GroundPage({ params }: Params) {
                   : <>{token.symbol} has no liquid market yet, so its holders cannot be valued in dollars and the $10 line cannot be drawn.</>}
               </p>
               <dl className="figures figures-2">
-                <div><dt>Buyers, last 7 days</dt><dd className="num">{fmtInt(token.weeklyBuyers)}</dd><p>{fmtInt(token.newBuyers7d)} bought for the first time.</p></div>
+                <div><dt>Buyers, last 7 days</dt><dd className="num" title={token.weeklyBuyers > token.holdersTotal ? 'Includes wallets that bought and sold again' : undefined}>{fmtInt(token.weeklyBuyers)}</dd><p>{fmtInt(token.newBuyers7d)} bought for the first time.{token.weeklyBuyers > token.holdersTotal ? ' Includes wallets that bought and sold again.' : ''}</p></div>
                 <div><dt>Median weekly buy</dt><dd className="num">{token.medianWeeklyBuyUsd != null ? fmtUsd(token.medianWeeklyBuyUsd) : '—'}</dd><p>The middle buyer&rsquo;s total for the week, bots removed.</p></div>
                 <div><dt>Held by the top 10</dt><dd className="num">{fmtPct(token.top10SharePct, 0)}</dd><p>{fmtPct(token.top10ShareExPoolsPct, 0)} once pools are left out.</p></div>
                 <div><dt>Token price</dt><dd className="num">{priced ? fmtUsd(token.priceUsd) : '—'}</dd><p>{!priced ? 'No liquid pool found.' : token.priceSource === 'reference' ? `Reference price: no liquid DEX pool, so the share’s last price times the multiplier${token.multiplier !== 1 ? ` (×${+token.multiplier.toFixed(4)})` : ''} draws the $10 line.` : `DEX price used for the $10 line${token.multiplier !== 1 ? `, multiplier ×${+token.multiplier.toFixed(4)}` : ''}.`}</p></div>
@@ -144,7 +144,7 @@ export default async function GroundPage({ params }: Params) {
             <Link href="/attendance" className="ground-card ground-card-all"><span><b>All {data.tokens.length} clubs</b><small>The Attendance</small></span></Link>
           </div>
           <p className="muted small fine">
-            &ldquo;{club}&rdquo; is a nickname for the holders of {token.symbol}. Tropa Club is not affiliated with {token.name}. Holding {token.symbol} is not owning the share.
+            {notAffiliated(token.name)} &ldquo;{club}&rdquo; is a nickname for the holders of {token.symbol}. Holding {token.symbol} is not owning the share.
           </p>
         </section>
       </main>

@@ -11,7 +11,7 @@ import { coinbaseWallet, injected } from 'wagmi/connectors';
 // Keyless public RPCs with fallback. WalletConnect is left out: it needs a project id.
 export const wagmiConfig = createConfig({
   chains: [base],
-  connectors: [coinbaseWallet({ appName: 'Tropa Club', preference: 'smartWalletOnly' }), injected({ shimDisconnect: true })],
+  connectors: [coinbaseWallet({ appName: 'Tropa Club', appLogoUrl: 'https://tropaclub.xyz/brand/icon-512.png', preference: 'smartWalletOnly' }), injected({ shimDisconnect: true })],
   transports: { [base.id]: fallback([http('https://base-rpc.publicnode.com'), http('https://mainnet.base.org')]) },
   ssr: true,
 });
