@@ -110,7 +110,7 @@ export default async function TicketPage({ params }: Params) {
   const honoursNote = (stamps.length > 0 || honours.caps) && (
     <p className="caps-line">
       {[...stamps, ...(honours.caps ? [capsPointsLine(honours.caps)] : [])].join('. ')}.{' '}
-      {honours.caps && <Link href="/league?tab=caps" prefetch={false}>The points (Caps) table</Link>}
+      {honours.caps && <Link href="/season" prefetch={false}>Season 1 and the planned airdrop</Link>}
     </p>
   );
 
@@ -160,7 +160,7 @@ export default async function TicketPage({ params }: Params) {
                     <div className="ticket-facts">
                       {honours.caps && (
                         <p className="caps-line">
-                          {capsPointsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the points (Caps) table</Link>
+                          <Link href="/season" prefetch={false}>{capsPointsLine(honours.caps)}</Link>
                         </p>
                       )}
                       <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>

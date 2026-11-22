@@ -13,6 +13,7 @@ import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex, getStats } from '@/lib/server/data';
 import PreSeason from '@/components/PreSeason';
 import LookBeforeConnect from '@/components/LookBeforeConnect';
+import { SeasonBanner } from '@/components/season/CapsCopy';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
 import { DOCS_URL, FIXTURE_STEPS, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, STREAK_SHORT, buyState, openClubName } from '@/lib/site';
@@ -66,6 +67,7 @@ export default async function ClubsPage() {
         </p>
         {data && started > 0 && <p className="asof">{fmtInt(started)} {started === 1 ? 'club' : 'clubs'} started so far.</p>}
         {data && started === 0 && (preLaunch ? <PreSeason openAt={openAt} holders={stats.realWallets} /> : <p className="asof">No clubs yet. Yours could be the first.</p>)}
+        <SeasonBanner className="s1-banner-clubs clubs-only" />
       </section>
 
       <section className="wrap section-tight" id="kinds" aria-label="Three kinds of club">
@@ -184,6 +186,7 @@ export default async function ClubsPage() {
           </li>
           <li><h3>Payday streak</h3><p>{STREAK_SHORT} A habit badge: it never changes a score.</p></li>
           <li><h3>Size never counts</h3><p>Scores use percentages and head counts. Ten dollars counts the same as ten thousand.</p></li>
+          <li><h3>Season 1 Caps</h3><p>Playing, holding and friends who count earn Caps toward the planned $TROPA airdrop, and founding a club where 2 or more members play in the same gameweek adds a founder Cap. <Link href="/season#earn">How to earn</Link></p></li>
           <li><h3>Your money stays yours</h3><p>Each buy goes from your wallet to a public exchange. There is no club pot and nothing to withdraw.</p></li>
           <li><h3>Where buying is offered</h3><p>{REGION_LINE} Club pages can still be viewed everywhere.</p></li>
         </ul>
@@ -206,7 +209,7 @@ export default async function ClubsPage() {
 
       <NextStrip
         items={[
-          { title: 'League', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
+          { title: 'League', sub: 'Club scores, open clubs, Season 1 points (Caps) and Scouts', href: '/league' },
           { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
         ]}
       />

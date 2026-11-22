@@ -14,7 +14,9 @@ import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
 import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
-import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_SHORT, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_FUNDER_RULE, SCOUT_RULES, STREAK_SHORT, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
+import { CapsCopy } from '@/components/season/CapsCopy';
+import { SEASON1, SEASON_PATH, TERMS_HREF, X_HANDLE } from '@/lib/season';
+import { CAPS_RULES, DOCS_URL, FIXTURE_SHORT, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_FUNDER_RULE, SCOUT_RULES, STREAK_SHORT, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
 
 type Tab = 'tables' | 'caps' | 'scouts';
 type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
@@ -31,15 +33,15 @@ const EXAMPLE: { name: string; points: number; turnout: number; pairing: string 
 
 const TABS: { id: Tab; label: string; href: string }[] = [
   { id: 'tables', label: 'Rankings', href: '/league' },
-  { id: 'caps', label: 'Points (Caps)', href: '/league?tab=caps' },
+  { id: 'caps', label: 'Season 1 points (Caps)', href: '/league?tab=caps' },
   { id: 'scouts', label: 'Top referrers (Scouts)', href: '/league?tab=scouts' },
 ];
 
 // Each tab has its own title.
 export async function generateMetadata({ searchParams }: Search): Promise<Metadata> {
   const t = one((await searchParams).tab);
-  if (t === 'caps') return { title: 'Caps: points for buying and holding', description: 'Caps are scoreboard points for buying each week and still holding a week later. Not money, not a token.' };
-  if (t === 'scouts') return { title: 'Top referrers (Scouts)', description: 'Members whose referred friends bought through Tropa Club and still held at day 7. No prizes, no cash.' };
+  if (t === 'caps') return { title: 'Season 1 points (Caps)', description: 'The Season 1 Caps table: points for buying each gameweek, still holding a week later, credited friends, founding a club and a few social quests. Season 1 Caps count toward the planned $TROPA airdrop, which may never launch.' };
+  if (t === 'scouts') return { title: 'Top referrers (Scouts)', description: 'Members whose referred friends bought through Tropa Club and still held at day 7. Each credited friend earns Caps toward the planned $TROPA airdrop. Nothing is paid in cash.' };
   return { title: 'League: friend clubs and open clubs', description: 'Friend clubs on Tropa Club are paired each week and collect points, with a bonus for turnout. Open clubs are ranked only on how many members buy. No prize depends on returns.' };
 }
 
@@ -247,21 +249,27 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
     <main id="main">
       <PageSections
         sections={[
-          { id: 'board', label: caps ? 'Caps table' : 'Referrers table' },
+          { id: 'board', label: caps ? 'Season 1 table' : 'Referrers table' },
           { id: 'earn', label: caps ? 'How Caps are earned' : 'How referring works' },
         ]}
       />
       <section className="wrap page-head">
-        <Crumbs trail={[{ label: 'League', href: '/league' }, { label: caps ? 'Points (Caps)' : 'Top referrers (Scouts)' }]} />
-        <h1>{caps ? 'Caps (season points)' : 'Top referrers (Scouts)'}</h1>
-        {!caps && <p className="asof">Cosmetic only: nothing here is money or a token.</p>}
+        <Crumbs trail={[{ label: 'League', href: '/league' }, { label: caps ? 'Season 1 points (Caps)' : 'Top referrers (Scouts)' }]} />
+        <h1>{caps ? 'Season 1 points (Caps)' : 'Top referrers (Scouts)'}</h1>
         <p className="lede">
           {caps
-            ? <>You get <Term id="caps">Caps</Term>, our season points, for buying in a <Term id="gameweek">gameweek</Term> and for still holding a week later. Never for the size of a buy.</>
+            ? <>You get <Term id="caps">Caps</Term>, our season points, for buying in a <Term id="gameweek">gameweek</Term>, for still holding a week later and for friends who count. <Term id="season-1">Season 1</Term> adds a founder Cap and a few social quests. Never for the size of a buy.</>
             : <>Members whose referred friends bought ${SCOUT_RULES.holdUsd} or more through Tropa Club and still held it on day 7 (<Term id="scout">Scouts</Term>). Ranked on friends who count and still hold, then on friends who count.</>}
         </p>
+        <p className="asof">
+          {caps ? (
+            <>Season 1 Caps count toward the planned $TROPA airdrop. <Link href={TERMS_HREF} prefetch={false}>See the terms.</Link> <Link href={SEASON_PATH} prefetch={false}>{SEASON1.navLabel}</Link></>
+          ) : (
+            <>{SCOUT_COPY} <Link href={TERMS_HREF} prefetch={false}>See the terms.</Link></>
+          )}
+        </p>
       </section>
-      <section className="wrap section-tight" id="board" aria-label={caps ? 'Caps table' : 'Top referrers table'}>
+      <section className="wrap section-tight" id="board" aria-label={caps ? 'Season 1 Caps table' : 'Top referrers table'}>
         {tabs}
         {!all ? (
           <p className="notice">The table could not be loaded just now. Try again in a minute.</p>
@@ -272,18 +280,18 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
               : 'No referrer has a friend who counts yet. A credit is decided on day 7 after a friend’s first buy.'}
           </p>
         ) : caps ? (
-          <CapsBoard rows={(slice as { wallet: string; caps: number; rank: number; firstBuyAt: number | null }[]).map((r) => ({ rank: r.rank, name: names.get(r.wallet)!, caps: r.caps, firstBuyAt: r.firstBuyAt }))} />
+          <CapsBoard rows={(slice as { wallet: string; caps: number; social?: number; provisional?: boolean; rank: number; firstBuyAt: number | null }[]).map((r) => ({ rank: r.rank, name: names.get(r.wallet)!, caps: r.caps, social: r.social ?? 0, provisional: r.provisional === true, firstBuyAt: r.firstBuyAt }))} />
         ) : (
           <ScoutsBoard rows={(slice as { wallet: string; credited: number; stillHolding: number; badge: string | null }[]).map((r, i) => ({ rank: start + i + 1, name: names.get(r.wallet)!, stillHolding: r.stillHolding, credited: r.credited, badge: r.badge }))} />
         )}
         <BoardPager tab={tab} page={at} total={total} />
         {caps ? (
-          <p className="board-copy">{CAPS_COPY}</p>
-        ) : (
           <>
-            <p className="board-copy">{SCOUT_COPY}</p>
-            <p className="muted">{SCOUT_COUNTS}</p>
+            {total > 0 && <p className="muted small board-note">Season 1 totals, social quests included. <Term id="provisional">Provisional</Term> wallets are marked: their Caps are decided at the <Term id="snapshot">snapshot</Term>.</p>}
+            <p className="board-copy"><CapsCopy /></p>
           </>
+        ) : (
+          <p className="board-copy">{SCOUT_COUNTS}</p>
         )}
       </section>
 
@@ -295,8 +303,10 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
               <li><h3>{CAPS_RULES.played} Cap for playing</h3><p>You bought ${PLAY_USD} or more through Tropa Club that gameweek.</p></li>
               <li><h3>{CAPS_RULES.heldD7} Caps for still holding</h3><p>That buy is still in your wallet, ${SCOUT_RULES.holdUsd} or more, 7 days later.</p></li>
               <li><h3>{CAPS_RULES.scout} Caps per friend who counts</h3><p>For each friend you referred whose first buy is still held on day 7, up to {CAPS_RULES.scoutPerGw} a gameweek.</p></li>
-              <li><h3>{CAPS_RULES.perGw} Caps at most</h3><p>The most you can earn in a gameweek, whatever happens.</p></li>
-              <li><h3>Nothing for noise</h3><p>No Caps for sign-ups, joins, follows, likes or reposts, and none for history before launch.</p></li>
+              <li><h3>{CAPS_RULES.perGw} Caps at most</h3><p>The most you can earn in a gameweek from playing, holding and friends.</p></li>
+              <li><h3>{CAPS_RULES.founder} Caps for founding a club</h3><p>{SEASON1.earn.founderRule} {SEASON1.earn.founderNote}</p></li>
+              <li><h3>Up to {SEASON1.social.max} Caps for social quests</h3><p>Follow @{X_HANDLE} ({SEASON1.social.follow}), like and repost the Season 1 post ({SEASON1.social.likeRepost}) and post your ticket ({SEASON1.social.post}). {SEASON1.earn.socialNote} Self-reported, spot-checked, and counted only after your first verified Season 1 buy. <Link href="/season#quests" prefetch={false}>The quests</Link></p></li>
+              <li><h3>Nothing for sign-ups</h3><p>No Caps for signing up or joining a club, and none for history before launch. The size of a buy never counts.</p></li>
               <li><h3>Ties</h3><p>Equal totals are split by the earlier first buy through Tropa Club.</p></li>
             </ul>
           ) : (
@@ -306,17 +316,17 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
               <li><h3>Only real buys count</h3><p>The friend&rsquo;s first buy through Tropa Club, still held at ${SCOUT_RULES.holdUsd} or more on day 7. Nothing for sign-ups or joins. (This is not the ${REAL_FAN_USD} real-holder line.)</p></li>
               <li><h3>No credit for wallets you funded</h3><p>{SCOUT_FUNDER_RULE}</p></li>
               <li><h3>Badges</h3><p>A Scout stamp on your ticket at {SCOUT_RULES.scoutAt === 1 ? '1 friend who counts' : `${SCOUT_RULES.scoutAt} friends who count`}, a Captain&rsquo;s armband at {SCOUT_RULES.captainAt}. The first {fmtInt(SCOUT_RULES.foundersLimit)} wallets whose first buy is still held on day 7 get the First {fmtInt(SCOUT_RULES.foundersLimit)} stamp.</p></li>
-              <li><h3>No prizes</h3><p>{SCOUT_COPY}</p></li>
+              <li><h3>Caps for each friend</h3><p>{CAPS_RULES.scout} Caps per credited friend, up to {CAPS_RULES.scoutPerGw} a gameweek. {SCOUT_COPY}</p></li>
             </ul>
           )}
-          <p className="after-table"><a className="btn" href={`${DOCS_URL}/scoring-and-seasons#${caps ? 'caps' : 'scouts'}`} rel="noopener">The rules in the docs</a></p>
+          <p className="after-table">{caps && <Link className="btn btn-accent" href={SEASON_PATH} prefetch={false}>{SEASON1.navLabel}</Link>} <a className="btn" href={`${DOCS_URL}/scoring-and-seasons#${caps ? 'caps' : 'scouts'}`} rel="noopener">The rules in the docs</a></p>
         </div>
       </section>
 
       <NextStrip
         items={[
           { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
-          caps ? { title: 'Top referrers (Scouts)', sub: 'Friends whose first buy was still held at day 7', href: '/league?tab=scouts' } : { title: 'Points (Caps)', sub: 'Points for buying and holding', href: '/league?tab=caps' },
+          caps ? { title: SEASON1.navLabel, sub: 'Your Caps, the quests and the terms', href: SEASON_PATH } : { title: 'Season 1 points (Caps)', sub: 'Points for buying, holding and friends', href: '/league?tab=caps' },
         ]}
       />
     </main>

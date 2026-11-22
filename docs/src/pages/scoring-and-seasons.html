@@ -1,4 +1,4 @@
-<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, what counts as played, weekly fixtures and points, open club rankings, streaks, Caps (season points), Scouts and the Founders' Pennant crest. No prize is tied to returns.","updated":"Nov 22 2026"}-->
+<!--meta {"slug":"scoring-and-seasons","nav":"Scoring and seasons","title":"Scoring and seasons","description":"Gameweeks on the NYSE calendar, what counts as played, weekly fixtures and points, open club rankings, streaks, Caps (season points) and the Season 1 airdrop, Scouts and the Founders' Pennant crest. Nothing is tied to returns.","updated":"Nov 22 2026"}-->
 <p class="lede">Tropa Club keeps score in gameweeks: trading weeks that follow the New York Stock Exchange calendar. You played a gameweek if you bought ${{playUsd}} or more through Tropa Club inside it. Clubs are scored on how many members bought, with one fixture a week from week 1 (GW1, Mon Nov 30).</p>
 
 <h2 id="clubs">Club types</h2>
@@ -14,7 +14,7 @@
 <ul>
   <li>Matching starts inside your country, widens to your region after 24 hours in the queue, and to the whole world after 48 hours.</li>
   <li>Clubs get a region name and a generated crest. A club never shows a member&rsquo;s country, and the queue keeps only a salted hash of it, deleted once you are matched.</li>
-  <li>Two wallets with the same first USDC or WETH sender are never put in the same club.</li>
+  <li>Two wallets with the same first ETH, USDC or WETH sender are never put in the same club.</li>
   <li>You can opt out of matching at any time.</li>
 </ul>
 
@@ -111,24 +111,29 @@
 <p><strong>Not the same as a ticket&rsquo;s &ldquo;weeks in a row&rdquo;.</strong> {{weeklyRunRule}}</p>
 
 <h2 id="caps">Points (Caps)</h2>
-<p><strong>Caps (season points)</strong> are points on a scoreboard. You get Caps for buying each gameweek and for still holding a week later. They are earned only from verified onchain actions, a buy through Tropa Club that passed every check above, at small fixed values with a fixed most per wallet per gameweek. The Caps table is on <a href="https://tropaclub.xyz/league?tab=caps">the league page</a>.</p>
+<p><strong>Caps (season points)</strong> are points. You get Caps for buying each gameweek, for still holding a week later and for friends who count. They are earned from verified onchain actions, a buy through Tropa Club that passed every check above, at small fixed values with a fixed most per wallet per gameweek. Season 1 adds a founder Cap and a few social quests. Season 1 Caps count toward the planned $TROPA airdrop: see <a href="season-1-airdrop.html">Season 1 airdrop</a> for the terms. The table is on <a href="https://tropaclub.xyz/league?tab=caps">the league page</a>.</p>
 <table>
   <thead><tr><th>For</th><th class="num">Caps</th></tr></thead>
   <tbody>
     <tr><td>Played the gameweek: you bought ${{playUsd}} or more through Tropa Club in it</td><td class="num">{{caps.played:2}}</td></tr>
     <tr><td>That gameweek&rsquo;s buy still held, ${{scouts.holdUsd}} or more, 7 days after it (day 7, or D+7)</td><td class="num">{{caps.heldD7:2}}</td></tr>
     <tr><td>Each credited scout referral (see <a href="#scouts">Scouts</a>), up to {{caps.scoutPerGw}} a gameweek</td><td class="num">{{caps.scout:2}}</td></tr>
-    <tr><td>Most you can earn per wallet per gameweek</td><td class="num">{{caps.perGw:2}}</td></tr>
+    <tr><td>Most you can earn per wallet per gameweek from the three above</td><td class="num">{{caps.perGw:2}}</td></tr>
+    <tr><td>Founder Cap, Season 1: {{season1.earn.founderRule}} {{season1.earn.founderNote}}</td><td class="num">{{caps.founder:2}}</td></tr>
+    <tr><td>Social quest, Season 1: follow @{{season1.social.handle}} on X</td><td class="num">{{season1.social.follow:2}}</td></tr>
+    <tr><td>Social quest, Season 1: like and repost the Season 1 post</td><td class="num">{{season1.social.likeRepost:2}}</td></tr>
+    <tr><td>Social quest, Season 1: post your ticket on X</td><td class="num">{{season1.social.post:2}}</td></tr>
+    <tr><td>Most from social quests per wallet for the whole season. {{season1.earn.socialNote}}</td><td class="num">{{season1.social.max:2}}</td></tr>
   </tbody>
 </table>
 <ul>
-  <li>Nothing for sign-ups, joins, follows, likes or reposts.</li>
+  <li>Nothing for signing up or joining a club. The one thing off chain is the social quests: self-reported, spot-checked, at most {{season1.social.max:2}} a season, and counted only after the wallet&rsquo;s first verified Season 1 buy. See <a href="season-1-airdrop.html#quests">social quests</a>.</li>
   <li>None for history before launch: Caps start with GW0.</li>
   <li>Equal totals are split by the earlier first verified buy. The size of a buy plays no part.</li>
   <li>Every award is written once to an append-only ledger, so a total is the sum of what was earned and is never recalculated upward.</li>
 </ul>
-<callout title="Not a currency">
-<p>{{caps.copy}}</p>
+<callout title="Caps and the airdrop">
+<p>{{caps.copy}} <a href="https://tropaclub.xyz/season#terms">See the terms.</a></p>
 </callout>
 
 <h2 id="scouts">Scouts</h2>
@@ -136,18 +141,18 @@
 <ul>
   <li><strong>First link counts.</strong> A new wallet, one with no verified buy and no other club yet, that arrives through the link is linked to that scout once, and the link never changes. You cannot scout yourself.</li>
   <li><strong>Only real buys count.</strong> The friend&rsquo;s first verified buy through Tropa Club after arriving, still held at ${{scouts.holdUsd}} or more of that token on day 7. Sign-ups and joins earn nothing. (This ${{scouts.holdUsd}} line is not the ${{realFanUsd}} real-fan line.)</li>
-  <li><strong>No credit for wallets you funded.</strong> {{scouts.funderRule}} The first sender is the first address that sent the wallet USDC or WETH in the 30 days before the check; exchange and bridge wallets are ignored.</li>
+  <li><strong>No credit for wallets you funded.</strong> {{scouts.funderRule}} The first sender is the first address that sent the wallet ETH, USDC or WETH in the 30 days before the check (ETH that arrived through a contract has no sender to compare); exchange and bridge wallets are ignored.</li>
   <li><strong>Limit.</strong> At most {{scouts.creditsPerGw}} credits per scout per gameweek, counted in the gameweek of the friend&rsquo;s first buy.</li>
   <li><strong>Stamps.</strong> A Scout stamp on the ticket at {{scouts.scoutAt}} credited friend, a Captain&rsquo;s armband at {{scouts.captainAt}}. The Top scouts table ranks scouts by credited friends who still hold ${{scouts.holdUsd}} or more.</li>
   <li><strong>First 1,000 stamp.</strong> The first {{scouts.foundersLimit}} wallets whose first verified buy was still held at ${{scouts.holdUsd}} or more at D+7 get a &ldquo;First 1,000&rdquo; stamp on their ticket. It is separate from the Founders&rsquo; Pennant crest below.</li>
 </ul>
-<callout title="No prizes">
-<p>{{scouts.copy}}</p>
+<callout title="Caps for friends">
+<p>Each credited friend earns the scout {{caps.scout:2}} Caps, up to {{caps.scoutPerGw}} a gameweek. {{scouts.copy}} <a href="https://tropaclub.xyz/season#terms">See the terms.</a></p>
 </callout>
 
-<h2 id="prizes">No prizes tied to returns</h2>
+<h2 id="prizes">Nothing tied to returns</h2>
 <callout title="The rule">
-<p>Returns can appear as a status on a Matchday card. <strong>Nothing depends on them</strong>: no fixture, no table, no prize, rebate, fee or access. Fixtures, the bonus point and every table go by turnout. The brand never uses odds, bets, jackpots or &ldquo;win&rdquo; language around money: a fixture is described as more or fewer of a club playing, and the points it takes.</p>
+<p>Returns can appear as a status on a Matchday card. <strong>Nothing depends on them</strong>: no fixture, no table, no Caps, no prize, rebate, fee or access. Fixture points are bragging rights. Season 1 Caps count toward the planned $TROPA airdrop, and they go by turnout and holding, never by returns or by the amount bought. Fixtures, the bonus point and every table go by turnout. The brand never uses odds, bets, jackpots or &ldquo;win&rdquo; language around money: a fixture is described as more or fewer of a club playing, and the points it takes.</p>
 </callout>
 
 <h2 id="pennant">Founders&rsquo; Pennant</h2>

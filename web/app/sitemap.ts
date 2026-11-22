@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page('/attendance', 0.9, 'hourly'),
     page('/clubs', 0.9),
     page('/league', 0.7),
+    page('/season', 0.8),
     page('/stats', 0.6),
     page('/about', 0.5, 'weekly'),
     ...data.tokens.map((t) => page(`/ground/${encodeURIComponent(t.symbol)}`, 0.6, 'hourly')),

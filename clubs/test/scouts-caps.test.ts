@@ -146,10 +146,10 @@ describe('caps', () => {
     await store.set<BuyDoc>(COL.buys, hash(0x7777), { ...(await store.get<BuyDoc>(COL.buys, tx))!, txHash: hash(0x7777), wallet: U, verified: false });
 
     clock.set(T0 + 2 * DAY);
-    expect(await svc.awardCaps()).toEqual({ awarded: 1, caps: CAPS.played });
+    expect(await svc.awardCaps()).toMatchObject({ awarded: 1, caps: CAPS.played });
     clock.set(T0 + 8 * DAY);
-    expect(await svc.awardCaps()).toEqual({ awarded: 1, caps: CAPS.heldD7 });
-    expect(await svc.awardCaps()).toEqual({ awarded: 0, caps: 0 });
+    expect(await svc.awardCaps()).toMatchObject({ awarded: 1, caps: CAPS.heldD7 });
+    expect(await svc.awardCaps()).toMatchObject({ awarded: 0, caps: 0 });
     const ledger = await store.query<CapDoc>(CAPS_COL);
     expect(ledger.map((c) => [c.wallet, c.gw, c.reason, c.amount]).sort()).toEqual([
       [P, 'GW0', 'held_d7', 0.5],

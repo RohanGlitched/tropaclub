@@ -1,4 +1,4 @@
-// Cosmetic honours on a wallet's ticket: the scout badge, the First 1,000 stamp and the Caps line.
+// Honours on a wallet's ticket: the scout badge and the First 1,000 stamp (cosmetic), and the Season 1 Caps line.
 // None of them is money or a token. Read with a short timeout, so a slow clubhouse only hides them.
 import 'server-only';
 import { COL, publicName, type CapsRow, type MemberDoc, type ScoutRow } from '@tropaclub/clubs';

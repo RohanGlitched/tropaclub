@@ -32,4 +32,5 @@ export * from './statement';
 export * from './runs';
 export * from './scouts';
 export * from './caps';
+export * from './season';
 export * from './service';

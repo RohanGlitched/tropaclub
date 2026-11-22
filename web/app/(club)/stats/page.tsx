@@ -235,7 +235,7 @@ export default async function StatsPage() {
       <NextStrip
         items={[
           { title: 'Stock rankings', sub: 'Real holders of every stock token, ranked', href: '/attendance' },
-          { title: 'League', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
+          { title: 'League', sub: 'Club scores, open clubs, Season 1 points (Caps) and Scouts', href: '/league' },
         ]}
       />
     </main>

@@ -248,7 +248,7 @@ html:has(dialog.smap[open]) {
     'stats attendance statement'
     'clubs pitch league'
     'about ground docs'
-    '. home .';
+    '. home season';
   min-height: min(600px, calc(100dvh - 210px));
 }
 .smap-area {
@@ -265,6 +265,7 @@ html:has(dialog.smap[open]) {
 .smap-statement { grid-area: statement; }
 .smap-about { grid-area: about; }
 .smap-docs { grid-area: docs; }
+.smap-season { grid-area: season; }
 .smap-pitch { grid-area: pitch; }
 
 /* a stand: the bowl's faint fill, a hairline edge and a block of empty (ghost) seats */
@@ -389,6 +390,15 @@ html:has(dialog.smap[open]) {
 .smap-home .smap-here {
   position: static;
 }
+/* the Season 1 fan zone stands outside the bowl too, beside the main gate */
+.smap-season .smap-go {
+  margin-top: 6px;
+  min-height: 56px;
+  border-style: dashed;
+}
+.smap-season .smap-here {
+  position: static;
+}
 
 /* the pitch: flat mowing stripes, hairline markings, and a scoreboard plate at halfway */
 .smap-pitch {
@@ -484,7 +494,7 @@ html:has(dialog.smap[open]) {
       'stats attendance statement'
       'clubs pitch league'
       'about ground docs'
-      'home home home';
+      'home home season';
     min-height: 0;
   }
   .smap-go {
@@ -1237,7 +1247,7 @@ button.next-go {
       'clubs league'
       'stats statement'
       'about docs'
-      'home home';
+      'home season';
   }
   .smap-area {
     min-width: 0;

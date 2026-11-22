@@ -4,7 +4,7 @@ import { MemoryDocStore } from '../src/store/memory';
 import type { DocStore } from '../src/store/docstore';
 import { StaticPriceSource } from '../src/prices';
 import { createGeoPolicy } from '../src/geo';
-import { StaticFundingResolver } from '../src/funding';
+import { StaticFundingResolver, type WalletAge } from '../src/funding';
 
 export const TOK = {
   NVDAc: '0xb20000000000000000000078ee7ce2fe4908108c',
@@ -161,7 +161,7 @@ export class Clock {
   }
 }
 
-export function makeService(opts: { store?: DocStore; chain?: FakeChain; prices?: StaticPriceSource; clock: Clock; funders?: Record<string, string | null> } & Partial<Omit<ClubsDeps, 'funding'>>) {
+export function makeService(opts: { store?: DocStore; chain?: FakeChain; prices?: StaticPriceSource; clock: Clock; funders?: Record<string, string | null>; ages?: Record<string, WalletAge> } & Partial<Omit<ClubsDeps, 'funding'>>) {
   const chain = opts.chain ?? new FakeChain();
   const prices = opts.prices ?? new StaticPriceSource();
   const svc = createClubsService({
@@ -170,7 +170,7 @@ export function makeService(opts: { store?: DocStore; chain?: FakeChain; prices?
     prices,
     now: opts.clock.now,
     geo: createGeoPolicy({ unknown: 'allow' }),
-    funding: new StaticFundingResolver(opts.funders ?? {}),
+    funding: new StaticFundingResolver(opts.funders ?? {}, opts.ages ?? {}),
     history: opts.history,
     config: { tokens: TOKEN_MAP, matchSalt: 'test-salt', siteUrl: 'https://tropaclub.xyz' },
   });

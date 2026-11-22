@@ -14,7 +14,12 @@
     "scout": 0.25,
     "scoutPerGw": 4,
     "perGw": 2.5,
-    "copy": "Caps are points on a scoreboard, not a currency: they can't be bought, sold, transferred or redeemed. Anything we launch later will be announced separately."
+    "copy": "Caps are points. They can't be bought, sold or transferred. Season 1 Caps count toward the planned $TROPA airdrop.",
+    "copyLink": {
+      "label": "See the terms.",
+      "href": "/season#terms"
+    },
+    "founder": 0.5
   },
   "scouts": {
     "holdUsd": 5,
@@ -22,8 +27,8 @@
     "scoutAt": 1,
     "captainAt": 3,
     "foundersLimit": 1000,
-    "copy": "No prizes, no cash, just your name on the board.",
-    "funderRule": "No credit for a friend funded with USDC or WETH from the scout's wallet, or sharing a first USDC or WETH sender with the scout or with another of the scout's credited friends."
+    "copy": "Each credited friend earns you Caps, and Season 1 Caps count toward the planned $TROPA airdrop. Nothing is paid in cash.",
+    "funderRule": "No credit for a friend funded with ETH, USDC or WETH from the scout's wallet, or sharing a first sender (the first wallet to send it ETH, USDC or WETH) with the scout or with another of the scout's credited friends."
   },
   "fixtureRule": "Each week from Mon Nov 30, clubs of 3 or more are paired with a club of a similar size. 3 points if more of your club played than theirs: the share of members who bought $5 or more that week. If the two are within 1 percentage point, the club with more members still holding last week's buy at day 7 takes the 3 points, and if that is level too it is 1 point each. Any club where 80% or more of members bought also gets 1 bonus point. Returns decide nothing.",
   "fixtureShort": "3 points if more of your club played than theirs.",
@@ -36,5 +41,85 @@
     ],
     "after": "Any club where 80% or more of members bought also gets 1 bonus point. Returns decide nothing."
   },
-  "regionLine": "Buying, clubs and call-ups aren't available to US persons or in sanctioned regions. Checking a wallet works everywhere."
+  "regionLine": "Buying, clubs and call-ups aren't available to US persons or in sanctioned regions. Checking a wallet works everywhere.",
+  "season1": {
+    "id": "S1",
+    "name": "Season 1",
+    "navLabel": "Season 1 airdrop",
+    "headline": "Season 1: earn Caps, share the $TROPA airdrop.",
+    "banner": "Verified buys of $5 or more earn Caps toward the planned $TROPA airdrop.",
+    "startAt": "2026-11-24T14:30:00.000Z",
+    "endAt": "2026-12-04T21:00:00.000Z",
+    "gameweeks": [
+      "GW0",
+      "GW1"
+    ],
+    "provisionalHours": 24,
+    "social": {
+      "follow": 0.1,
+      "likeRepost": 0.1,
+      "post": 0.05,
+      "max": 0.25,
+      "handle": "tropaclubxyz"
+    },
+    "timeline": [
+      {
+        "at": "2026-11-24T14:30:00.000Z",
+        "title": "Season 1 opens",
+        "text": "Buying opens. From the first verified buy, Caps start counting."
+      },
+      {
+        "at": "2026-12-04T21:00:00.000Z",
+        "title": "Season 1 ends: the snapshot",
+        "text": "At the close on Fri Dec 4 (the end of GW1) the Caps table is snapshotted. Caps that are still being decided then (holding at day 7, friends at day 7, new wallets) are settled from what happened before the snapshot."
+      },
+      {
+        "at": null,
+        "title": "Allocations published",
+        "text": "Every wallet’s share is published before any claim opens, so anyone can check it."
+      },
+      {
+        "at": null,
+        "title": "Claims, if $TROPA launches",
+        "text": "Claims open only if the token launches. The date would be announced on @tropaclubxyz."
+      }
+    ],
+    "earn": {
+      "founderRule": "Once, for founding a club that reaches 2 or more members who played in the same gameweek. Members funded from the founder’s wallet, or sharing a first funder with the founder, are not counted.",
+      "founderNote": "On top of the weekly maximum.",
+      "socialNote": "Season-level, separate from the weekly maximum."
+    },
+    "terms": [
+      "$TROPA is a planned token. If it launches, Season 1 Caps convert to a share of the Season 1 airdrop pool, in proportion to Caps at the snapshot.",
+      "There's no guarantee it launches, or that it will have any value. Not financial advice.",
+      "Not available to US persons or in sanctioned regions; the same region rules apply to claims.",
+      "Wallets that fail our checks (shared funders, wash trades, buys that don't verify) get no allocation. Team wallets are excluded.",
+      "Caps themselves can't be bought, sold or transferred.",
+      "Terms may be updated before the snapshot; changes are announced on @tropaclubxyz."
+    ],
+    "socialTerms": [
+      "Social Caps count only for wallets with at least one verified buy in Season 1. Until that first buy they are held as pending.",
+      "A wallet enters its X handle once, signed in. One handle per wallet and one wallet per handle. The handle cannot be changed after the first social claim.",
+      "Social quests are self-reported. We spot-check before the snapshot; claims we can't confirm are removed.",
+      "Social Caps are capped at 0.25 per wallet for the whole season."
+    ],
+    "faq": [
+      {
+        "q": "Do I have to buy?",
+        "a": "Yes. Caps come from verified buys and from credited friends, and social Caps count only once your wallet has a verified buy in Season 1."
+      },
+      {
+        "q": "Does the amount I buy count?",
+        "a": "No. Only playing and holding count, so a $5 buy counts the same as a $500 one."
+      },
+      {
+        "q": "Can I farm with many wallets?",
+        "a": "No. Friends who share a first funder with their scout or with each other are not credited, wash trades and buys that do not verify earn nothing, wallets created in the 24 hours before their first buy are held as provisional until the snapshot, and wallets that fail the checks get no allocation."
+      },
+      {
+        "q": "Can I make extra X accounts?",
+        "a": "Don't make extra X accounts or wallets; duplicates are removed and can disqualify the wallet."
+      }
+    ]
+  }
 }

@@ -17,6 +17,7 @@ import * as callups from './callups';
 import * as stats from './stats';
 import * as scouts from './scouts';
 import * as caps from './caps';
+import * as season from './season';
 import * as eas from './eas';
 import { buildStatement, statementCsv, type Statement } from './statement';
 import { paydayStreak } from './streaks';
@@ -182,8 +183,22 @@ export function createClubsService(deps: ClubsDeps) {
     scoutBadgeOf: (wallet: string) => scouts.scoutBadgeOf(ctx, wallet),
     refreshFoundersPennants: () => scouts.refreshFoundersPennants(ctx),
     hasFoundersPennant: async (wallet: string) => ((await ctx.store.get<{ wallets: string[] }>(scouts.SCOUT_COL.boards, 'founders'))?.wallets ?? []).includes(normAddr(wallet)),
-    awardCaps: (o?: Parameters<typeof caps.awardCaps>[1]) => caps.awardCaps(ctx, o),
+    /** Every Cap earned so far: the weekly ones (new wallets held as provisional), then founder and social. Idempotent. */
+    awardCaps: async (o: { gws?: string[] } = {}) => {
+      const weekly = await caps.awardCaps(ctx, { ...o, provisionalOf: (w, t) => season.provisionalOf(ctx, w, t) });
+      const extra = await season.awardSeasonCaps(ctx);
+      return { ...weekly, ...extra };
+    },
     capsTable: () => caps.capsTable(ctx),
+    seasonStats: () => season.seasonStats(ctx),
+    seasonStanding: (wallet: string) => season.seasonStanding(ctx, wallet),
+    seasonAllocation: () => season.seasonAllocation(ctx),
+    decideProvisional: (wallet: string, decision: 'kept' | 'dropped', note?: string) => season.decideProvisional(ctx, wallet, decision, note),
+    setXHandle: (wallet: string, handle: unknown) => season.setXHandle(ctx, wallet, handle),
+    claimSocial: (wallet: string, quest: season.SocialQuest, o?: { postId?: string | null }) => season.claimSocial(ctx, wallet, quest, o),
+    socialOf: (wallet: string) => season.socialOf(ctx, wallet),
+    reviewSocial: (wallet: string, quest: season.SocialQuest, status: 'verified' | 'rejected', note?: string) => season.reviewSocial(ctx, wallet, quest, status, note),
+    listSocialClaims: (status?: season.SocialClaimStatus) => season.listSocialClaims(ctx, status),
     capsOf: (wallet: string) => caps.capsOf(ctx, wallet),
     sweepTransfers: (o?: Parameters<typeof buys.sweepTransfers>[1]) => buys.sweepTransfers(ctx, o),
     // pick-up clubs
@@ -259,7 +274,16 @@ export async function createProductionClubs(opts: { indexUrl?: string } = {}): P
   // no explorer key: the first USDC/WETH sender in the last 30 days, read from the chain
   const funding = hasEs
     ? new fund.EtherscanFundingResolver()
-    : new fund.RpcFundingResolver({ blockNumber: () => chain.blockNumber(), getTransferLogs: chain.getTransferLogs, nonceOf: async (a) => client.getTransactionCount({ address: a as `0x${string}` }) });
+    : new fund.RpcFundingResolver({
+        blockNumber: () => chain.blockNumber(),
+        getTransferLogs: chain.getTransferLogs,
+        nonceOf: async (a) => client.getTransactionCount({ address: a as `0x${string}` }),
+        // native ETH and wallet age (historical state for the 30-day window: the public Base RPCs serve it)
+        balanceAt: (a, blockNumber) => client.getBalance({ address: a as `0x${string}`, blockNumber }),
+        nonceAt: (a, blockNumber) => client.getTransactionCount({ address: a as `0x${string}`, blockNumber }),
+        blockTransfers: async (blockNumber) => (await client.getBlock({ blockNumber, includeTransactions: true })).transactions.map((t) => ({ from: t.from, to: t.to ?? null, value: t.value })),
+        blockTime: (b) => chain.getBlockTime(b),
+      });
   const { indexerPoolCheck } = await import('./chain/pools');
   return createClubsService({ store, chain, prices, history, funding, poolCheck: indexerPoolCheck(), config: { tokens } });
 }

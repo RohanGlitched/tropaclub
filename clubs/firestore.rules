@@ -3,7 +3,8 @@ rules_version = '2';
 // Tropa Club. Clients never write: every write goes through the server API with the Admin SDK
 // (which bypasses these rules). Clients may read only public, non-sensitive aggregates.
 // Never readable by clients: members, wallets, buys, buyRejects, transfers, callups, attestations,
-// clubSecrets, invites, matchQueue (salted country hash), geoLog, syncState, and private clubs.
+// clubSecrets, invites, matchQueue (salted country hash), geoLog, syncState, private clubs, and the
+// Season 1 collections: caps, seasonWallets, socialClaims, socialProfiles and xHandles (X handles).
 service cloud.firestore {
   match /databases/{database}/documents {
 

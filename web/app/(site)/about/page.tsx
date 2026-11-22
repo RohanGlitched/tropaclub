@@ -10,10 +10,11 @@ import { kitFor } from '@/lib/clubs';
 import Term from '@/components/nav/Term';
 import { GLOSSARY, type TermId } from '@/lib/glossary';
 import { fmtDate, fmtInt } from '@/lib/format';
-import { BUILDER, BUILDER_CODE, BUILDER_CODE_DOCS, BUY_ROUTER, CAPS_COPY, CHANGELOG, FIXTURE_SHORT, OPENS, PAY_WITH, REAL_FAN_LINE, REGION_LINE, REPO_URL, RULE_LINE, SLIPSTREAM_FACTORY_LIST, TWO_THINGS, UPCOMING, X_URL, DOCS_URL, basescan, groundName, openClubName } from '@/lib/site';
+import { CAPS_COPY_LINK, SEASON_PATH } from '@/lib/season';
+import { BUILDER, BUILDER_CODE, BUILDER_CODE_DOCS, BUY_ROUTER, CHANGELOG, FIXTURE_SHORT, OPENS, PAY_WITH, REAL_FAN_LINE, REGION_LINE, REPO_URL, RULE_LINE, SLIPSTREAM_FACTORY_LIST, TWO_THINGS, UPCOMING, X_URL, DOCS_URL, basescan, groundName, openClubName } from '@/lib/site';
 
 /** The site glossary terms, in reading order. */
-const GLOSSARY_ORDER: TermId[] = ['stock-token', 'ground', 'holders', 'real-fan', 'ghost-seat', 'attendance', 'ticket', 'weekly-run', 'club', 'stock-club', 'gameweek', 'bench', 'matchday', 'payday-streak', 'fixture', 'caps', 'scout'];
+const GLOSSARY_ORDER: TermId[] = ['stock-token', 'ground', 'holders', 'real-fan', 'ghost-seat', 'attendance', 'ticket', 'weekly-run', 'club', 'stock-club', 'gameweek', 'bench', 'matchday', 'payday-streak', 'fixture', 'caps', 'season-1', 'scout'];
 
 export const revalidate = 60;
 export const metadata: Metadata = {
@@ -71,7 +72,7 @@ export default async function AboutPage() {
             <p>The site borrows a few football words. Each one means exactly this:</p>
             <dl className="defs">
               {GLOSSARY_ORDER.map((id) => (
-                <div key={id}><dt>{GLOSSARY[id].term}</dt><dd>{GLOSSARY[id].def}{id === 'caps' ? ` ${CAPS_COPY}` : ''}</dd></div>
+                <div key={id}><dt>{GLOSSARY[id].term}</dt><dd>{GLOSSARY[id].def}{id === 'caps' && <> <Link href={CAPS_COPY_LINK.href}>{CAPS_COPY_LINK.label}</Link></>}{id === 'season-1' && <> <Link href={SEASON_PATH}>How Season 1 works</Link></>}</dd></div>
               ))}
             </dl>
 
@@ -131,7 +132,7 @@ export default async function AboutPage() {
               <li><h3>No advice</h3><p>Nothing here says what to buy, sell or hold. No stock is picked, tipped or scored.</p></li>
               <li><h3>Plain words about what a token is</h3><p>A stock token tracks the share price and gives economic exposure. It is not the share, and holding one carries no vote.</p></li>
               <li><h3>Never ranked by size</h3><p>Seats and real-holder numbers use time held. Club rankings use turnout and streaks, never returns and never dollar amounts, so $10 counts the same as $1 million.</p></li>
-              <li><h3>No prize depends on returns</h3><p>Fixture points are bragging rights. Nothing of value is ever handed out for a return, and there are no odds or bets.</p></li>
+              <li><h3>No prize depends on returns</h3><p>Fixture points are bragging rights. Season 1 Caps count toward the planned $TROPA airdrop, and they go by turnout and holding, never by returns or by the size of a buy. There are no odds or bets.</p></li>
               <li><h3>History doesn&rsquo;t predict the future</h3><p>Every chart with history says it can&rsquo;t predict the future. Nothing here is advice.</p></li>
               <li><h3>Honest about where buying is offered</h3><p>{REGION_LINE} Grounds, tickets and stock rankings stay open everywhere too.</p></li>
               <li><h3>Public records only</h3><p>Everything shown comes from the public Base chain. No sign-in is needed to look, and lookups are not stored against a wallet.</p></li>

@@ -16,9 +16,10 @@ import PageSections from '@/components/nav/PageSections';
 import Anchor from '@/components/nav/Anchor';
 import { getExamples, getIndex, getMovers, getStats, pickHomeNotable } from '@/lib/server/data';
 import { HomeNotable } from '@/components/Movers';
+import { SEASON1, SEASON_PATH, TERMS_HREF } from '@/lib/season';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
-import { LAUNCH_AT, PAUSED_MESSAGE, PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyState, groundName } from '@/lib/site';
+import { LAUNCH_AT, PAUSED_MESSAGE, PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyState, groundName, seasonPhase, utcDay } from '@/lib/site';
 
 export const revalidate = 60;
 export const metadata: Metadata = {
@@ -53,6 +54,7 @@ export default async function Home() {
       <main id="main">
         <PageSections
           sections={[
+            ...(seasonPhase() !== 'ended' ? [{ id: 'season', label: 'Season 1', clubsOnly: true }] : []),
             { id: 'what', label: 'What it does' },
             { id: 'truth', label: 'Real holders' },
             { id: 'find', label: 'Tickets' },
@@ -77,6 +79,22 @@ export default async function Home() {
         </section>
 
         {notable && movers && <HomeNotable line={notable} asOf={movers.asOf} />}
+
+        {seasonPhase() !== 'ended' && (
+          <section className="wrap s1-home clubs-only" id="season" aria-labelledby="season-h">
+            <div className="s1-home-in">
+              <div className="s1-home-text">
+                <p className="s1-home-when"><span className="tag">{SEASON1.name}</span>{utcDay(SEASON1.startAt)} to {utcDay(SEASON1.endAt)}</p>
+                <h2 id="season-h" className="h3">{SEASON1.headline}</h2>
+                <p>{SEASON1.banner} Playing, holding and friends count, never the size of a buy. $TROPA is a planned token: there&rsquo;s no guarantee it launches or has any value.</p>
+              </div>
+              <p className="s1-home-go">
+                <Link className="btn" href={SEASON_PATH}>How Season 1 works</Link>
+                <Link href={TERMS_HREF}>Airdrop terms</Link>
+              </p>
+            </div>
+          </section>
+        )}
 
         <section className="wrap section" id="what" aria-labelledby="what-h">
           <div className="section-head">
@@ -189,7 +207,7 @@ export default async function Home() {
               <Link className="btn" href="/clubs#join">Join with an invite</Link>
               <Link className="btn" href="/league">See the League</Link>
             </p>
-            <p className="muted small"><Link href="/league?tab=caps">Earn points (we call them Caps) by playing each week and bringing friends.</Link></p>
+            <p className="muted small"><Link href={SEASON_PATH}>Earn points (we call them Caps) by playing each week and bringing friends. Season 1 Caps count toward the planned $TROPA airdrop.</Link></p>
             <p className="muted small">Checking wallets and holder counts works everywhere, including the US.</p>
           </div>
         </section>

@@ -16,9 +16,40 @@ const X_URL = 'https://x.com/tropaclubxyz';
 const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'web', 'lib', 'rules.json'), 'utf8'));
 // {{playUsd}}, nested keys such as {{caps.played}}, and a fixed number of decimals: {{caps.played:2}} -> 1.00.
 // An unknown key fails the build, so a renamed rule cannot slip through as a literal placeholder.
+const pick = (obj, k) => k.split('.').reduce((o, p) => (o != null && typeof o === 'object' && p in o ? o[p] : undefined), obj);
+// Lists: {{#each season1.terms}}<li>{{.}}</li>{{/each}} repeats the block for every item. Inside it,
+// {{.}} is the item and {{.q}} a key of it; {{.at|utc}} prints an ISO time as "Tue Nov 24, 14:30 UTC"
+// ("Date to come" when it is null). Item text is HTML-escaped. Blocks do not nest.
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const utc = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) throw new Error(`not a time: ${iso}`);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${DAYS[d.getUTCDay()]} ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+};
+const FILTERS = { utc: (v) => (v == null ? 'Date to come' : utc(v)) };
+const escText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fillEach = (t) =>
+  t.replace(/\{\{#each ([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (m, k, inner) => {
+    const list = pick(RULES, k);
+    if (!Array.isArray(list) || !list.length) throw new Error(`rules.json has no list for ${m.slice(0, 40)}`);
+    return list
+      .map((item) =>
+        inner.replace(/\{\{\.([\w.]*)(?:\|(\w+))?\}\}/g, (mm, kk, f) => {
+          const v = kk ? pick(item, kk) : item;
+          if (f && !FILTERS[f]) throw new Error(`unknown filter in ${mm}`);
+          if (f) return escText(FILTERS[f](v));
+          if (v == null || typeof v === 'object') throw new Error(`no value for ${mm} in ${k}`);
+          return escText(v);
+        }),
+      )
+      .join('');
+  });
 const fillRules = (t) =>
-  t.replace(/\{\{([\w.]+)(?::(\d))?\}\}/g, (m, k, dp) => {
-    const v = k.split('.').reduce((o, p) => (o != null && typeof o === 'object' && p in o ? o[p] : undefined), RULES);
+  fillEach(t).replace(/\{\{([\w.]+)(?::(\d)|\|(utc))?\}\}/g, (m, k, dp, f) => {
+    const v = pick(RULES, k);
+    if (f) return FILTERS[f](v);
     if (v === undefined || (typeof v === 'object' && v !== null)) throw new Error(`rules.json has no value for ${m}`);
     return dp != null && typeof v === 'number' ? v.toFixed(Number(dp)) : String(v);
   });
@@ -26,7 +57,7 @@ const fillRules = (t) =>
 const NAV = [
   { group: 'Get started', items: ['index'] },
   { group: 'Data', items: ['the-ground', 'data-feed'] },
-  { group: 'Product', items: ['buying-and-safety', 'scoring-and-seasons'] },
+  { group: 'Product', items: ['buying-and-safety', 'scoring-and-seasons', 'season-1-airdrop'] },
   { group: 'Evidence and partners', items: ['retention-evidence', 'partners'] },
   { group: 'Policy and history', items: ['compliance', 'changelog'] },
 ];
@@ -228,7 +259,7 @@ function shell(pages, p, content, toc) {
     <div class="footer-cols">
       <div><h2>Tropa Club</h2><ul><li><a href="${MAIN_SITE}">tropaclub.xyz</a></li><li><a href="${MAIN_SITE}/attendance">Stock rankings</a></li><li><a href="${X_URL}" rel="noopener">@tropaclubxyz on X</a></li></ul></div>
       <div><h2>Docs</h2><ul><li><a href="index.html">Overview</a></li><li><a href="the-ground.html">Grounds and real holders</a></li><li><a href="data-feed.html">Public data feed</a></li></ul></div>
-      <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
+      <div><h2>Product</h2><ul><li><a href="buying-and-safety.html">Buying and safety</a></li><li><a href="scoring-and-seasons.html">Scoring and seasons</a></li><li><a href="season-1-airdrop.html">Season 1 airdrop</a></li><li><a href="compliance.html">Compliance and limits</a></li></ul></div>
       <div><h2>Work with us</h2><ul><li><a href="partners.html">For partners</a></li><li><a href="retention-evidence.html">Retention evidence</a></li><li><a href="${X_URL}" rel="noopener">DM @tropaclubxyz</a></li></ul></div>
     </div>
     <div class="footer-fine">

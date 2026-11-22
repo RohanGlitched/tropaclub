@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { tryClubs } from '@/lib/server/clubs';
 import { boardNames } from '@/lib/server/honours';
-import { REGION_LINE, SCOUT_COPY } from '@/lib/site';
+import { PLAY_USD, REGION_LINE } from '@/lib/site';
+import { TERMS_HREF } from '@/lib/season';
 
 // A scout's personal invite link. The referral cookie is set by middleware; this page only says who sent it.
 export const metadata: Metadata = { title: 'You are invited to Tropa Club', description: 'Tropa Club shows who really holds each stock token, and helps your group chat each buy about $10 a week from your own wallets.', robots: { index: false, follow: false } };
@@ -47,7 +48,7 @@ export default async function ScoutInvitePage({ params }: { params: Promise<{ co
         </div>
         <p className="muted">A club invite link from a friend works too: open it and join.</p>
         <ul className="ticks">
-          <li>{SCOUT_COPY}</li>
+          <li>In Season 1, a first buy of ${PLAY_USD} or more through Tropa Club earns you Caps toward the planned $TROPA airdrop, and if you still hold it on day 7 the friend who invited you earns Caps too. Nothing is paid in cash. <Link href={TERMS_HREF}>See the terms.</Link></li>
           <li>Connecting shares only your wallet address. One free signature proves it is yours. It moves no funds.</li>
           <li>{REGION_LINE}</li>
         </ul>

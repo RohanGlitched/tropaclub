@@ -42,10 +42,16 @@ export const utcWhenYear = (iso: string, year = new Date().getUTCFullYear()) => 
   if (d.getUTCFullYear() === year) return utcWhen(iso);
   return `${utcDay(iso)} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
 };
+/**
+ * Where Season 1 stands (rules.json season1): before it opens, running, or over (the snapshot).
+ * Buying itself can still be paused while the season runs: pair this with buyState().
+ */
+export type SeasonPhase = 'before' | 'during' | 'ended';
+export const seasonPhase = (now = Date.now()): SeasonPhase => (now < Date.parse(rules.season1.startAt) ? 'before' : now < Date.parse(rules.season1.endAt) ? 'during' : 'ended');
 /** The heading of the paused state, beside PAUSED_MESSAGE. */
 export const PAUSED_TITLE = 'Buying paused';
-/** The ticket's Caps line: "3.5 points (Caps) · rank #12". */
-export const capsPointsLine = (c: { caps: number; rank: number }) => `${c.caps.toLocaleString('en-US', { maximumFractionDigits: 2 })} points (Caps) · rank #${c.rank.toLocaleString('en-US')}`;
+/** The ticket's Caps line: "3.5 Caps · rank #12 in Season 1". */
+export const capsPointsLine = (c: { caps: number; rank: number }) => `${c.caps.toLocaleString('en-US', { maximumFractionDigits: 2 })} Caps · rank #${c.rank.toLocaleString('en-US')} in Season 1`;
 /** The day buying opens, "Tue Nov 24" (UTC): the launch, whatever BUY_OPEN_AT says. */
 export const OPENS = utcDay(LAUNCH_AT);
 /** The moment buying opens, "Tue Nov 24, 14:30 UTC". Where the visitor's own time can be shown, use <OpensAt>. */
@@ -91,13 +97,19 @@ export const REAL_FAN_LINE: string = rules.realFanLine;
 export const COUNT_EVERY = 'about every 6 hours';
 export const X_FOLLOW_URL = 'https://x.com/intent/follow?screen_name=tropaclubxyz';
 
-/** Caps, the season scoreboard (clubs/src/caps.ts reads the same values). Cosmetic: no money, no tokens. */
+/**
+ * Caps, the season points (clubs/src/caps.ts reads the same values). Points only: they can't be
+ * bought, sold or transferred. Season 1 Caps count toward the planned $TROPA airdrop (lib/season.ts).
+ */
 export const CAPS_RULES = rules.caps;
-/** "Caps are points on a scoreboard, not a currency: …" Once per page: under the Caps table, in the /about glossary, and in the docs. */
+/**
+ * "Caps are points. … Season 1 Caps count toward the planned $TROPA airdrop." Always followed by the
+ * "See the terms." link to /season#terms (components/season/CapsCopy.tsx renders both).
+ */
 export const CAPS_COPY: string = rules.caps.copy;
 /** Scouts: credit for a friend whose first buy is still held a week later (clubs/src/scouts.ts). */
 export const SCOUT_RULES = rules.scouts;
-/** "No prizes, no cash, just your name on the board." */
+/** "Each credited friend earns you Caps, and Season 1 Caps count toward the planned $TROPA airdrop. …" */
 export const SCOUT_COPY: string = rules.scouts.copy;
 /** Exactly what the scout funding check looks at (clubs/src/scouts.ts): USDC and WETH senders only. */
 export const SCOUT_FUNDER_RULE: string = rules.scouts.funderRule;
@@ -113,6 +125,7 @@ export const FIXTURE_SHORT: string = rules.fixtureShort;
 export const FIXTURE_STEPS: { lead: string; steps: string[]; after: string } = rules.fixtureSteps;
 
 export const CHANGELOG: { date: string; text: string }[] = [
+  { date: '22 Nov 2026', text: 'Season 1 airdrop page: Caps earned from Tue Nov 24 to Fri Dec 4 count toward the planned $TROPA airdrop. Terms, checks and social quests at /season.' },
   { date: '22 Nov 2026', text: 'Cost-basis statement live for any holder, adjusted for splits and stock dividends.' },
   { date: '22 Nov 2026', text: 'Grounds and stock rankings open, read-only. A shareable ticket for every real holder.' },
   { date: '21 Nov 2026', text: 'First full count: 21.8 million transfers of 90 stock tokens replayed, Aug 12 to Nov 21.' },
@@ -120,6 +133,7 @@ export const CHANGELOG: { date: string; text: string }[] = [
 export const UPCOMING: { date: string; text: string }[] = [
   { date: OPENS, text: `Clubs open: private clubs, pick-up clubs and the first weekly Matchday card. Buying opens at ${OPENS_UTC.split(', ')[1]}.` },
   { date: 'Mon Nov 30', text: 'Weekly pairings (fixtures) between clubs of a similar size start.' },
+  { date: 'Fri Dec 4', text: 'Season 1 ends at 21:00 UTC: the Caps table is snapshotted for the planned $TROPA airdrop.' },
 ];
 
 /** "NVIDIA ground": the per-stock page and its stadium drawing. "Club" is kept for groups of people. */

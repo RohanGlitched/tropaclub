@@ -1,7 +1,10 @@
 // The one place every <Term> reads its definition from. Short, plain and true to the code:
 // rule numbers come from rules.json (through lib/site.ts), so the copy moves when a rule does.
 // /about lists the site glossary (its GLOSSARY_ORDER); the rest are extra terms that pages use.
-import { BUILDER_CODE, CAPS_RULES, OPENS, PLAY_USD, REAL_FAN_USD, SCOUT_RULES, STREAK_SHORT, WEEKLY_RUN_RULE } from './site';
+import { BUILDER_CODE, CAPS_COPY, CAPS_RULES, OPENS, PLAY_USD, REAL_FAN_USD, SCOUT_RULES, STREAK_SHORT, WEEKLY_RUN_RULE, utcWhen } from './site';
+import rules from './rules.json';
+
+const S1 = rules.season1;
 
 export interface GlossaryEntry {
   /** The term as a heading would print it. */
@@ -65,11 +68,27 @@ export const GLOSSARY = {
   },
   caps: {
     term: 'Caps (season points)',
-    def: `Season points: ${CAPS_RULES.played} for playing a gameweek, ${CAPS_RULES.heldD7} more if that buy is still held 7 days later, and ${CAPS_RULES.scout} for each credited friend (at most ${CAPS_RULES.scoutPerGw} a gameweek). At most ${CAPS_RULES.perGw} Caps a gameweek, never for the size of a buy.`,
+    def: `Season points: ${CAPS_RULES.played} for playing a gameweek, ${CAPS_RULES.heldD7} more if that buy is still held 7 days later, and ${CAPS_RULES.scout} for each credited friend (at most ${CAPS_RULES.scoutPerGw} a gameweek). At most ${CAPS_RULES.perGw} Caps a gameweek, never for the size of a buy. Season 1 adds a founder Cap (${CAPS_RULES.founder}, once) and up to ${S1.social.max} for social quests. ${CAPS_COPY}`,
+  },
+  'season-1': {
+    term: 'Season 1',
+    def: `The first Caps season: ${utcWhen(S1.startAt)} to ${utcWhen(S1.endAt)}, gameweeks ${S1.gameweeks.join(' and ')}. Its Caps count toward the planned $TROPA airdrop. $TROPA may never launch, and there is no guarantee it will have any value.`,
+  },
+  snapshot: {
+    term: 'Snapshot',
+    def: `The Caps table as it stands when Season 1 ends (${utcWhen(S1.endAt)}). If $TROPA launches, each wallet’s share of the Season 1 pool is worked out from it, in proportion to Caps.`,
+  },
+  provisional: {
+    term: 'Provisional wallet',
+    def: `A wallet first seen less than ${S1.provisionalHours} hours before its first verified buy, or one we could not date yet. Its Caps show on the table but are only decided at the snapshot.`,
+  },
+  'social-quest': {
+    term: 'Social quest',
+    def: `Follow, like and repost, or post on X for a few Season 1 Caps (at most ${S1.social.max} a season). Self-reported and spot-checked, and counted only once the wallet has a verified Season 1 buy.`,
   },
   scout: {
     term: 'Scouts',
-    def: `Members who refer friends. You get credit when a friend’s first buy through Tropa Club is still held at $${SCOUT_RULES.holdUsd} or more on day 7. Scoreboard only.`,
+    def: `Members who refer friends. You get credit when a friend’s first buy through Tropa Club is still held at $${SCOUT_RULES.holdUsd} or more on day 7. Each credit earns ${CAPS_RULES.scout} Caps.`,
   },
   // extra terms
   playing: {

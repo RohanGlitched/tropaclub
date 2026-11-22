@@ -5,7 +5,7 @@ import { fmtDate, fmtInt } from '@/lib/format';
 
 export const BOARD_PAGE = 50;
 
-export interface CapsBoardRow { rank: number; name: string; caps: number; firstBuyAt: number | null }
+export interface CapsBoardRow { rank: number; name: string; caps: number; /** The social-quest part of `caps`. */ social: number; /** Held until the snapshot. */ provisional: boolean; firstBuyAt: number | null }
 export interface ScoutsBoardRow { rank: number; name: string; stillHolding: number; credited: number; badge: string | null }
 
 const Name = ({ name }: { name: string }) => <span className={`board-name${name.startsWith('0x') ? ' num' : ''}`}>{name}</span>;
@@ -13,12 +13,13 @@ const Name = ({ name }: { name: string }) => <span className={`board-name${name.
 export function CapsBoard({ rows }: { rows: CapsBoardRow[] }) {
   return (
     <table className="league-table">
-      <caption className="sr">Caps: season points by wallet</caption>
+      <caption className="sr">Season 1 Caps by wallet, social quests included</caption>
       <thead>
         <tr>
           <th scope="col" className="c-pos">Rank</th>
           <th scope="col" className="c-club">Name</th>
           <th scope="col" className="r">Caps</th>
+          <th scope="col" className="r">Of which social</th>
           <th scope="col" className="r">First buy</th>
         </tr>
       </thead>
@@ -26,8 +27,9 @@ export function CapsBoard({ rows }: { rows: CapsBoardRow[] }) {
         {rows.map((r) => (
           <tr key={r.rank}>
             <td className="c-pos num">{r.rank}</td>
-            <th scope="row" className="c-club"><Name name={r.name} /></th>
+            <th scope="row" className="c-club"><Name name={r.name} />{r.provisional && <span className="tag tag-quiet board-prov">Provisional</span>}</th>
             <td className="r num c-strong" data-label="Caps">{r.caps.toFixed(2)}</td>
+            <td className="r num" data-label="Of which social">{r.social > 0 ? r.social.toFixed(2) : '—'}</td>
             <td className="r num" data-label="First buy">{r.firstBuyAt ? fmtDate(r.firstBuyAt) : '—'}</td>
           </tr>
         ))}

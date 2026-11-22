@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import rules from '../lib/rules.json';
 import { REGION_LINE, SCOUT_FUNDER_RULE, FIXTURE_STEPS } from '../lib/site';
-import { hrefFor, labelFor, sectionOf, standsFor } from '../lib/nav';
+import { STAND_MOVES, hrefFor, labelFor, pagesFor, sectionOf, standsFor } from '../lib/nav';
 
 describe('one name per section', () => {
   it('puts grounds and tickets under Stock rankings, as their breadcrumbs do', () => {
@@ -16,6 +16,21 @@ describe('one name per section', () => {
     expect(hrefFor('attendance', null)).toBe('/attendance');
     expect(labelFor('/league', [])).toBe('League');
   });
+  it('has a Season 1 airdrop stand, a header section and quick-jump entries', () => {
+    expect(sectionOf('/season')).toBe('season');
+    expect(hrefFor('season', null)).toBe('/season');
+    expect(labelFor('/season', [])).toBe('Season 1 airdrop');
+    const stand = standsFor({ grounds: 90, wallet: null }).find((s) => s.id === 'season');
+    expect(stand?.label).toBe(rules.season1.navLabel);
+    // every stand can be walked to and from on the map
+    for (const s of standsFor({ grounds: 90, wallet: null })) expect(STAND_MOVES[s.id]).toBeDefined();
+    expect(Object.values(STAND_MOVES).some((m) => Object.values(m).includes('season'))).toBe(true);
+    const pages = pagesFor('/ground/NVDAc', 'NVIDIA');
+    for (const word of ['airdrop', 'tropa', 'season', 'caps', 'quests']) {
+      expect(pages.some((p) => p.href.startsWith('/season') && `${p.label} ${p.keys}`.toLowerCase().includes(word))).toBe(true);
+    }
+    expect(pages.find((p) => p.href === '/league?tab=caps')?.label).toBe('Season 1 points (Caps)');
+  });
 });
 
 describe('rule copy', () => {
@@ -24,7 +39,7 @@ describe('rule copy', () => {
     expect(rules.regionLine).toBe(REGION_LINE);
   });
   it('says exactly what the scout funding check looks at', () => {
-    expect(SCOUT_FUNDER_RULE).toContain("funded with USDC or WETH from the scout's wallet, or sharing a first USDC or WETH sender with the scout or with another of the scout's credited friends");
+    expect(SCOUT_FUNDER_RULE).toContain("funded with ETH, USDC or WETH from the scout's wallet, or sharing a first sender (the first wallet to send it ETH, USDC or WETH) with the scout or with another of the scout's credited friends");
     expect(SCOUT_FUNDER_RULE).not.toMatch(/funded by the scout|first funder/);
   });
   it('lists the fixture tie-break as three steps', () => {

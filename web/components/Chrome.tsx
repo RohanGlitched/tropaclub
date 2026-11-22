@@ -31,7 +31,8 @@ export async function SiteHeader({ source, ground = '/ground/NVDAc', end, sample
               { label: 'Stock rankings', href: '/attendance', section: 'attendance' },
               { label: 'Clubs', href: '/clubs', section: 'clubs' },
               { label: 'League', href: '/league', section: 'league', className: 'nav-wide nav-mid' },
-              { label: 'How it works', href: '/about', section: 'about', className: 'nav-wide' },
+              { label: 'Season 1 airdrop', short: 'Season 1', href: '/season', section: 'season', className: 'nav-wide nav-mid nav-season' },
+              { label: 'How it works', href: '/about', section: 'about', className: 'nav-wide nav-xl' },
               { label: 'Docs', href: DOCS_URL, section: 'docs', className: 'nav-wide', ext: true },
             ]}
           />
@@ -72,6 +73,7 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
       { label: 'Check a wallet', href: '/#find' },
       { label: 'Clubs', href: '/clubs' },
       { label: 'League', href: '/league' },
+      { label: 'Season 1 airdrop', href: '/season' },
       { label: 'Stats', href: '/stats' },
     ],
   },
@@ -97,6 +99,7 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
     title: 'Legal',
     links: [
       { label: 'Compliance and limits', href: `${DOCS_URL}/compliance`, ext: true },
+      { label: 'Airdrop terms', href: '/season#terms' },
       { label: 'Privacy', href: '/about#privacy' },
     ],
   },

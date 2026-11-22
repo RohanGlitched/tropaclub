@@ -137,7 +137,7 @@ export async function holdsUsdAt(ctx: ClubsContext, wallet: string, token: strin
 }
 
 /** First funder of a wallet (cached on its wallet doc for a day). Throws when it cannot be told now. */
-async function funderOf(ctx: ClubsContext, wallet: string): Promise<string | null> {
+export async function funderOf(ctx: ClubsContext, wallet: string): Promise<string | null> {
   const doc = await ctx.store.get<WalletDoc>(COL.wallets, wallet);
   if (doc && doc.fundingSource !== undefined && doc.fundingCheckedAt && ctx.now() - doc.fundingCheckedAt < DAY) return doc.fundingSource ?? null;
   if (!ctx.funding) return null;

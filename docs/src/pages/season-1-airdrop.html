@@ -1,0 +1,78 @@
+<!--meta {"slug":"season-1-airdrop","nav":"Season 1 airdrop","title":"Season 1 airdrop","description":"Season 1 runs from Tue Nov 24 to Fri Dec 4 2026. Caps earned for playing, holding, credited friends, founding a club and a few social quests count toward the planned $TROPA airdrop. The terms, the checks, the timeline and the questions. $TROPA may never launch and may have no value.","updated":"Nov 22 2026"}-->
+<p class="lede">Season 1 is the first Caps season: {{season1.startAt|utc}} to {{season1.endAt|utc}}, gameweeks GW0 and GW1. The Caps a wallet earns in it count toward the planned $TROPA airdrop. $TROPA is a planned token. There is no guarantee it launches, or that it will have any value.</p>
+
+<callout kind="warn" title="A planned token">
+<p>$TROPA has not launched. Caps are points: they can&rsquo;t be bought, sold or transferred, and they are not a token. Nothing on this page is financial advice, an offer to sell or a promise of a token. The live page with your own Caps is <a href="https://tropaclub.xyz/season">tropaclub.xyz/season</a>.</p>
+</callout>
+
+<h2 id="earn">How to earn Caps</h2>
+<p>Caps come only from verified onchain actions and a few self-reported social quests, at small fixed values. The amount bought plays no part: a ${{playUsd}} buy earns the same Caps as a $500 one, and returns decide nothing. The weekly values are the same rules as <a href="scoring-and-seasons.html#caps">Points (Caps)</a>.</p>
+<table class="wide">
+  <thead><tr><th>For</th><th class="num">Caps</th><th>Limit</th></tr></thead>
+  <tbody>
+    <tr><td>Played a gameweek: a verified buy of ${{playUsd}} or more through Tropa Club in it</td><td class="num">{{caps.played:2}}</td><td>Once a gameweek.</td></tr>
+    <tr><td>That buy still held, ${{scouts.holdUsd}} or more, 7 days later (day 7, or D+7)</td><td class="num">+{{caps.heldD7:2}}</td><td>Added on day 7.</td></tr>
+    <tr><td>Each credited friend (see <a href="scoring-and-seasons.html#scouts">Scouts</a>)</td><td class="num">+{{caps.scout:2}}</td><td>Up to {{caps.scoutPerGw}} friends a gameweek.</td></tr>
+    <tr><td><strong>Most per wallet per gameweek</strong></td><td class="num"><strong>{{caps.perGw:2}}</strong></td><td>Played, holding and friends together.</td></tr>
+    <tr><td>Founder Cap</td><td class="num">+{{caps.founder:2}}</td><td>{{season1.earn.founderRule}} {{season1.earn.founderNote}}</td></tr>
+    <tr><td>Follow @{{season1.social.handle}} on X</td><td class="num">+{{season1.social.follow:2}}</td><td>Once.</td></tr>
+    <tr><td>Like and repost the Season 1 post on X</td><td class="num">+{{season1.social.likeRepost:2}}</td><td>Once, when the post is up.</td></tr>
+    <tr><td>Post your ticket on X</td><td class="num">+{{season1.social.post:2}}</td><td>Once.</td></tr>
+    <tr><td><strong>Most from social quests</strong></td><td class="num"><strong>{{season1.social.max:2}}</strong></td><td>{{season1.earn.socialNote}} Counted only after the wallet&rsquo;s first verified Season 1 buy.</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><strong>Example.</strong> Buy ${{playUsd}} in GW0 and still hold it a week later: {{caps.played:2}} plus {{caps.heldD7:2}} Caps. Each friend who buys through your link and still holds on day 7 adds {{caps.scout:2}}.</li>
+  <li><strong>Ties.</strong> Equal totals are split by the earlier first verified buy.</li>
+  <li><strong>Append-only.</strong> Every award is written once to an append-only ledger, so a total is the sum of what was earned and is never recalculated upward.</li>
+  <li><strong>Where to see them.</strong> The <a href="https://tropaclub.xyz/league?tab=caps">Season 1 table</a> lists every wallet with Caps, social Caps included, and marks provisional wallets. Any wallet&rsquo;s total, rank and breakdown can be checked on <a href="https://tropaclub.xyz/season#yours">tropaclub.xyz/season</a>.</li>
+</ul>
+
+<h2 id="quests">Social quests</h2>
+<p>Three small quests on X, for at most {{season1.social.max:2}} Caps a season. A signed-in wallet adds its X handle once, does a quest, then taps &ldquo;I did this&rdquo; on <a href="https://tropaclub.xyz/season#quests">the quests section</a>. The like-and-repost quest opens once the Season 1 post is up on @{{season1.social.handle}}.</p>
+<ol>
+{{#each season1.socialTerms}}  <li>{{.}}</li>
+{{/each}}</ol>
+<p>Each quest card shows one of four statuses: <strong>open</strong> (not claimed), <strong>pending</strong> (claimed, waiting for the wallet&rsquo;s first verified Season 1 buy), <strong>counted</strong> (in the ledger) or <strong>removed</strong> (a spot-check could not confirm it). A removed claim&rsquo;s Caps are taken back out of the ledger on the next update.</p>
+
+<h2 id="timeline">Timeline</h2>
+<p>All times in UTC. Dates still to come are announced on <a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz</a>.</p>
+<table class="wide">
+  <thead><tr><th>When</th><th>What</th><th>Details</th></tr></thead>
+  <tbody>
+{{#each season1.timeline}}    <tr><td class="nw">{{.at|utc}}</td><td><strong>{{.title}}</strong></td><td>{{.text}}</td></tr>
+{{/each}}  </tbody>
+</table>
+
+<h2 id="checks">Checks and exclusions</h2>
+<p>Caps are meant for people who buy and hold, so farming them with many wallets doesn&rsquo;t work. These checks run before anything counts, and again before the snapshot. The live page shows how many times each one has caught something, as counts only and never addresses.</p>
+<ul>
+  <li><strong>Shared funders.</strong> {{scouts.funderRule}} The founder Cap uses the same idea: members funded from the founder&rsquo;s wallet, or sharing a first funder with the founder or with each other, count once. Native ETH transfers are looked at too.</li>
+  <li><strong>Wash trades.</strong> A buy, then a sell, then another buy of the same token within 24 hours scores nothing, for either buy.</li>
+  <li><strong>Buys that don&rsquo;t verify.</strong> Only buys made through Tropa Club that pass every check in <a href="scoring-and-seasons.html#qualifying">what counts as a qualifying buy</a> earn Caps. A buy not sent from the wallet itself, not through the pinned route, at a price off the mark, or where no stock token arrived earns nothing.</li>
+  <li><strong>Team wallets.</strong> Founder, test and contest wallets are on a public exclusion list and get no allocation. The list is on the <a href="https://tropaclub.xyz/stats">stats page</a>.</li>
+  <li><strong>New wallets are provisional.</strong> A wallet first seen less than {{season1.provisionalHours}} hours before its first verified buy, or one that cannot be dated yet, is held as provisional. Its Caps show on the table but are decided at the snapshot.</li>
+  <li><strong>Social spot-checks.</strong> Social quests are self-reported. We spot-check before the snapshot; claims we can&rsquo;t confirm are removed.</li>
+  <li><strong>Duplicate X accounts.</strong> One X handle per wallet and one wallet per handle. Duplicate X accounts or wallets are removed and can disqualify the wallet.</li>
+</ul>
+
+<h2 id="terms">Airdrop terms</h2>
+<p>The terms of the planned $TROPA airdrop for Season 1, word for word as on <a href="https://tropaclub.xyz/season#terms">tropaclub.xyz/season</a>.</p>
+<ol>
+{{#each season1.terms}}  <li>{{.}}</li>
+{{/each}}</ol>
+<h3 id="social-terms">Social quest terms</h3>
+<ol>
+{{#each season1.socialTerms}}  <li>{{.}}</li>
+{{/each}}</ol>
+<h3 id="where">Where it applies</h3>
+<p>{{regionLine}} Stock tokens track the share price; they are not shares. Tropa Club isn&rsquo;t affiliated with or endorsed by the companies behind them. Past results don&rsquo;t predict future results, and nothing here is advice.</p>
+<callout title="Caps">
+<p>{{caps.copy}} <a href="https://tropaclub.xyz/season#terms">See the terms.</a></p>
+</callout>
+
+<h2 id="faq">Questions</h2>
+{{#each season1.faq}}<h3>{{.q}}</h3>
+<p>{{.a}}</p>
+{{/each}}
+<p>Anything else: DM <a href="https://x.com/tropaclubxyz" rel="noopener">@tropaclubxyz</a> on X. Tropa Club will never message you first to ask for a signature or a payment.</p>

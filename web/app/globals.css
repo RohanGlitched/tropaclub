@@ -310,6 +310,19 @@ code {
   align-items: center;
   gap: 8px;
 }
+.site-header .brand {
+  flex-shrink: 0;
+}
+/* six links do not fit beside the tools under 1180 px: How it works stays in the map, footer and quick jump */
+@media (max-width: 1180px) {
+  .site-header nav .nav-xl {
+    display: none;
+  }
+}
+/* a link with a shorter phone label ("Season 1 airdrop" / "Season 1") */
+.site-header nav .nav-short {
+  display: none;
+}
 .theme-toggle {
   width: 44px;
   height: 44px;
@@ -352,6 +365,12 @@ code {
   }
   .site-header nav .nav-mid {
     display: block;
+  }
+  .site-header nav .nav-long {
+    display: none;
+  }
+  .site-header nav .nav-short {
+    display: inline;
   }
   .site-header-end {
     margin-left: auto;

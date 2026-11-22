@@ -11,6 +11,7 @@ import ConnectButton from '@/components/wallet/ConnectButton';
 import { useSession } from '@/components/wallet/WalletProvider';
 import { shortAddr } from '@/lib/format';
 import { REGION_LINE } from '@/lib/site';
+import { SeasonBanner } from '@/components/season/CapsCopy';
 
 interface BuyToken { address: string; symbol: string; name: string; buyable: boolean; reason: string | null; referencePrice: boolean; reopenGapRisk: boolean }
 interface Quote {
@@ -417,6 +418,7 @@ export default function BuySheet({ open, onClose, opener, clubId = null, token =
           </div>
         ) : (
           <div className="buy-body">
+            {phase === 'form' && <SeasonBanner compact />}
             {!ready && (
               <div className="buy-connect" onClickCapture={() => { asked.current = true; }}>
                 <p>{isConnected ? 'One free signature proves the wallet is yours, so this buy is recorded for it. It moves no funds.' : 'Buying happens from your own wallet. Tropa Club never holds your money.'}</p>

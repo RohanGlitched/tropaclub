@@ -8,7 +8,7 @@ import { openPanel } from '@/lib/nav-store';
 import { Icon } from './icons';
 import { preloadPanels } from './NavHost';
 
-export interface HeaderLink { label: string; href: string; section: Section; className?: string; ext?: boolean }
+export interface HeaderLink { label: string; href: string; section: Section; className?: string; ext?: boolean; /** A shorter label for phones. */ short?: string }
 
 /** The main header links, with the current section marked (aria-current plus a visible bar). */
 export function HeaderNav({ links }: { links: HeaderLink[] }) {
@@ -19,7 +19,16 @@ export function HeaderNav({ links }: { links: HeaderLink[] }) {
         l.ext ? (
           <a key={l.label} href={l.href} className={l.className} rel="noopener">{l.label}</a>
         ) : (
-          <Link key={l.label} href={l.href} className={l.className} aria-current={here === l.section ? 'page' : undefined}>{l.label}</Link>
+          <Link key={l.label} href={l.href} className={l.className} aria-current={here === l.section ? 'page' : undefined} aria-label={l.short ? l.label : undefined}>
+            {l.short ? (
+              <>
+                <span className="nav-long" aria-hidden="true">{l.label}</span>
+                <span className="nav-short" aria-hidden="true">{l.short}</span>
+              </>
+            ) : (
+              l.label
+            )}
+          </Link>
         ),
       )}
     </nav>
