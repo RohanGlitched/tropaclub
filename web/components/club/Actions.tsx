@@ -121,7 +121,7 @@ export function StartClub() {
         <li data-on={step >= 3}>Invite</li>
       </ol>
       <label htmlFor={`${id}-n`}>Club name</label>
-      <input id={`${id}-n`} ref={nameInput} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday League Tropa" maxLength={40} autoComplete="off" required minLength={3} />
+      <input id={`${id}-n`} ref={nameInput} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday League Savers" maxLength={40} autoComplete="off" required minLength={3} />
       <label htmlFor={`${id}-k`}>Your nickname in the club <span className="muted">(optional)</span></label>
       <input id={`${id}-k`} value={nick} onChange={(e) => setNick(e.target.value)} placeholder="Ana" maxLength={20} autoComplete="off" />
       <p className="find-note">The crest is drawn for the club when it is made: two colours, a kit pattern and an emblem. Starting a club is free and needs no buy.</p>

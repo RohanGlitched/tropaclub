@@ -34,7 +34,7 @@ export default function ClubPreview() {
   return (
     <div className="club-preview">
       <Scoreboard
-        title="Sample club: Sunday League Tropa"
+        title="Sample club: Sunday League Savers"
         kicker="Matchday card, week 0 (sample)"
         cells={[
           { label: 'Played', value: playing },

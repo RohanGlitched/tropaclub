@@ -21,10 +21,10 @@ type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string |
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
 /** Made-up clubs for the example table: what the rankings look like once clubs are paired. */
 const EXAMPLE: { name: string; points: number; turnout: number; pairing: string }[] = [
-  { name: 'Sunday League Tropa', points: 9, turnout: 100, pairing: 'vs The Tuesday Five, 100% to 60%' },
+  { name: 'Sunday League Savers', points: 9, turnout: 100, pairing: 'vs The Tuesday Five, 100% to 60%' },
   { name: 'Night Shift FC', points: 7, turnout: 80, pairing: 'vs Harbour Lights, level at 80%' },
   { name: 'Harbour Lights', points: 6, turnout: 80, pairing: 'vs Night Shift FC, level at 80%' },
-  { name: 'The Tuesday Five', points: 4, turnout: 60, pairing: 'vs Sunday League Tropa, 60% to 100%' },
+  { name: 'The Tuesday Five', points: 4, turnout: 60, pairing: 'vs Sunday League Savers, 60% to 100%' },
   { name: 'Back Row Boys', points: 3, turnout: 50, pairing: 'vs Rainy City XI, 50% to 40%' },
   { name: 'Rainy City XI', points: 1, turnout: 40, pairing: 'vs Back Row Boys, 40% to 50%' },
 ];
