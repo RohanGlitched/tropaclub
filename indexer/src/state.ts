@@ -59,10 +59,16 @@ export interface State {
   histHeavy: Set<string>;      // addresses that passed HIST_CAP entries (bots); history dropped
   corp: CorpLog[];
   histShardHash: Record<string, string>; // published shard -> content hash (upload only changed shards)
+  // ---- day marks (marks.ts) ----
+  cl: Record<string, Record<number, [number, number, number]>>; // token -> day -> [answer per raw token, updatedAt, final]
+  poolPx: Record<string, Record<number, number>>;   // GeckoTerminal deepest-pool daily average
+  poolLive: Record<string, Record<number, number>>; // live DEX price seen by a run on that day
+  refPx: Record<string, Record<number, number>>;    // Yahoo split-adjusted close per share (forward-filled)
+  refDay: number;
 }
 
 export function emptyState(): State {
-  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '', hist: new Map(), histHeavy: new Set(), corp: [], histShardHash: {} };
+  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '', hist: new Map(), histHeavy: new Set(), corp: [], histShardHash: {}, cl: {}, poolPx: {}, poolLive: {}, refPx: {}, refDay: 0 };
 }
 
 const FILE = 'state.json.gz';
@@ -115,7 +121,7 @@ function serialize(s: State): Buffer {
   const obj = {
     version: s.version, cursor: s.cursor, cursorTs: s.cursorTs, tokens: s.tokens, pairs,
     flags: [...s.flags], firstBuyAny: [...s.firstBuyAny], codes: [...s.codes], hours: bk(s.hours), days: bk(s.days),
-    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, corp: s.corp, histShardHash: s.histShardHash, updatedAt: new Date().toISOString(),
+    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, corp: s.corp, histShardHash: s.histShardHash, cl: s.cl, poolPx: s.poolPx, poolLive: s.poolLive, refPx: s.refPx, refDay: s.refDay, updatedAt: new Date().toISOString(),
   };
   return zlib.gzipSync(Buffer.from(JSON.stringify(obj)), { level: 6 });
 }
@@ -130,6 +136,7 @@ function deserialize(buf: Buffer, allowOld = false): State {
     flags: new Map(o.flags), firstBuyAny: new Map(o.firstBuyAny), codes: new Map(o.codes), hours: bk(o.hours), days: bk(o.days),
     pools: o.pools, grid: new Map(o.grid), dailyPx: o.dailyPx || {}, yahooFilled: o.yahooFilled || [], transfers: o.transfers || 0, updatedAt: o.updatedAt,
     hist: new Map(), histHeavy: new Set(), corp: o.corp || [], histShardHash: o.histShardHash || {},
+    cl: o.cl || {}, poolPx: o.poolPx || {}, poolLive: o.poolLive || {}, refPx: o.refPx || {}, refDay: o.refDay || 0,
   };
 }
 

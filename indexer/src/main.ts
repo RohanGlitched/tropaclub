@@ -7,6 +7,7 @@ import { loadState, saveLocal, mirrorState, readStateFile, type State } from './
 import { fetchWindow, fetchStats, type Log } from './fetcher.ts';
 import type { CorpLog } from './state.ts';
 import { buildHistory, writeHistory, buildCorporateActions, historyWallets, historyCounterparties } from './history.ts';
+import { updateChainlink, updatePoolAndRef, makeMarker, CHAINLINK_FEEDS } from './marks.ts';
 import { applyLogs, compactBuckets, type ReplayCtx } from './replay.ts';
 import { batch, headBlock, rpcStats } from './rpc.ts';
 import { ensureCodes } from './codes.ts';
@@ -104,6 +105,29 @@ function writeOutputs(out: ReturnType<typeof buildOutputs>): { tokens: [string, 
     top.push([l, PUBLIC_PREFIX + name]);
   }
   return { tokens, wallets, top };
+}
+
+// Largest gaps between the old published marks (state.dailyPx) / new marks and the Chainlink answer of the day.
+function markReport(s: State, marker: ReturnType<typeof makeMarker>, startDay: number) {
+  const rows: { sym: string; day: string; cl: number; old: number | null; nw: number | null; src: string }[] = [];
+  const today = dayIdx(s.cursorTs);
+  for (const tok of Object.keys(CHAINLINK_FEEDS)) {
+    const sym = s.tokens.find((t) => t.address === tok)?.symbol || tok;
+    for (let d = startDay; d <= today; d++) {
+      const c = s.cl[tok]?.[d];
+      if (!c || !c[0]) continue;
+      const mk = marker.mark(tok, d);
+      rows.push({ sym, day: new Date(d * 86400_000).toISOString().slice(0, 10), cl: c[0], old: s.dailyPx[tok]?.[d] ?? null, nw: mk?.px ?? null, src: mk?.src ?? '-' });
+    }
+  }
+  const gap = (x: number | null, c: number) => (x === null ? -1 : Math.abs(x / c - 1));
+  const show = (key: 'old' | 'nw') => [...rows].sort((a, b) => gap(b[key], b.cl) - gap(a[key], a.cl)).slice(0, 10)
+    .map((r) => `${r.sym} ${r.day} cl=${r.cl.toFixed(2)} ${key}=${r[key]?.toFixed(2)} gap=${(gap(r[key], r.cl) * 100).toFixed(1)}%${key === 'nw' ? ' src=' + r.src : ''}`);
+  console.log('MARK REPORT before (published dailyPx vs Chainlink):\n  ' + show('old').join('\n  '));
+  console.log('MARK REPORT after (new marks vs Chainlink):\n  ' + show('nw').join('\n  '));
+  const srcCount: Record<string, number> = {};
+  for (const r of rows) srcCount[r.src] = (srcCount[r.src] || 0) + 1;
+  console.log('MARK REPORT sources on feed tokens:', JSON.stringify(srcCount));
 }
 
 async function main() {
@@ -229,8 +253,17 @@ async function main() {
     s.tokens.forEach((_, t) => { const bal = s.pairs[t].get(a)?.bal || 0; if ((net.get(t) || 0) !== bal) { histBad++; if (histBad <= 5) console.error(`history mismatch ${a} ${s.tokens[t].symbol}: ${net.get(t) || 0} != ${bal}`); } });
   }
   if (histBad) throw new Error(`${histBad} wallet-token histories do not sum to the balance; nothing published`);
-  const hb = buildHistory(s, hw, prices, tsOf, s.cursorTs);
   const corpFile = buildCorporateActions(s, meta, tsOf, out.index.asOf, s.cursor);
+  // day marks: Chainlink first, pool only when the feed is frozen and within the band, Yahoo for feedless tokens
+  const markStart = dayIdx(Date.UTC(2026, 7, 12) / 1000);
+  const nCl = await updateChainlink(s, markStart);
+  const liveDex = new Map([...prices].filter(([, p]) => p.source === 'dex' && p.price).map(([a, p]) => [a, p.price!]));
+  await updatePoolAndRef(s, minted, dex, markStart, liveDex);
+  const marker = makeMarker(s, meta, corpFile.tokens.flatMap((t) => t.multiplierEvents));
+  saveLocal(s); // keep fetched marks even if this run does not publish
+  console.log(`[${el()}] marks: ${nCl} Chainlink samples fetched`);
+  if (process.env.MARK_REPORT === '1') markReport(s, marker, markStart);
+  const hb = buildHistory(s, hw, marker, tsOf);
   const files = writeOutputs(out);
   const hres = writeHistory(s, OUT_DIR, hb.files);
   const corpLocal = path.join(OUT_DIR, 'corporate-actions.json');

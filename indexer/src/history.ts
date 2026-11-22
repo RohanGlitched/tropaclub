@@ -6,8 +6,9 @@ import crypto from 'node:crypto';
 import type { HistoryEntry, WalletHistory, WalletHistoryShard, WalletHistorySplitIndex, CounterpartyKind, CorporateActionsFile, MultiplierEventJson, AnnouncementJson } from '../../shared/types.ts';
 import { HIST_MIN_USD, HIST_SHARD_SPLIT_BYTES, PUBLIC_PREFIX, UIM_UPDATED_TOPIC, UIM_CANCELLED_TOPIC, ANNOUNCEMENT_TOPIC, END_ANNOUNCEMENT_TOPIC } from './config.ts';
 import { K_CONTRACT, type State } from './state.ts';
-import { walletKind, type Outputs, type PriceInfo } from './output.ts';
+import { walletKind, type Outputs } from './output.ts';
 import { dayIdx } from './time.ts';
+import type { Marker } from './marks.ts';
 import type { ApiToken } from './tokens.ts';
 
 const CP: Record<string, CounterpartyKind> = { p: 'pool', r: 'router', d: 'distributor', m: 'mint', b: 'burn' };
@@ -36,8 +37,7 @@ export function historyCounterparties(s: State, wallets: string[]): Set<string> 
 
 export interface HistoryBuild { files: Map<string, string>; wallets: number; tooActive: number; entries: number }
 
-export function buildHistory(s: State, wallets: string[], prices: Map<string, PriceInfo>, ts: (b: number) => number, nowTs: number): HistoryBuild {
-  const today = dayIdx(nowTs);
+export function buildHistory(s: State, wallets: string[], marker: Marker, ts: (b: number) => number): HistoryBuild {
   const shards = new Map<string, WalletHistoryShard>();
   for (let i = 0; i < 256; i++) shards.set(i.toString(16).padStart(2, '0'), {});
   let entriesN = 0, tooActive = 0;
@@ -51,12 +51,12 @@ export function buildHistory(s: State, wallets: string[], prices: Map<string, Pr
       const tsec = ts(block);
       const tok = s.tokens[tidx];
       const day = dayIdx(tsec);
-      let px: number | null = s.dailyPx[tok.address]?.[day] ?? null;
-      if (px === null && day >= today - 2) px = prices.get(tok.address)?.price ?? null;
+      const mk = marker.mark(tok.address, day);
       let kind: CounterpartyKind, cpAddr: string | undefined;
       if (cp.length === 42) { kind = s.codes.get(cp) === K_CONTRACT ? 'contract' : 'wallet'; cpAddr = cp; }
       else kind = CP[cp];
-      const he: HistoryEntry = { block, ts: tsec, logIndex: +li, dir: sv[0] === '+' ? 'in' : 'out', raw: sv.slice(1), counterpartyKind: kind, txHash: '0x' + Buffer.from(h, 'base64url').toString('hex'), priceUsd: px === null ? null : Math.round(px * 1e4) / 1e4 };
+      const he: HistoryEntry = { block, ts: tsec, logIndex: +li, dir: sv[0] === '+' ? 'in' : 'out', raw: sv.slice(1), counterpartyKind: kind, txHash: '0x' + Buffer.from(h, 'base64url').toString('hex'), priceUsd: mk ? Math.round(mk.px * 1e4) / 1e4 : null };
+      if (mk) he.priceSource = mk.src;
       if (cpAddr) he.counterparty = cpAddr;
       let arr = byTok.get(tidx);
       if (!arr) { arr = []; byTok.set(tidx, arr); }

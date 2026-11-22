@@ -62,7 +62,7 @@ export async function call(method: string, params: unknown[], block?: number): P
 }
 
 // Batched calls. Returns results in input order; throws if any item errors after retries.
-export async function batch(reqs: { method: string; params: unknown[] }[], opts: { block?: number; size?: number; conc?: number } = {}): Promise<any[]> {
+export async function batch(reqs: { method: string; params: unknown[] }[], opts: { block?: number; size?: number; conc?: number; allowItemErrors?: boolean } = {}): Promise<any[]> {
   const size = opts.size ?? 50, conc = opts.conc ?? 3;
   const order = CALL_PROVIDERS.map(byName).filter((p) => opts.block === undefined || opts.block >= p.minBlock);
   const out: any[] = new Array(reqs.length);
@@ -81,6 +81,7 @@ export async function batch(reqs: { method: string; params: unknown[] }[], opts:
           if (!Array.isArray(j)) throw new Error(`${p.name} batch non-array ${JSON.stringify(j).slice(0, 200)}`);
           const res: any[] = new Array(part.length);
           for (const x of j) {
+            if (x.error && opts.allowItemErrors && !/rate|limit|capacity|busy|timeout/i.test(JSON.stringify(x.error))) { res[x.id] = null; continue; }
             if (x.error || x.result === undefined) throw new Error(`${p.name} batch item error ${JSON.stringify(x.error).slice(0, 200)}`);
             res[x.id] = x.result;
           }

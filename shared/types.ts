@@ -107,10 +107,16 @@ export interface HistoryEntry {
   counterpartyKind: CounterpartyKind;
   counterparty?: string;    // lowercase address, only for 'wallet' and 'contract'
   txHash: string;
-  // USD per raw whole token (raw / 1e8 x priceUsd = USD) on that UTC day: GeckoTerminal daily average of the
-  // deepest DEX pool, gaps filled with the underlying's Yahoo close x multiplier. null if unknown.
-  // It is a day mark, not the price this transfer paid (no USDC legs are indexed).
+  // Day mark: USD per raw whole token on that UTC day, so USD value = Number(raw) / 1e8 x priceUsd.
+  // "Per raw whole token" already includes the uiMultiplier in force that day (1 raw token = multiplier shares),
+  // so per-share price = priceUsd / multiplierAt(ts) and shares = raw / 1e8 x multiplierAt(ts).
+  // It is a day mark, not the price this transfer paid (no USDC legs are indexed). null if unknown.
   priceUsd: number | null;
+  // Where the mark came from: 'chainlink' = Coinbase Chainlink feed answer at 22:00 UTC (feed updated that day);
+  // 'pool' = DEX pool daily average (only on days the feed is frozen and within +-15% of its last answer, or for
+  // tokens without a feed when within +-15% of the Yahoo reference); 'carry' = last Chainlink answer carried over a
+  // weekend/holiday; 'reference' = no feed and no usable pool: underlying's Yahoo close converted to per-raw-token.
+  priceSource?: 'chainlink' | 'pool' | 'carry' | 'reference';
 }
 
 export interface WalletHistoryToken {
