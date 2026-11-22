@@ -4,12 +4,23 @@ export const SITE_URL = (process.env.SITE_URL || 'https://tropaclub.xyz').replac
 export const X_URL = 'https://x.com/tropaclubxyz';
 export const DOCS_URL = 'https://docs.tropaclub.xyz';
 export const BUILDER_CODE = 'bc_vdp89s9b';
-/** The moment buying opens (ISO). Server components read it and hand it to the browser as a prop. */
+/** Launch: when buying first opens. All "opens ..." copy uses this, never BUY_OPEN_AT. */
+export const LAUNCH_AT = '2026-11-24T14:30:00.000Z';
+/**
+ * The moment the buy gate opens (ISO). BUY_OPEN_AT can move it (tests, a delayed launch); it never
+ * changes the launch copy. To stop buying after launch, use BUY_PAUSED, not a far-future date.
+ */
 export const buyOpenAt = () => {
   const v = process.env.BUY_OPEN_AT;
-  return v && !isNaN(Date.parse(v)) ? new Date(v).toISOString() : '2026-11-24T14:30:00.000Z';
+  return v && !isNaN(Date.parse(v)) ? new Date(v).toISOString() : LAUNCH_AT;
 };
-export const buyIsOpen = (now = Date.now()) => now >= Date.parse(buyOpenAt());
+/** The kill switch: BUY_PAUSED=1 refuses every quote and shows "Buying paused". Recording a buy already made still works. */
+export const buyPaused = () => /^(1|true|yes|on)$/i.test(process.env.BUY_PAUSED ?? '');
+export const PAUSED_MESSAGE = "Buying is paused for a few minutes while we check something. Your money hasn't moved.";
+export const buyIsOpen = (now = Date.now()) => !buyPaused() && now >= Date.parse(buyOpenAt());
+/** Where buying stands right now: server components pass this to the browser as a prop. */
+export type BuyState = 'before' | 'open' | 'paused';
+export const buyState = (now = Date.now()): BuyState => (buyPaused() ? 'paused' : now >= Date.parse(buyOpenAt()) ? 'open' : 'before');
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** "Tue Nov 24" for an ISO time, in UTC. */
@@ -22,10 +33,23 @@ export const utcWhen = (iso: string) => {
   const d = new Date(iso);
   return `${utcDay(iso)}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
 };
-/** The day buying opens, "Tue Nov 24" (UTC). */
-export const OPENS = utcDay(buyOpenAt());
+/**
+ * utcWhen with the year added whenever it is not `year` (the current UTC year by default), so a
+ * date in another year is never ambiguous: "Thu Jan 1 2099, 00:00 UTC".
+ */
+export const utcWhenYear = (iso: string, year = new Date().getUTCFullYear()) => {
+  const d = new Date(iso);
+  if (d.getUTCFullYear() === year) return utcWhen(iso);
+  return `${utcDay(iso)} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+};
+/** The heading of the paused state, beside PAUSED_MESSAGE. */
+export const PAUSED_TITLE = 'Buying paused';
+/** The ticket's Caps line: "3.5 points (Caps) · rank #12". */
+export const capsPointsLine = (c: { caps: number; rank: number }) => `${c.caps.toLocaleString('en-US', { maximumFractionDigits: 2 })} points (Caps) · rank #${c.rank.toLocaleString('en-US')}`;
+/** The day buying opens, "Tue Nov 24" (UTC): the launch, whatever BUY_OPEN_AT says. */
+export const OPENS = utcDay(LAUNCH_AT);
 /** The moment buying opens, "Tue Nov 24, 14:30 UTC". Where the visitor's own time can be shown, use <OpensAt>. */
-export const OPENS_UTC = utcWhen(buyOpenAt());
+export const OPENS_UTC = utcWhen(LAUNCH_AT);
 /** Who cannot buy, in one line. Used wherever buying or clubs are offered. */
 export const REGION_LINE = 'Not available to US persons or in sanctioned regions.';
 /** The product in one line: the footer and page descriptions. */

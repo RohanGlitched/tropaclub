@@ -64,8 +64,8 @@ export const GLOSSARY = {
     def: 'From week 1, your club is paired each week with a club of a similar size: 3 points if more of your club played than theirs. Returns decide nothing. Bragging rights only.',
   },
   caps: {
-    term: 'Caps',
-    def: `Scoreboard points for buying each week (${CAPS_RULES.played}) and still holding a week later (${CAPS_RULES.heldD7}). Not money, not a token, and they can’t be traded.`,
+    term: 'Caps (season points)',
+    def: `Points you earn by buying each week (${CAPS_RULES.played}) and still holding a week later (${CAPS_RULES.heldD7}). A scoreboard only: not money, not a token, and they can’t be traded.`,
   },
   scout: {
     term: 'Scouts',

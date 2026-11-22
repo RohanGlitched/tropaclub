@@ -16,7 +16,7 @@ import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { FIXTURE_RULE, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyIsOpen, buyOpenAt, groundName, openClubName } from '@/lib/site';
+import { FIXTURE_RULE, LAUNCH_AT, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyOpenAt, buyState, groundName, openClubName } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -72,11 +72,12 @@ export default async function ClubPage({ params, searchParams }: Params) {
   const { club, matchday: md, viewer: me } = page;
   const crest = crestOf(club);
   const openAt = buyOpenAt();
+  const state = buyState();
   void now;
   const isStock = club.kind === 'stock';
   const stockTok = isStock ? index.tokens.find((t) => t.symbol === club.stockSymbol) ?? null : null;
   // before buying opens, an open club nobody has joined shows the opening time and who could join, not "0 members"
-  const preseason = isStock && club.memberCount === 0 && !buyIsOpen();
+  const preseason = isStock && club.memberCount === 0 && state === 'before';
   const name = stockTok ? openClubName(stockTok.name, stockTok.symbol) : club.name;
   // "the NVIDIA open club" reads right in a sentence; a friend club's own name does not take "the"
   const theName = stockTok ? `the ${name}` : name;
@@ -93,16 +94,17 @@ export default async function ClubPage({ params, searchParams }: Params) {
       you: m.isViewer,
       badge: m.streakBadge?.replace(' · ', ', ') ?? null,
       note: played ? (ret ? `${ret} this week` : undefined) : 'Not bought yet this week',
-      canCallUp: !!m.wallet && canCall.has(m.wallet),
+      canCallUp: page.callupsVisible && !!m.wallet && canCall.has(m.wallet),
     };
   });
   const played = md?.played ?? 0;
   // members who joined after the last close show on the Bench until the next one
   const benched = Math.max(club.memberCount - played, 0);
   const turnout = club.memberCount ? Math.round((played / club.memberCount) * 100) : 0;
+  // the engine's own gate decides (page.callupsVisible), so the page and the API never disagree
   const callUpOff = !me?.member
     ? undefined
-    : region.blocked
+    : region.blocked || !page.callupsVisible
       ? "Nudges aren't available in your region."
       : !md
         ? `Nudges open when buying opens, ${OPENS_UTC}.`
@@ -121,7 +123,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
           <div>
             <h1>{name}{isStock ? ' (anyone can join)' : ''}</h1>
             {preseason && stockTok ? (
-              <PreSeason openAt={openAt} holders={stockTok.realFans} className="ground-line" />
+              <PreSeason openAt={LAUNCH_AT} holders={stockTok.realFans} className="ground-line" />
             ) : (
               <p className="ground-line">
                 <span className="num">{fmtInt(club.memberCount)}</span> {club.memberCount === 1 ? 'member' : 'members'}. <span className="num">{fmtInt(club.playingCount)}</span> bought this week.
@@ -183,7 +185,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
                 <p className="notice">This club is joined with an invite link from one of its members.</p>
               )
             ) : (
-              <BuyCta clubId={club.id} token={club.stockToken} symbol={club.stockSymbol ?? undefined} openAt={openAt} label={me.playedThisGw ? 'Buy again this week' : 'Buy this week (counts as played)'} compact />
+              <BuyCta clubId={club.id} token={club.stockToken} symbol={club.stockSymbol ?? undefined} state={state} openAt={openAt} label={me.playedThisGw ? 'Buy again this week' : 'Buy this week (counts as played)'} compact />
             )}
             {me?.member && <p className="muted small">Buys here don’t earn third-party cashback.</p>}
           </div>

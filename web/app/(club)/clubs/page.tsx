@@ -13,7 +13,7 @@ import PreSeason from '@/components/PreSeason';
 import LookBeforeConnect from '@/components/LookBeforeConnect';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, FIXTURE_RULE, HABIT_USD, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
+import { DOCS_URL, FIXTURE_RULE, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, buyState, openClubName } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: buy stock tokens with your group chat',
@@ -27,8 +27,9 @@ export default async function ClubsPage() {
     const [stock, priv, pick, mine] = await Promise.all([svc.listClubs('stock'), svc.listClubs('private'), svc.listClubs('pickup'), wallet ? svc.walletClubs(wallet) : Promise.resolve([])]);
     return { stock, priv, pick, mine, now: svc.ctx.now() };
   });
-  const preLaunch = !buyIsOpen();
-  const openAt = buyOpenAt();
+  const state = buyState();
+  const preLaunch = state === 'before';
+  const openAt = LAUNCH_AT;
   const stock = new Map((data?.stock ?? []).map((c) => [c.stockSymbol, c]));
   const stockRows = index.tokens.map((t) => ({ symbol: t.symbol, name: t.name, realFans: t.realFans, supporters: stock.get(t.symbol)?.memberCount ?? 0, playing: stock.get(t.symbol)?.playingCount ?? 0 }));
   const started = data ? data.priv.length + data.pick.length : 0;
@@ -47,7 +48,7 @@ export default async function ClubsPage() {
         </p>
         <p className="hero-cta"><a className="btn btn-accent" href="#start">Start a club</a></p>
         <p className="muted small">
-          Free to start. No buy needed to join. {preLaunch ? <>Buying opens <OpensAt at={openAt} />. </> : ''}{REGION_LINE}
+          Free to start. No buy needed to join. {preLaunch ? <>Buying opens <OpensAt at={openAt} />. </> : state === 'paused' ? `${PAUSED_MESSAGE} ` : ''}{REGION_LINE}
         </p>
         {data && started > 0 && <p className="asof">{fmtInt(started)} {started === 1 ? 'club' : 'clubs'} started so far.</p>}
         {data && started === 0 && (preLaunch ? <PreSeason openAt={openAt} holders={stats.realWallets} /> : <p className="asof">No clubs yet. Yours could be the first.</p>)}
@@ -183,7 +184,7 @@ export default async function ClubsPage() {
 
       <NextStrip
         items={[
-          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps and Scouts', href: '/league' },
+          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
           { title: 'Your ticket', sub: 'Your rank in every ground you are in', mine: 'ticket' },
         ]}
       />

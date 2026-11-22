@@ -11,14 +11,14 @@ import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
 import { playedStamps, tryClubs } from '@/lib/server/clubs';
-import { capsLine, honourStamps, walletHonours } from '@/lib/server/honours';
+import { honourStamps, walletHonours } from '@/lib/server/honours';
 import { sessionWallet } from '@/lib/server/session';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
 import { ticketOgVersion } from '@/lib/og';
 import { honoursTagOf } from '@/lib/server/cardmake';
-import { COUNT_EVERY, PLAY_USD, SITE_URL, buyOpenAt, groundName, notAffiliated, openClubName, scoutUrl } from '@/lib/site';
+import { COUNT_EVERY, PLAY_USD, SITE_URL, buyOpenAt, buyState, capsPointsLine, groundName, notAffiliated, openClubName, scoutUrl } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
 export const dynamic = 'force-dynamic';
@@ -74,6 +74,7 @@ export default async function TicketPage({ params }: Params) {
   const { address, index, bySymbol, real, ghosts } = d;
   const pageUrl = `${SITE_URL}/ticket/${address}`;
   const openAt = buyOpenAt();
+  const state = buyState();
   const isCode = ghosts.length > 0 && ghosts.every((g) => g.kind === 'contract' || g.kind === 'pool');
   // The token to suggest: the one this wallet is closest to being a real holder of, else the biggest.
   const near = ghosts.find((g) => g.kind === 'dust' || g.kind === 'farmer');
@@ -94,8 +95,8 @@ export default async function TicketPage({ params }: Params) {
   const shareUrl = code ? `${pageUrl}?s=${code}` : pageUrl;
   const honoursNote = (stamps.length > 0 || honours.caps) && (
     <p className="caps-line">
-      {[...stamps, ...(honours.caps ? [capsLine(honours.caps)] : [])].join('. ')}.{' '}
-      {honours.caps && <Link href="/league?tab=caps" prefetch={false}>The Caps table</Link>}
+      {[...stamps, ...(honours.caps ? [capsPointsLine(honours.caps)] : [])].join('. ')}.{' '}
+      {honours.caps && <Link href="/league?tab=caps" prefetch={false}>The points (Caps) table</Link>}
     </p>
   );
 
@@ -111,7 +112,7 @@ export default async function TicketPage({ params }: Params) {
             </p>
             {honours.caps && (
               <p className="caps-line">
-                {capsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the Caps (points) table</Link>
+                {capsPointsLine(honours.caps)} <Link href="/league?tab=caps" prefetch={false}>on the points (Caps) table</Link>
               </p>
             )}
             <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
@@ -155,7 +156,7 @@ export default async function TicketPage({ params }: Params) {
                 <li>
                   <h3>Get the &ldquo;Played&rdquo; stamp</h3>
                   <p>Buy ${PLAY_USD} or more through Tropa Club in a week (a <Term id="gameweek">gameweek</Term>) and this ticket gets a &ldquo;Played&rdquo; stamp for that week, starting with week 0 (GW0), plus your <Term id="payday-streak">streak</Term>: how many weeks running you&rsquo;ve bought.</p>
-                  <BuyCta token={topToken.address} symbol={topToken.symbol} openAt={openAt} standalone compact label={`Buy $10 more of ${topToken.symbol}`} />
+                  <BuyCta token={topToken.address} symbol={topToken.symbol} state={state} openAt={openAt} standalone compact label={`Buy $10 more of ${topToken.symbol}`} />
                 </li>
               </ul>
             </div>
@@ -201,7 +202,7 @@ export default async function TicketPage({ params }: Params) {
                 : <>This wallet holds no stock tokens on Base yet. {fmtInt(target.realFans)} wallets are <Term id="real-fan">real holders</Term> of {target.symbol}, {shortName(target.name, target.symbol)}&rsquo;s <Term id="stock-token">stock token</Term>.</>}
             </p>
             {honoursNote}
-            <BuyCta token={target.address} symbol={target.symbol} openAt={openAt} standalone />
+            <BuyCta token={target.address} symbol={target.symbol} state={state} openAt={openAt} standalone />
             <p className="muted small">Real holders are counted {COUNT_EVERY}. Buying is optional: holding $10 or more in any wallet of your own counts. {target.symbol} is a stock token that tracks the share price; it is not the share. Not advice.</p>
           </div>
           <div className="convert-ticket">

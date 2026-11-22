@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { APPROVALS, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex, getStats } from '@/lib/server/data';
 import { fmtDate, fmtInt, fmtUsd, shortAddr } from '@/lib/format';
-import { BUILDER_CODE, DOCS_URL, PLAY_USD, buyOpenAt } from '@/lib/site';
-import OpensAt from '@/components/OpensAt';
+import { BUILDER_CODE, DOCS_URL, PLAY_USD, buyState } from '@/lib/site';
+import BuyWhen from '@/components/buy/BuyWhen';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 
@@ -64,7 +64,7 @@ export default async function StatsPage() {
       {pre ? (
         <section className="wrap section-tight">
           <div className="season-opens">
-            <p className="opens"><span className="tag">Buying opens</span> <OpensAt at={buyOpenAt()} /></p>
+            <p className="opens"><BuyWhen state={buyState()} /></p>
             <h2>No buy has gone through Tropa Club yet</h2>
             <p>
               From the first buy, this page counts how many people bought, how many buys and approvals carry Builder Code <code>{BUILDER_CODE}</code>, total dollars, and how many buyers still hold after 1, 3 and 7 days. Nothing is shown here until it has been measured.
@@ -223,7 +223,7 @@ export default async function StatsPage() {
       <NextStrip
         items={[
           { title: 'Stock rankings', sub: 'Real holders of every stock token, ranked', href: '/attendance' },
-          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps and Scouts', href: '/league' },
+          { title: 'Club rankings', sub: 'Club scores, open clubs, Caps (season points) and Scouts', href: '/league' },
         ]}
       />
     </main>

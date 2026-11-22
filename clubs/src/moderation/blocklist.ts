@@ -6,7 +6,7 @@
  */
 
 /** Names that would pass a club off as run by Base, Coinbase or us. Matched as whole words. */
-export const RESERVED_WORDS: readonly string[] = ['base', 'coinbase', 'official', 'admin', 'support', 'team', 'tropa', 'tropaclub', 'moderator', 'staff'];
+export const RESERVED_WORDS: readonly string[] = ['base', 'coinbase', 'official', 'admin', 'support', 'tropa', 'tropaclub', 'moderator', 'staff'];
 
 /** Reserved strings that are refused even inside a longer word ("CoinbaseFC", "TropaHQ"). */
 export const RESERVED_INSIDE: readonly string[] = ['coinbase', 'tropa', 'official'];

@@ -9,12 +9,13 @@ import WeeklyChart from '@/components/WeeklyChart';
 import SeatSearchBox from '@/components/SeatSearchBox';
 import ClubPreview from '@/components/ClubPreview';
 import OpensAt from '@/components/OpensAt';
+import BuyWhen from '@/components/buy/BuyWhen';
 import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
 import { getExamples, getIndex, getStats } from '@/lib/server/data';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
-import { PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyOpenAt, groundName } from '@/lib/site';
+import { LAUNCH_AT, PAUSED_MESSAGE, PAY_WITH, PLAY_USD, REGION_LINE, TAGLINE, TWO_THINGS, buyState, groundName } from '@/lib/site';
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export default async function Home() {
   const median = lastWeek && lastWeek.medianBuyUsd > 0 ? lastWeek.medianBuyUsd : null;
   const top10 = tokens.slice(0, 7).map((t) => t.top10SharePct).filter((n) => isFinite(n));
   const rail = tokens.filter((t) => t.realFans > 0).slice(0, 12);
-  const openAt = buyOpenAt();
+  const state = buyState();
 
   return (
     <>
@@ -75,7 +76,7 @@ export default async function Home() {
             <div className="split-text">
               <h3>2. {TWO_THINGS[1].title}</h3>
               <p>{TWO_THINGS[1].text}</p>
-              <p className="muted small clubs-only">Buying opens <OpensAt at={openAt} />. {REGION_LINE}</p>
+              <p className="muted small clubs-only">{state === 'before' && Date.now() < Date.parse(LAUNCH_AT) ? <>Buying opens <OpensAt at={LAUNCH_AT} />. </> : state === 'paused' ? `${PAUSED_MESSAGE} ` : ''}{REGION_LINE}</p>
               <p className="closing-links"><Link className="btn" href="/clubs#start">Start a club with friends</Link><Link href="/clubs">How clubs work</Link></p>
             </div>
           </div>
@@ -126,7 +127,7 @@ export default async function Home() {
                 A <Term id="club">club</Term> is you and your friends each buying about $10 of stock tokens a week, from your own wallets. Tropa Club shows who bought each week, keeps your streaks and keeps a cost-basis record. Starting a club is free and needs no buy.
               </p>
               <p><strong>No shared pot. No fee. We never hold your money.</strong></p>
-              <p className="opens"><span className="tag">Buying opens</span> <OpensAt at={openAt} />. {REGION_LINE}</p>
+              <p className="opens"><BuyWhen state={state} />{state === 'paused' ? ' ' : '. '}{REGION_LINE}</p>
             </div>
             <ol className="steps">
               <li>
@@ -170,7 +171,7 @@ export default async function Home() {
               <Link className="btn" href="/clubs#join">Join with an invite</Link>
               <Link className="btn" href="/league">See club rankings</Link>
             </p>
-            <p className="muted small">Points for buying (Caps) and credit for friends you bring (Scouts) are on the <Link href="/league">league page</Link>.</p>
+            <p className="muted small"><Link href="/league?tab=caps">Earn points (we call them Caps) by playing each week and bringing friends.</Link></p>
             <p className="muted small">Checking wallets and holder counts works everywhere, including the US.</p>
           </div>
         </section>

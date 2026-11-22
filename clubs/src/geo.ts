@@ -64,8 +64,15 @@ export interface GateDecision {
  * Buy gate. `selfCertifiedUsPerson` is the user's own answer to "Are you a US person?" (true blocks).
  * Call-ups and every buy call-to-action use the same gate (hidden where blocked).
  */
+/**
+ * REGION_GATE=off turns the country part of the gate off, for local development only: it is
+ * ignored when NODE_ENV is production or the code runs on Cloud Run (K_SERVICE is set).
+ */
+export const regionGateOff = () => process.env.REGION_GATE === 'off' && process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE;
+
 export function buyGate(policy: GeoPolicy, country: string | null, opts: { selfCertifiedUsPerson?: boolean } = {}): GateDecision {
   if (opts.selfCertifiedUsPerson) return { allowed: false, country, reason: 'self_certified_us' };
+  if (regionGateOff()) return { allowed: true, country, reason: 'ok' };
   if (!country) return { allowed: policy.unknown === 'allow', country, reason: policy.unknown === 'allow' ? 'ok' : 'unknown_country' };
   if (policy.blocked.has(country)) return { allowed: false, country, reason: 'blocked_country' };
   return { allowed: true, country, reason: 'ok' };

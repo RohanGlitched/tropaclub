@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import BuyCta from '@/components/buy/BuyCta';
-import { buyOpenAt, groundName, notAffiliated } from '@/lib/site';
+import { buyOpenAt, buyState, groundName, notAffiliated } from '@/lib/site';
 import { notFound } from 'next/navigation';
 import GroundStage from '@/components/GroundStage';
 import GateReport from '@/components/GateReport';
@@ -82,7 +82,7 @@ export default async function GroundPage({ params }: Params) {
               <h2 className="h3">Become a real holder: buy $10 of {token.symbol}</h2>
               <p>You&rsquo;d be about real holder number {fmtInt(token.realFans + 1)} at the next count (every 6 hours). Ranked by how long you&rsquo;ve held, not how much. Buying here is optional: $10 or more of {token.symbol} held in any wallet of your own counts, and no club is needed.</p>
             </div>
-            <BuyCta token={token.address} symbol={token.symbol} openAt={buyOpenAt()} standalone />
+            <BuyCta token={token.address} symbol={token.symbol} state={buyState()} openAt={buyOpenAt()} standalone />
           </section>
         )}
 

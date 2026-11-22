@@ -1,10 +1,10 @@
-import { REGION_LINE, SITE_URL, buyOpenAt } from '@/lib/site';
+import { REGION_LINE, SITE_URL, LAUNCH_AT } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
 // "Add to calendar": a calendar entry for the moment buying opens.
 export function GET() {
-  const start = new Date(buyOpenAt());
+  const start = new Date(LAUNCH_AT);
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const ics = [
     'BEGIN:VCALENDAR',

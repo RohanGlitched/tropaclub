@@ -59,7 +59,8 @@ export async function countryOf(h: HeaderBag): Promise<string | null> {
   }
 }
 
-export const gateOff = () => process.env.REGION_GATE === 'off';
+/** REGION_GATE=off is for local development only: ignored in production and on Cloud Run. */
+export const gateOff = () => process.env.REGION_GATE === 'off' && process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE;
 export const isUs = (country: string | null) => !gateOff() && !!country && US_AND_TERRITORIES.has(country);
 
 let policy: ReturnType<typeof createGeoPolicy> | null = null;

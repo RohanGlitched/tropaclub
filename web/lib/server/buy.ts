@@ -125,9 +125,16 @@ export interface QuoteHold {
 
 const hold = (message: string, retry = true): QuoteHold => ({ ok: false, message, retry });
 
-export function quoteBuy(p: { token: string; pay: Pay; usd: number; taker: string }): Promise<QuoteOk | QuoteHold> {
+export function quoteBuy(p: { token: string; pay: Pay; usd: number; taker: string }, opts: { fresh?: boolean } = {}): Promise<QuoteOk | QuoteHold> {
   const key = `q:${p.token.toLowerCase()}:${p.pay}:${p.usd}:${p.taker.toLowerCase()}`;
-  return cached(key, 12_000, () => within(makeQuote(p), 30_000, 'quote').catch((e) => hold(friendly(e))));
+  if (opts.fresh) memo.delete(key);
+  const p2 = cached(key, 12_000, () => within(makeQuote(p), 30_000, 'quote').catch((e) => hold(friendly(e))));
+  // "not enough USDC/ETH" is never kept: the visitor is adding funds right now, and the next quote
+  // must read the balance again
+  void p2.then((r) => {
+    if (!r.ok && r.needsFunds) memo.delete(key);
+  });
+  return p2;
 }
 
 function friendly(e: unknown): string {

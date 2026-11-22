@@ -99,7 +99,7 @@ export function pagesFor(ground: string, groundName: string): PageEntry[] {
     { label: 'Get a pick-up club', sub: 'Be matched with others from your region', href: '/clubs#join', keys: 'pickup pick up match solo strangers' },
     { label: 'Club rankings', sub: 'Club scores and weekly rankings', href: '/league', keys: 'league standings fixtures table' },
     { label: 'Open club rankings', sub: 'Open clubs, ranked on how many members buy', href: '/league#supporters', keys: 'supporters stock clubs open' },
-    { label: 'Caps', sub: 'Your points for buying and holding', href: '/league?tab=caps', keys: 'caps points appearances leaderboard' },
+    { label: 'Points (Caps)', sub: 'Season points for buying and holding', href: '/league?tab=caps', keys: 'caps points appearances leaderboard' },
     { label: 'Top referrers (Scouts)', sub: 'Friends whose first buy was still held at day 7', href: '/league?tab=scouts', keys: 'scouts referrals invite leaderboard' },
     { label: 'Stats', sub: 'Numbers on Tropa Club’s own use', href: '/stats', keys: 'numbers builder code metrics retention' },
     { label: 'How it works', sub: 'The two things Tropa Club does', href: '/about', keys: 'about rules faq' },

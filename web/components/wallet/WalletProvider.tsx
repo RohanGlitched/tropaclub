@@ -24,11 +24,13 @@ interface Session {
   ready: boolean;
   busy: boolean;
   error: string;
-  /** One free signature. Resolves to the wallet, or null if it was declined. */
-  signIn: () => Promise<string | null>;
+  /** Which control asked for the sign-in that set `error` (the id passed to signIn), so only that one shows it. */
+  errorBy: string | null;
+  /** One free signature. Resolves to the wallet, or null if it was declined. `by`: the asking control's id. */
+  signIn: (by?: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
-const SessionContext = createContext<Session>({ wallet: null, signedIn: false, ready: false, busy: false, error: '', signIn: async () => null, signOut: async () => {} });
+const SessionContext = createContext<Session>({ wallet: null, signedIn: false, ready: false, busy: false, error: '', errorBy: null, signIn: async () => null, signOut: async () => {} });
 export const useSession = () => useContext(SessionContext);
 
 function SessionProvider({ initialWallet, children }: { initialWallet: string | null; children: ReactNode }) {
@@ -39,6 +41,7 @@ function SessionProvider({ initialWallet, children }: { initialWallet: string | 
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [errorBy, setErrorBy] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -52,7 +55,8 @@ function SessionProvider({ initialWallet, children }: { initialWallet: string | 
     };
   }, []);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (by?: string) => {
+    setErrorBy(by ?? null);
     if (!address) {
       setError('Connect a wallet first.');
       return null;
@@ -87,8 +91,8 @@ function SessionProvider({ initialWallet, children }: { initialWallet: string | 
   }, [router]);
 
   const value = useMemo<Session>(
-    () => ({ wallet, signedIn: !!wallet && isConnected && address?.toLowerCase() === wallet, ready, busy, error, signIn, signOut }),
-    [wallet, isConnected, address, ready, busy, error, signIn, signOut],
+    () => ({ wallet, signedIn: !!wallet && isConnected && address?.toLowerCase() === wallet, ready, busy, error, errorBy, signIn, signOut }),
+    [wallet, isConnected, address, ready, busy, error, errorBy, signIn, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

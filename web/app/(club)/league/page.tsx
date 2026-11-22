@@ -13,7 +13,7 @@ import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
 import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
-import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_RULE, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
+import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_RULE, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
 
 type Tab = 'tables' | 'caps' | 'scouts';
 type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
@@ -74,8 +74,8 @@ export default async function LeaguePage({ searchParams }: Search) {
   const founding = started.filter((c) => isListedClub(c)).sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
   const stock = new Map((data?.clubs ?? []).filter((c) => c.kind === 'stock').map((c) => [c.stockSymbol, c]));
   const stockRows = index.tokens.map((t) => ({ symbol: t.symbol, name: t.name, realFans: t.realFans, supporters: stock.get(t.symbol)?.memberCount ?? 0, playing: stock.get(t.symbol)?.playingCount ?? 0 }));
-  const preLaunch = !buyIsOpen();
-  const openAt = buyOpenAt();
+  const preLaunch = buyState() === 'before';
+  const openAt = LAUNCH_AT;
   // the pre-season line is shown once: under "First clubs" when that is empty, else over the open clubs
   const preseasonTop = preLaunch && !season && !pre.length && !founding.length;
 
@@ -219,11 +219,11 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
     <main id="main">
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'League', href: '/league' }, { label: caps ? 'Points (Caps)' : 'Top referrers (Scouts)' }]} />
-        <h1>{caps ? 'Caps: your points' : 'Top referrers (Scouts)'}</h1>
+        <h1>{caps ? 'Caps (season points)' : 'Top referrers (Scouts)'}</h1>
         <p className="asof">Cosmetic only: nothing here is money or a token.</p>
         <p className="lede">
           {caps
-            ? <>You get <Term id="caps">Caps</Term> for buying in a <Term id="gameweek">gameweek</Term> and for still holding a week later. They&rsquo;re points on a scoreboard, never for the size of a buy.</>
+            ? <>You get <Term id="caps">Caps</Term>, our season points, for buying in a <Term id="gameweek">gameweek</Term> and for still holding a week later. They&rsquo;re points on a scoreboard, never for the size of a buy.</>
             : <>Members whose referred friends bought ${SCOUT_RULES.holdUsd} or more through Tropa Club and still held it on day 7 (<Term id="scout">Scouts</Term>). Ranked on friends who count and still hold, then on friends who count.</>}
         </p>
       </section>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import ConnectButton from '@/components/wallet/ConnectButton';
@@ -73,13 +73,26 @@ export function StartClub() {
   const [err, setErr] = useState('');
   const [made, setMade] = useState<{ id: string; name: string; crest: CrestRecipe; inviteUrl: string } | null>(null);
   const step = made ? 3 : name.trim().length >= 3 ? 2 : 1;
+  // focus follows each step: the start button once signed in from here, the new heading once started
+  const asked = useRef(false);
+  const submitBtn = useRef<HTMLButtonElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const doneHead = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!gate.ready || !asked.current) return;
+    asked.current = false;
+    (submitBtn.current && !submitBtn.current.disabled ? submitBtn.current : nameInput.current)?.focus();
+  }, [gate.ready]);
+  useEffect(() => {
+    if (made) doneHead.current?.focus();
+  }, [made]);
 
   if (made) {
     return (
       <div className="start start-done">
         <Crest recipe={made.crest} width={72} raise title={`Crest of ${made.name}`} />
         <div>
-          <h3>{made.name} is started</h3>
+          <h3 ref={doneHead} tabIndex={-1}>{made.name} is started</h3>
           <p>Its crest is drawn and you are its first member. Send the invite to the group chat.</p>
           <InviteBox url={made.inviteUrl} club={made.name} />
           <p><button type="button" className="btn btn-accent" onClick={() => router.push(`/club/${made.id}`)}>Open the club</button></p>
@@ -108,15 +121,15 @@ export function StartClub() {
         <li data-on={step >= 3}>Invite</li>
       </ol>
       <label htmlFor={`${id}-n`}>Club name</label>
-      <input id={`${id}-n`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday League Tropa" maxLength={40} autoComplete="off" required minLength={3} />
+      <input id={`${id}-n`} ref={nameInput} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday League Tropa" maxLength={40} autoComplete="off" required minLength={3} />
       <label htmlFor={`${id}-k`}>Your nickname in the club <span className="muted">(optional)</span></label>
       <input id={`${id}-k`} value={nick} onChange={(e) => setNick(e.target.value)} placeholder="Ana" maxLength={20} autoComplete="off" />
       <p className="find-note">The crest is drawn for the club when it is made: two colours, a kit pattern and an emblem. Starting a club is free and needs no buy.</p>
       <div className="start-go">
         {gate.ready ? (
-          <button type="submit" className="btn btn-accent" disabled={busy || name.trim().length < 3}>{busy ? 'Starting…' : 'Start the club'}</button>
+          <button type="submit" ref={submitBtn} className="btn btn-accent" disabled={busy || name.trim().length < 3}>{busy ? 'Starting…' : 'Start the club'}</button>
         ) : (
-          <><ConnectButton prompt="Connect wallet to start club" /><span className="buy-why">No buy needed. We’ll ask you to sign in, not to pay.</span></>
+          <><div className="start-connect" onClickCapture={() => { asked.current = true; }}><ConnectButton prompt="Connect wallet to start club" /></div><span className="buy-why">No buy needed. We’ll ask you to sign in, not to pay.</span></>
         )}
         {gate.ready && name.trim().length < 3 && <span className="buy-why">Give the club a name of three letters or more.</span>}
       </div>

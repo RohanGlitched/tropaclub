@@ -1475,3 +1475,46 @@ abbr.ref {
 .preipo-tag {
   color: var(--ink-2);
 }
+
+/* buying paused (BUY_PAUSED): a calm note in place of every buy button */
+.buy-paused {
+  display: grid;
+  gap: 8px;
+  border-left: 5px solid var(--line-2);
+  padding: 4px 0 4px 14px;
+  max-width: 52ch;
+}
+.buy-paused p {
+  margin: 0;
+}
+.buy-paused-t .tag {
+  margin-right: 0;
+}
+/* the quote passed the server's club-count check before signing */
+.buy-counts {
+  font-weight: 600;
+  border-left: 4px solid var(--pitch);
+  padding-left: 10px;
+}
+/* neutral placeholders while the stock list loads */
+.skeleton-btn {
+  height: 52px;
+  flex: 1 1 200px;
+  border-radius: 6px;
+}
+.skeleton-text {
+  display: block;
+  height: 14px;
+  width: 80%;
+  background: var(--line);
+}
+.start-connect {
+  display: contents;
+}
+.start-done h3:focus {
+  outline: none;
+}
+.start-done h3:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}

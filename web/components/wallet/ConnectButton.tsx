@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useSession } from './WalletProvider';
 import { shortAddr } from '@/lib/format';
@@ -25,6 +25,13 @@ export default function ConnectButton({ compact = false, prompt, header = false 
   const [mounted, setMounted] = useState(false);
   const [err, setErr] = useState('');
   const box = useRef<HTMLDivElement>(null);
+  // the one control this instance shows (connect, sign in, or the address): focus lands on it after a step
+  const main = useRef<HTMLElement | null>(null);
+  const setMain = (el: HTMLElement | null) => {
+    main.current = el;
+  };
+  const [focusNext, setFocusNext] = useState<'connected' | 'signedIn' | null>(null);
+  const uid = useId();
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -44,6 +51,23 @@ export default function ConnectButton({ compact = false, prompt, header = false 
   const hasInjected = mounted && typeof window !== 'undefined' && !!(window as unknown as { ethereum?: unknown }).ethereum;
   const list = connectors.filter((c) => c.id === 'coinbaseWalletSDK' || (c.id === 'injected' && hasInjected));
 
+  // after a connect or a sign-in made here, focus moves to the control that took the old one's place
+  useEffect(() => {
+    if (!focusNext) return;
+    if ((focusNext === 'connected' && connected) || (focusNext === 'signedIn' && session.signedIn)) {
+      setFocusNext(null);
+      main.current?.focus();
+    }
+  }, [focusNext, connected, session.signedIn]);
+
+  async function signIn() {
+    const w = await session.signIn(uid);
+    if (w) {
+      setOpen(false);
+      setFocusNext('signedIn');
+    }
+  }
+
   async function pick(id: string) {
     setErr('');
     const c = connectors.find((x) => x.id === id);
@@ -51,6 +75,7 @@ export default function ConnectButton({ compact = false, prompt, header = false 
     try {
       await connectAsync({ connector: c, chainId: 8453 });
       setOpen(false);
+      setFocusNext('connected');
     } catch (e) {
       const m = String((e as { shortMessage?: string; message?: string })?.shortMessage || (e as Error)?.message || '');
       setErr(/reject|denied|declin|closed/i.test(m) ? 'The wallet request was closed. Nothing was connected.' : 'That wallet did not connect. Try the other option.');
@@ -60,23 +85,23 @@ export default function ConnectButton({ compact = false, prompt, header = false 
   return (
     <div className={`connect${compact ? ' connect-compact' : ''}`} ref={box}>
       {!connected && header ? (
-        <Link href="/#find" className="btn btn-accent btn-sm header-cta">Check my wallet</Link>
+        <Link href="/#find" className="btn btn-accent btn-sm header-cta" ref={setMain}>Check my wallet</Link>
       ) : !connected ? (
-        <button type="button" className="btn btn-accent btn-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
+        <button type="button" className="btn btn-accent btn-sm" ref={setMain} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
           {isPending ? 'Connecting…' : prompt ?? 'Connect wallet'}
         </button>
       ) : !session.signedIn && !header ? (
-        <button type="button" className="btn btn-accent btn-sm" onClick={() => void session.signIn()} disabled={session.busy}>
+        <button type="button" className="btn btn-accent btn-sm" ref={setMain} onClick={() => void signIn()} disabled={session.busy}>
           {session.busy ? 'Check your wallet…' : compact ? 'Sign in' : `Sign in as ${shortAddr(address!)}`}
         </button>
       ) : (
-        <button type="button" className="btn btn-sm connect-me" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
+        <button type="button" className="btn btn-sm connect-me" ref={setMain} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
           <i aria-hidden="true" />
           <span className="num">{shortAddr(address!)}</span>
         </button>
       )}
       {connected && !session.signedIn && !compact && <p className="connect-note">One free signature proves the wallet is yours. It moves no funds.</p>}
-      {session.error && !open && <p className="connect-err" role="status">{session.error}</p>}
+      {session.error && session.errorBy === uid && !open && <p className="connect-err" role="status">{session.error}</p>}
       {open && (
         <div className="connect-menu" role="dialog" aria-label={connected ? 'Wallet' : 'Choose a wallet'}>
           {!connected ? (
@@ -96,7 +121,7 @@ export default function ConnectButton({ compact = false, prompt, header = false 
             <>
               <p className="connect-title num">{shortAddr(address!)}</p>
               {!session.signedIn && (
-                <button type="button" className="connect-opt" onClick={() => void session.signIn()} disabled={session.busy}>
+                <button type="button" className="connect-opt" onClick={() => void signIn()} disabled={session.busy}>
                   <b>{session.busy ? 'Check your wallet…' : 'Sign in'}</b>
                   <small>One free signature proves the wallet is yours. It moves no funds.</small>
                 </button>

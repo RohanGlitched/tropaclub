@@ -26,7 +26,7 @@ describe('cleanName', () => {
 
 describe('nameProblem', () => {
   it('blocks reserved words however they are dressed up', () => {
-    for (const n of ['Base Bulls', 'Coinbase Club', 'CoinbaseFC', 'C0INBASE FC', 'Official Picks', 'Admin Desk', 'Support Team', 'The Team', 'Tropa HQ', 'TropaClub Official', 'Teams United', 'Bаse Crew', 'Сoinbase', 'T R O P A']) {
+    for (const n of ['Base Bulls', 'Coinbase Club', 'CoinbaseFC', 'C0INBASE FC', 'Official Picks', 'Admin Desk', 'Support Team', 'Admin Team', 'Tropa team', 'Tropa HQ', 'TropaClub Official', 'Bаse Crew', 'Сoinbase', 'T R O P A']) {
       expect(nameProblem(n), n).not.toBeNull();
     }
   });
@@ -54,7 +54,7 @@ describe('nameProblem', () => {
   });
 
   it('leaves ordinary names alone', () => {
-    for (const n of ['Lagos Value FC', 'Spicy Savers', 'Scunthorpe United', 'Con Amigos', 'K Club', 'Badminton Crew', 'Baseline Bros', 'Database Dads', 'Andes Rovers', 'São Paulo Poupança', 'A C Milan Fans', 'Lagos-Value FC', 'Co-op Club']) {
+    for (const n of ['Lagos Value FC', 'Spicy Savers', 'Scunthorpe United', 'Con Amigos', 'K Club', 'Badminton Crew', 'Baseline Bros', 'Database Dads', 'Andes Rovers', 'Dream Team', 'The A Team', 'Teams United', 'São Paulo Poupança', 'A C Milan Fans', 'Lagos-Value FC', 'Co-op Club']) {
       expect(nameProblem(n), n).toBeNull();
     }
   });
