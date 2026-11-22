@@ -11,11 +11,12 @@ import type { Member } from '@/components/ds/TeamSheet';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { crestOf, tryClubs } from '@/lib/server/clubs';
 import { getIndex } from '@/lib/server/data';
+import PreSeason from '@/components/PreSeason';
 import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { FIXTURE_RULE, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyOpenAt, groundName, openClubName } from '@/lib/site';
+import { FIXTURE_RULE, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyIsOpen, buyOpenAt, groundName, openClubName } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -74,6 +75,8 @@ export default async function ClubPage({ params, searchParams }: Params) {
   void now;
   const isStock = club.kind === 'stock';
   const stockTok = isStock ? index.tokens.find((t) => t.symbol === club.stockSymbol) ?? null : null;
+  // before buying opens, an open club nobody has joined shows the opening time and who could join, not "0 members"
+  const preseason = isStock && club.memberCount === 0 && !buyIsOpen();
   const name = stockTok ? openClubName(stockTok.name, stockTok.symbol) : club.name;
   // "the NVIDIA open club" reads right in a sentence; a friend club's own name does not take "the"
   const theName = stockTok ? `the ${name}` : name;
@@ -117,14 +120,18 @@ export default async function ClubPage({ params, searchParams }: Params) {
           <Crest recipe={crest} width={64} raise={sp.joined === '1'} title={`Crest of ${name}`} />
           <div>
             <h1>{name}{isStock ? ' (anyone can join)' : ''}</h1>
-            <p className="ground-line">
-              <span className="num">{fmtInt(club.memberCount)}</span> {club.memberCount === 1 ? 'member' : 'members'}. <span className="num">{fmtInt(club.playingCount)}</span> bought this week.
-            </p>
+            {preseason && stockTok ? (
+              <PreSeason openAt={openAt} holders={stockTok.realFans} className="ground-line" />
+            ) : (
+              <p className="ground-line">
+                <span className="num">{fmtInt(club.memberCount)}</span> {club.memberCount === 1 ? 'member' : 'members'}. <span className="num">{fmtInt(club.playingCount)}</span> bought this week.
+              </p>
+            )}
           </div>
         </div>
         {isStock && stockTok && (
           <p className="lede">
-            An open club for anyone who wants to buy {stockTok.symbol} each week. Here, the buy has to be {stockTok.symbol}. It&rsquo;s ranked on how many members buy, never on returns. Its members are people who joined this club{club.memberCount === 0 ? ', so it has none yet' : ''}. The <Link href={groundPath(stockTok.symbol)}>{groundName(stockTok.name, stockTok.symbol)}</Link> is different: it counts every holder of the token, and its {fmtInt(stockTok.realFans)} real holders don&rsquo;t need to join anything.
+            An open club for anyone who wants to buy {stockTok.symbol} each week. Here, the buy has to be {stockTok.symbol}. It&rsquo;s ranked on how many members buy, never on returns. Its members are people who join this club. The <Link href={groundPath(stockTok.symbol)}>{groundName(stockTok.name, stockTok.symbol)}</Link> is different: it counts every holder of the token, and its {fmtInt(stockTok.realFans)} real holders don&rsquo;t need to join anything.
           </p>
         )}
         {sp.joined === '1' && me?.member && <p className="notice notice-ok" role="status">You joined {theName}. You show on the Bench until you buy this week. {RULE_LINE}</p>}
@@ -186,8 +193,8 @@ export default async function ClubPage({ params, searchParams }: Params) {
           <h2 className="h3">Members{md ? `, ${md.gw.id.replace('GW', 'gameweek ')}` : ''}</h2>
           {members.length === 0 ? (
             <div className="sheet-empty-club">
-              <h3>No members yet</h3>
-              <p>{me?.invite ? 'Nobody else has joined yet. Send the invite link to your group chat.' : 'Join for free. No buy needed.'}</p>
+              <h3>{preseason ? 'Be one of the first members' : 'No members yet'}</h3>
+              <p>{me?.invite ? 'Nobody else has joined yet. Send the invite link to your group chat.' : preseason ? 'Join for free now. No buy needed, and buying opens with week 0.' : 'Join for free. No buy needed.'}</p>
               {me?.invite && <p><a className="btn btn-accent" href="#invite">Invite people</a></p>}
             </div>
           ) : (

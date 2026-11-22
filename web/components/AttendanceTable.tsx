@@ -7,6 +7,7 @@ import LeagueTable, { type LeagueColumn } from './ds/LeagueTable';
 import { Pennant } from './ds/Pennant';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtInt, fmtPct } from '@/lib/format';
+import { PRE_IPO_TAG, isPreIpo } from '@/lib/preipo';
 
 export type Row = Pick<TokenSummary, 'symbol' | 'name' | 'holdersTotal' | 'realFans' | 'attendancePct' | 'weeklyBuyers' | 'newBuyers7d' | 'priceUsd'> & Pick<Partial<TokenSummary>, 'priceSource'>;
 
@@ -54,7 +55,7 @@ export default function AttendanceTable({ rows, controls = true }: { rows: Row[]
           <Pennant kit={kitFor(r.symbol)} width={18} />
           <span>
             {shortName(r.name, r.symbol)}
-            <small>{r.symbol}{r.priceSource === 'reference' && <abbr className="ref" title="No active market: valued at the share's last price times the token's split multiplier, so the $10 line is approximate"> · reference price</abbr>}</small>
+            <small>{r.symbol}{r.priceSource === 'reference' && <abbr className="ref" title="No active market: valued at the share's last price times the token's split multiplier, so the $10 line is approximate"> · reference price</abbr>}{isPreIpo(r.symbol) && <span className="preipo-tag"> · {PRE_IPO_TAG}</span>}</small>
           </span>
         </Link>
       )}

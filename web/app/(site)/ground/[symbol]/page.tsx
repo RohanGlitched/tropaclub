@@ -13,6 +13,7 @@ import { dataBaseUrl, getToken } from '@/lib/server/data';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
 import { buildLayout } from '@/lib/stadium';
+import { PRE_IPO_TAG, isPreIpo, preIpoPriceNote } from '@/lib/preipo';
 
 export const revalidate = 300;
 type Params = { params: Promise<{ symbol: string }> };
@@ -43,6 +44,7 @@ export default async function GroundPage({ params }: Params) {
   const pos = data.tokens.findIndex((t) => t.symbol === token.symbol) + 1;
   const L = buildLayout(token.holdersTotal);
   const priced = token.priceUsd != null;
+  const preIpo = isPreIpo(token.symbol);
   const seatsBase = index.source === 'live' ? dataBaseUrl : null;
   const others = data.tokens.filter((t) => t.symbol !== token.symbol && t.realFans > 0).slice(0, 11);
   const clubs = data.tokens.map(({ symbol: s, name, holdersTotal, realFans, ghosts, attendancePct }) => ({ symbol: s, name, holdersTotal, realFans, ghosts, attendancePct }));
@@ -56,6 +58,7 @@ export default async function GroundPage({ params }: Params) {
             <span className="ground-pennant"><Pennant kit={kit} width={46} rail /></span>
             <div>
               <h1>{club}</h1>
+              {preIpo && <p className="preipo"><span className="tag tag-quiet">{PRE_IPO_TAG}</span> {preIpoPriceNote(token)}</p>}
               <p className="ground-line">
                 <span className="num">{fmtInt(token.holdersTotal)}</span> holders.{' '}
                 {priced ? <><span className="num">{fmtInt(token.realFans)}</span> real holders ({fmtPct(token.attendancePct)}).</> : 'No price yet, so the real holders cannot be counted.'}
@@ -93,10 +96,10 @@ export default async function GroundPage({ params }: Params) {
                   : <>{token.symbol} has no liquid market yet, so its holders cannot be valued in dollars and the $10 line cannot be drawn.</>}
               </p>
               <dl className="figures figures-2">
-                <div><dt>Buyers, last 7 days</dt><dd className="num" title={token.weeklyBuyers > token.holdersTotal ? 'Includes wallets that bought and sold again' : undefined}>{fmtInt(token.weeklyBuyers)}</dd><p>{fmtInt(token.newBuyers7d)} bought for the first time.{token.weeklyBuyers > token.holdersTotal ? ' Includes wallets that bought and sold again.' : ''}</p></div>
+                <div><dt>Buyers, last 7 days</dt><dd className="num">{fmtInt(token.weeklyBuyers)}</dd><p>{fmtInt(token.newBuyers7d)} bought for the first time. Buyers in 7 days can be more than holders: some bought and sold again.</p></div>
                 <div><dt>Median weekly buy</dt><dd className="num">{token.medianWeeklyBuyUsd != null ? fmtUsd(token.medianWeeklyBuyUsd) : '—'}</dd><p>The middle buyer&rsquo;s total for the week, bots removed.</p></div>
                 <div><dt>Held by the top 10 wallets</dt><dd className="num">{fmtPct(token.top10SharePct, 0)}</dd><p>Top 10 wallets hold {fmtPct(token.top10SharePct, 0)} of {token.symbol} ({fmtPct(token.top10ShareExPoolsPct, 0)} without exchange pools).</p></div>
-                <div><dt>Token price</dt><dd className="num">{priced ? fmtUsd(token.priceUsd) : '—'}</dd><p>{!priced ? 'No liquid pool found.' : token.priceSource === 'reference' ? `Reference price: no active market, so we use the share’s last price${token.multiplier !== 1 ? ` times a ×${+token.multiplier.toFixed(4)} adjustment for splits and dividends paid as tokens` : ''}. The $10 line is approximate.` : `Exchange price used for the $10 line${token.multiplier !== 1 ? `. It includes a ×${+token.multiplier.toFixed(4)} adjustment for dividends paid as tokens` : ''}.`}</p></div>
+                <div><dt>Token price</dt><dd className="num">{priced ? fmtUsd(token.priceUsd) : '—'}</dd><p>{preIpo ? preIpoPriceNote(token) : !priced ? 'No liquid pool found.' : token.priceSource === 'reference' ? `Reference price: no active market, so we use the share’s last price${token.multiplier !== 1 ? ` times a ×${+token.multiplier.toFixed(4)} adjustment for splits and dividends paid as tokens` : ''}. The $10 line is approximate.` : `Exchange price used for the $10 line${token.multiplier !== 1 ? `. It includes a ×${+token.multiplier.toFixed(4)} adjustment for dividends paid as tokens` : ''}.`}</p></div>
               </dl>
             </div>
             <GateReport token={token} />

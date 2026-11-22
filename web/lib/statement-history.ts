@@ -171,3 +171,31 @@ export function readableNote(note: string, t: number): string {
     .replace(' · confirmed by announcement', '. Confirmed by the issuer’s announcement')
     .replace(/, ratio wins$/, ', so the token’s own ratio is used');
 }
+
+/**
+ * Where "Worth now" comes from, per held token: the index's live price for the count (the
+ * statement values today's lots at that price; see web/lib/server/statement.ts), labelled by the
+ * index's priceSource. null means the index had no price, so the statement fell back to its own
+ * marks (Chainlink first, then a recorded price).
+ */
+export type NowPriceSource = 'dex' | 'reference' | null;
+const NOW_LABEL: Record<'dex' | 'reference' | 'none', string> = {
+  dex: 'exchange pool price on Base',
+  reference: 'reference price (the share’s last price times the token’s multiplier)',
+  none: 'Chainlink price, or the last recorded price',
+};
+
+/** "Priced at the exchange pool price on Base (NVDAc, TSLAc), as counted 22 Nov 2026, 06:18 UTC." */
+export function worthNowSource(symbols: string[], sources: Record<string, NowPriceSource>, countedAt: string | number | null | undefined): string | null {
+  const held = [...new Set(symbols)];
+  if (!held.length) return null;
+  const groups = new Map<keyof typeof NOW_LABEL, string[]>();
+  for (const sym of held) {
+    const k = sym in sources ? (sources[sym] ?? 'none') : 'none';
+    groups.set(k, [...(groups.get(k) ?? []), sym]);
+  }
+  const single = groups.size === 1;
+  const parts = [...groups].map(([k, syms]) => (single ? NOW_LABEL[k] : `${NOW_LABEL[k]} (${syms.join(', ')})`));
+  const when = countedAt != null ? fmtDate(countedAt, true) : null;
+  return `Priced at the ${parts.join('; ')}${when && when !== '—' ? `, as counted ${when}` : ''}.`;
+}

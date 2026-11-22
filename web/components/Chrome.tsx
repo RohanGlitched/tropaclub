@@ -8,7 +8,7 @@ import NavHost from './nav/NavHost';
 import HeaderWallet from './nav/HeaderWallet';
 import Floating from './nav/Floating';
 import { fmtDate } from '@/lib/format';
-import { DOCS_URL, TAGLINE, X_URL } from '@/lib/site';
+import { DOCS_URL, REPO_URL, TAGLINE, X_URL } from '@/lib/site';
 import { jumpTokens, type JumpToken } from '@/lib/nav';
 import { getIndex, type Source } from '@/lib/server/data';
 
@@ -88,6 +88,8 @@ const COLUMNS: { title: string; links: FootLink[] }[] = [
   {
     title: 'Company',
     links: [
+      { label: 'Who builds this', href: '/about#who' },
+      { label: 'Source code', href: REPO_URL, ext: true },
       { label: 'For partners', href: `${DOCS_URL}/for-partners`, ext: true },
       { label: 'Contact', href: '/about#contact' },
     ],

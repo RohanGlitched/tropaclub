@@ -180,8 +180,8 @@ export default async function StatsPage() {
           <div className="split-text">
             <h2>Do clubs help people keep holding?</h2>
             <p><strong>Published Thu Dec 3</strong>, once the first members reach day 7.</p>
-            <p>We&rsquo;ll compare club members with similar first-time buyers of the same token in the same week who didn&rsquo;t join, and with people who got cashback offers. The method was fixed before any data existed.</p>
-            <p className="muted small">This shows a pattern, not proof: people choose to join. <a href={DOCS_URL} rel="noopener">Read the method in the docs</a></p>
+            <p>We&rsquo;ll compare club members with similar first-time buyers of the same token in the same week who didn&rsquo;t join. A second comparison group is first-time buyers that week who were paid a trading reward (cashback) by another app, found from their public claims on the Merkl reward contract. The method was fixed before any data existed.</p>
+            <p className="muted small">This shows a pattern, not proof: people choose to join. <a href={`${DOCS_URL}/retention-evidence`} rel="noopener">Read the method in the docs</a></p>
           </div>
         </div>
       </section>

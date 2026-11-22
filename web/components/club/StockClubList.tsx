@@ -12,34 +12,55 @@ export interface StockClubRow {
   playing: number;
 }
 
-const line = (r: StockClubRow) =>
-  r.supporters > 0
-    ? `${fmtInt(r.supporters)} ${r.supporters === 1 ? 'member' : 'members'}, ${fmtInt(r.playing)} bought this week · ${fmtInt(r.realFans)} real holders of the token`
-    : r.realFans > 0
-      ? `0 members yet · ${fmtInt(r.realFans)} real holders of the token`
-      : '0 members yet · anyone can join';
+const href = (r: StockClubRow) => `/club/stock-${r.symbol.toLowerCase()}`;
 
-/** Open clubs, one per stock token: the biggest grounds first, the rest behind "All N". Never a wall of zeros. */
+/**
+ * Open clubs, one per stock token, biggest grounds first. Clubs with members get a card each.
+ * Clubs nobody has joined yet share one dense list (the first `first`, the rest behind "See all"),
+ * so the page never shows a wall of identical "0 members" rows.
+ */
 export default function StockClubList({ rows, first = 12 }: { rows: StockClubRow[]; first?: number }) {
-  const card = (r: StockClubRow) => (
-    <Link key={r.symbol} href={`/club/stock-${r.symbol.toLowerCase()}`} className="club-card" prefetch={false}>
-      <Pennant kit={kitFor(r.symbol)} width={30} />
-      <span>
+  const joined = rows.filter((r) => r.supporters > 0);
+  const empty = rows.filter((r) => r.supporters === 0);
+  const item = (r: StockClubRow) => (
+    <li key={r.symbol}>
+      <Link href={href(r)} prefetch={false}>
+        <Pennant kit={kitFor(r.symbol)} width={16} />
         <b>{openClubName(r.name, r.symbol)}</b>
-        <small>{line(r)}</small>
-      </span>
-    </Link>
+        <small className="num">{r.realFans > 0 ? `${fmtInt(r.realFans)} real holders` : r.symbol}</small>
+      </Link>
+    </li>
   );
-  const head = rows.slice(0, first);
-  const rest = rows.slice(first);
+  const head = empty.slice(0, first);
+  const rest = empty.slice(first);
   return (
     <>
-      <div className="club-grid">{head.map(card)}</div>
-      {rest.length > 0 && (
-        <details className="more-clubs">
-          <summary>All {rows.length} open clubs</summary>
-          <div className="club-grid">{rest.map(card)}</div>
-        </details>
+      {joined.length > 0 && (
+        <div className="club-grid">
+          {joined.map((r) => (
+            <Link key={r.symbol} href={href(r)} className="club-card" prefetch={false}>
+              <Pennant kit={kitFor(r.symbol)} width={30} />
+              <span>
+                <b>{openClubName(r.name, r.symbol)}</b>
+                <small>{fmtInt(r.supporters)} {r.supporters === 1 ? 'member' : 'members'}, {fmtInt(r.playing)} bought this week · {fmtInt(r.realFans)} real holders of the token</small>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+      {empty.length > 0 && (
+        <div className="open-clubs">
+          <p className="open-clubs-note">
+            {joined.length ? `No one has joined these ${fmtInt(empty.length)} yet.` : `No one has joined an open club yet.`} Joining is free. The number is the token&rsquo;s real holders, who are counted whether or not they join.
+          </p>
+          <ul className="open-list">{head.map(item)}</ul>
+          {rest.length > 0 && (
+            <details className="more-clubs">
+              <summary>See all {fmtInt(empty.length)} open clubs</summary>
+              <ul className="open-list">{rest.map(item)}</ul>
+            </details>
+          )}
+        </div>
       )}
     </>
   );

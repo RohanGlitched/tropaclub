@@ -32,7 +32,7 @@ export default async function AttendancePage() {
       <main id="main">
         <section className="wrap page-head">
           <Crumbs trail={[{ label: 'Stock rankings' }]} />
-          <p className="hero-pitch">The Attendance</p>
+          <p className="hero-pitch">Stock rankings</p>
           <h1>Real holders of every stock token</h1>
           <p className="lede">
             All {tokens.length} Coinbase <Term id="stock-token">stock tokens</Term> on Base, ranked by how many wallets really hold them: $10 or more, bought it themselves, and not a contract. Of <span className="num">{fmtInt(held)}</span> token holdings, <span className="num">{fmtInt(fans)}</span> ({fmtPct((fans / Math.max(1, held)) * 100)}) are real. They belong to <span className="num">{fmtInt(stats.realWallets)}</span> wallets.
@@ -44,6 +44,7 @@ export default async function AttendancePage() {
 
         <section className="wrap section-tight" aria-label="Stock rankings">
           <AttendanceTable rows={tokens} />
+          <p className="muted small table-note">Buyers in 7 days can be more than holders: some bought and sold again.</p>
         </section>
 
         <section className="band">
@@ -113,7 +114,7 @@ export default async function AttendancePage() {
                 <div><dt>All holders</dt><dd>Every wallet with a balance above zero. The number a block explorer calls &ldquo;holders&rdquo;.</dd></div>
                 <div><dt>Real holders (real fans)</dt><dd>Wallets holding $10 or more that belong to a person and did more than receive a giveaway.</dd></div>
                 <div><dt>Real share (attendance)</dt><dd>Real holders divided by all holders.</dd></div>
-                <div><dt>Buyers, 7 days</dt><dd>Distinct wallets that bought on an exchange (a DEX) in the last week. Bots with more than 50 swaps are left out.</dd></div>
+                <div><dt>Buyers, 7 days</dt><dd>Distinct wallets that bought on an exchange (a DEX) in the last week. Bots with more than 50 swaps are left out. Buyers in 7 days can be more than holders: some bought and sold again.</dd></div>
                 <div><dt>New buyers, 7 days</dt><dd>Of those, wallets buying that token for the first time.</dd></div>
                 <div><dt>Reference price</dt><dd>No active market, so we use the share&rsquo;s last price times the token&rsquo;s split <Term id="multiplier">multiplier</Term>. The $10 line is approximate.</dd></div>
                 <div><dt>No price yet</dt><dd>Tokens without a liquid market have no dollar value, so the $10 line cannot be drawn. We count their holders, but can&rsquo;t tell which are real.</dd></div>

@@ -32,7 +32,7 @@ interface Props {
 }
 
 type Focus = { index: number; address?: string; mine: boolean; rank?: number | null; of?: number; kind?: string };
-type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: string; links?: { href: string; label: string }[] };
+type Status = { tone: 'idle' | 'busy' | 'ok' | 'warn'; text: ReactNode; links?: { href: string; label: string }[] };
 
 export default function GroundStage({ mode, clubs, tabs, initial, examples = [], lede, pitch, note, seatsBase }: Props) {
   const [symbol, setSymbol] = useState(initial);
@@ -161,7 +161,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
       tone: 'ok',
       text: f.rank != null
         ? `Found it in the ${groundName(target.name, target.symbol)}: a real holder, at block ${lbl?.block}, row ${lbl?.row}, seat ${lbl?.seat}.`
-        : `Found it in the ${groundName(target.name, target.symbol)} as a ghost seat: this wallet holds under $10, only received a giveaway, or is a contract.`,
+        : <>Found it in the {groundName(target.name, target.symbol)} as a <Term id="ghost-seat">ghost seat</Term>: this wallet holds under $10, only received a giveaway, or is a contract.</>,
       links: [{ href: ticket, label: f.rank != null ? (held.length > 1 ? 'See all its tickets' : 'See the ticket') : 'See this wallet' }],
     });
   }
@@ -305,7 +305,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
           {stage}
           <div className="hero-under">
             <p className="caption hero-caption">
-              <span className="num">{fmtInt(club.holdersTotal)}</span> seats in the <Term id="ground">{gname}</Term>. <span className="num">{fmtInt(club.realFans)}</span> fans showed up. Each seat is one wallet; the lit ones are real holders.
+              <span className="num">{fmtInt(club.holdersTotal)}</span> seats in the <Term id="ground">{gname}</Term>, one per wallet. <span className="num">{fmtInt(club.realFans)}</span> are real holders: the lit seats.
             </p>
             <div className="tabs" role="group" aria-label="Choose a stock token">
               {tabClubs.map((c) => (

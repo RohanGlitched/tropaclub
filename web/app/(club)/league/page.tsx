@@ -7,12 +7,13 @@ import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import ClubPreview from '@/components/ClubPreview';
 import { Pennant } from '@/components/ds/Pennant';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
-import { getIndex } from '@/lib/server/data';
+import { getIndex, getStats } from '@/lib/server/data';
+import PreSeason from '@/components/PreSeason';
 import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
 import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
-import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_RULE, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, openClubName } from '@/lib/site';
+import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_RULE, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
 
 type Tab = 'tables' | 'caps' | 'scouts';
 type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
@@ -44,8 +45,9 @@ export default async function LeaguePage({ searchParams }: Search) {
   );
   if (tab !== 'tables') return <BoardPage tab={tab} page={page} tabs={tabs} />;
 
-  const [{ data: index }, data] = await Promise.all([
+  const [{ data: index }, { data: stats }, data] = await Promise.all([
     getIndex(),
+    getStats(),
     tryClubs(async (svc) => {
       await ensureStockClubs(svc);
       const [league, pre, sup, clubs] = await Promise.all([svc.getLeagueTable(), svc.getPreseasonTable(), svc.getSupportersTable(), svc.listClubs()]);
@@ -72,6 +74,10 @@ export default async function LeaguePage({ searchParams }: Search) {
   const founding = started.filter((c) => isListedClub(c)).sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
   const stock = new Map((data?.clubs ?? []).filter((c) => c.kind === 'stock').map((c) => [c.stockSymbol, c]));
   const stockRows = index.tokens.map((t) => ({ symbol: t.symbol, name: t.name, realFans: t.realFans, supporters: stock.get(t.symbol)?.memberCount ?? 0, playing: stock.get(t.symbol)?.playingCount ?? 0 }));
+  const preLaunch = !buyIsOpen();
+  const openAt = buyOpenAt();
+  // the pre-season line is shown once: under "First clubs" when that is empty, else over the open clubs
+  const preseasonTop = preLaunch && !season && !pre.length && !founding.length;
 
   return (
     <main id="main">
@@ -131,7 +137,10 @@ export default async function LeaguePage({ searchParams }: Search) {
                   {founding.length > 30 && <p className="muted small">And {fmtInt(founding.length - 30)} more.</p>}
                 </>
               ) : (
-                <p className="notice">{started.length ? 'No club has a second member yet. A club is listed here once one joins or a member buys.' : 'No club has been started yet. The first one is listed here as club No. 1.'}</p>
+                <>
+                  {preseasonTop && <PreSeason openAt={openAt} holders={stats.realWallets} />}
+                  <p className="notice">{started.length ? 'No club has a second member yet. A club is listed here once one joins or a member buys.' : 'The first club started is listed here as club No. 1.'}</p>
+                </>
               )}
               <p className="after-table"><Link className="btn btn-accent" href="/clubs#start">{started.length ? `Start club No. ${fmtInt(started.length + 1)}` : 'Start the first club'}</Link></p>
             </div>
@@ -155,7 +164,8 @@ export default async function LeaguePage({ searchParams }: Search) {
               <SupportersTable rows={sup} />
             ) : (
               <>
-                <p className="muted">No open club has a member yet, so there is nothing to rank. These are the biggest tokens. Join one for free and it appears here.</p>
+                {preLaunch && !preseasonTop && <PreSeason openAt={openAt} holders={stats.realWallets} />}
+                <p className="muted">{preLaunch ? 'Open clubs are ranked once members start buying. Join one for free now and it appears here.' : 'No open club has a member yet, so there is nothing to rank. Join one for free and it appears here.'} The biggest tokens come first.</p>
                 <StockClubList rows={stockRows} first={8} />
               </>
             )}

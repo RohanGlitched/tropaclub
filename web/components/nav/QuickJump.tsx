@@ -8,6 +8,7 @@ import { resolveInput } from '@/lib/client';
 import { groundPath, kitFor } from '@/lib/clubs';
 import { isAddress, shortAddr } from '@/lib/format';
 import { Pennant } from '@/components/ds/Pennant';
+import { PRE_IPO_TAG, isPreIpo } from '@/lib/preipo';
 import type { PanelProps } from './NavHost';
 import { Icon, type Glyph } from './icons';
 
@@ -89,7 +90,7 @@ export default function QuickJump({ tokens, ground, wallet, onClose }: PanelProp
       .filter((y) => y.s > 0 && y.x.href)
       .sort((a, b) => b.s - a.s)
       .slice(0, 6);
-    const gi = g.map<Item>(({ t: [sym, name] }) => ({ key: `g:${sym}`, group: 'Grounds', label: `${name} ground`, sub: `Holders of ${sym}`, href: groundPath(sym), symbol: sym }));
+    const gi = g.map<Item>(({ t: [sym, name] }) => ({ key: `g:${sym}`, group: 'Grounds', label: `${name} ground`, sub: isPreIpo(sym) ? `Holders of ${sym} · ${PRE_IPO_TAG}` : `Holders of ${sym}`, href: groundPath(sym), symbol: sym }));
     const pi = p.map<Item>(({ x }) => ({ key: `p:${x.label}`, group: 'Pages', label: x.label, sub: x.sub, href: x.href, ext: 'ext' in x ? x.ext : undefined, glyph: 'ext' in x && x.ext ? 'ext' : 'page' }));
     const mi = mine.filter((m) => scoreText(v, m.label, 'ticket statement wallet my') > 0);
     const groundsFirst = (g[0]?.s ?? 0) >= (p[0]?.s ?? 0);

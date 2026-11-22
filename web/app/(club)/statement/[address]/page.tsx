@@ -5,6 +5,8 @@ import SeatSearchBox from '@/components/SeatSearchBox';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import { isAddress, shortAddr } from '@/lib/format';
+import { getIndex } from '@/lib/server/data';
+import { sessionWallet } from '@/lib/server/session';
 
 export const metadata: Metadata = {
   title: 'Cost-basis statement (estimate) for a wallet',
@@ -18,12 +20,18 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
   const { address: raw } = await params;
   const address = raw.toLowerCase();
   const valid = isAddress(address);
+  const [viewer, { data: index }] = await Promise.all([valid ? sessionWallet() : Promise.resolve(null), getIndex()]);
+  // "Your" only when the visitor is signed in as this wallet; anyone else sees an estimate about an address
+  const own = !!viewer && viewer.toLowerCase() === address;
+  // where each token's "worth now" price comes from: the index's live price and its source
+  const priceSources = Object.fromEntries(index.tokens.map((t) => [t.symbol, t.priceUsd == null ? null : t.priceSource ?? 'dex'] as const));
 
   return (
     <main id="main">
       <section className="wrap page-head">
         <Crumbs trail={valid ? [{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span>, href: `/ticket/${address}` }, { label: 'Cost-basis statement' }] : [{ label: 'Cost-basis statement' }]} />
-        <h1>{valid ? <>Cost-basis statement for <span className="num addr">{shortAddr(address)}</span></> : 'That is not a wallet address'}</h1>
+        {valid && !own && <p className="public-line">Anyone can work this out from public Base data. Tropa Club only reads it.</p>}
+        <h1>{valid ? (own ? 'Your cost-basis statement (estimate)' : <>Cost-basis estimate for <span className="num addr">{shortAddr(address)}</span></>) : 'That is not a wallet address'}</h1>
         <p className="lede">
           {valid
             ? <>What this wallet paid for its <Term id="stock-token">stock tokens</Term> (its <Term id="cost-basis">cost basis</Term>), what they&rsquo;re worth now, and the gain or loss, from its full history on Base. Adjusted for splits and stock dividends. An estimate and a record to share with your accountant, not tax advice.</>
@@ -34,7 +42,7 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
 
       {valid && (
         <section className="wrap section-tight">
-          <StatementView address={address} />
+          <StatementView address={address} own={own} priceSources={priceSources} asOf={index.asOf} />
         </section>
       )}
 

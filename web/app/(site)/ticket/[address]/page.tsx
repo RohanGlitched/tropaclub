@@ -107,7 +107,7 @@ export default async function TicketPage({ params }: Params) {
             <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span> }]} />
             <h1><span className="num addr">{shortAddr(address)}</span> is a real {real.length === 1 ? `${shortName(topToken.name, topToken.symbol)} holder` : `holder of ${real.length} stock tokens`}</h1>
             <p className="lede">
-              This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? `${topToken.symbol}` : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders, by how long they&rsquo;ve held, and its best stat. It shows no dollar amounts, so it&rsquo;s safe to share. It is a picture, not an NFT, and has no value. <Link href="/about#method">What “real” means</Link>
+              This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? `${topToken.symbol}` : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders, by how long they&rsquo;ve held, and its best stat. The ticket itself shows no dollar amounts. Like any wallet, its history is public on Base. It is a picture, not an NFT, and has no value. <Link href="/about#method">What “real” means</Link>
             </p>
             {honours.caps && (
               <p className="caps-line">

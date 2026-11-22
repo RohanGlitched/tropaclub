@@ -97,3 +97,55 @@ export function notAffiliated(company: string | string[]): string {
   const list = names.length <= 1 ? names[0] ?? 'the companies behind them' : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
   return `Stock tokens track the share price. Tropa Club isn't affiliated with or endorsed by ${list}.`;
 }
+
+/** The public source code. */
+export const REPO_URL = 'https://github.com/RohanGlitched/tropaclub';
+/** Where the Builder Code is explained in the docs. */
+export const BUILDER_CODE_DOCS = `${DOCS_URL}/buying-and-safety#attribution`;
+
+/**
+ * The person behind Tropa Club, shown in "Who builds this" on /about.
+ * FILL IN BEFORE IT SHOWS: set `name` to the builder's real name and `email` to a real contact
+ * address. While a field is null, nothing is rendered for it (never a placeholder or a made-up name).
+ */
+export const BUILDER: { name: string | null; email: string | null } = { name: null, email: null };
+
+/**
+ * Where a buy's money goes: the exact contracts. These copy buy/src/constants.ts (KYBER_ROUTER and
+ * SLIPSTREAM_FACTORIES), so pages that never load wallet code can show them; test/site-facts.test.ts
+ * fails if the two ever differ.
+ */
+export const BUY_ROUTER = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5';
+export const SLIPSTREAM_FACTORY_LIST = ['0x9CB220581b91b0C83223012FE69688b92aD07a76', '0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A'] as const;
+/** The price guard in percent (buy/src/constants.ts GUARD_BPS / 100). */
+export const GUARD_PCT = 1.5;
+/** The amounts the buy box offers (components/buy/BuySheet.tsx PRESETS). */
+export const BUY_AMOUNTS = [10, 25, 50] as const;
+export const basescan = (address: string) => `https://basescan.org/address/${address}`;
+
+/**
+ * The sign-in message, as web/lib/server/session.ts newChallenge builds it (viem createSiweMessage).
+ * SIWE_STATEMENT must match the statement there word for word; test/site-facts.test.ts checks it.
+ */
+export const SIWE_STATEMENT = 'Sign in to Tropa Club. This only proves the wallet is yours. It is free and moves no funds.';
+export const SIWE_CHAIN_ID = 8453;
+/**
+ * The sign-in message with placeholders for the wallet, the one-time code and the times. `site`
+ * defaults to the public address (client components cannot read SITE_URL); server pages pass SITE_URL.
+ */
+export function siwePreview(site = 'https://tropaclub.xyz'): string {
+  const u = new URL(site);
+  return [
+    `${u.host} wants you to sign in with your Ethereum account:`,
+    '<your wallet address>',
+    '',
+    SIWE_STATEMENT,
+    '',
+    `URI: ${u.origin}`,
+    'Version: 1',
+    `Chain ID: ${SIWE_CHAIN_ID}`,
+    'Nonce: <a one-time random code>',
+    'Issued At: <the time you tap Sign in>',
+    'Expiration Time: <10 minutes later>',
+  ].join('\n');
+}

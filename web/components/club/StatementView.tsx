@@ -6,8 +6,8 @@ import type { Statement } from '@tropaclub/clubs';
 import { CsvButton } from '@/components/club/Actions';
 import { Mark } from '@/components/ds/Logo';
 import Term from '@/components/nav/Term';
-import { fmtDate, fmtUsd } from '@/lib/format';
-import { STATEMENT_LABEL_TEXT, readableNote } from '@/lib/statement-history';
+import { fmtDate, fmtUsd, shortAddr } from '@/lib/format';
+import { STATEMENT_LABEL_TEXT, readableNote, worthNowSource, type NowPriceSource } from '@/lib/statement-history';
 
 const LINE: Record<string, string> = {
   buy: 'Buy', transfer_in: 'Received', mint: 'Mint', sell: 'Sell', transfer_out: 'Sent', redeem: 'Redeem', split: 'Split', dividend: 'Stock dividend', unclassified: 'Multiplier change', pending_action: 'Pending change',
@@ -20,13 +20,15 @@ const shares = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits:
 /** The engine's label ("FIFO · USD · records, not tax advice") in words. */
 const labelText = (label: string) => (/FIFO/.test(label) ? STATEMENT_LABEL_TEXT : label);
 
-function Programme({ s, countedAt }: { s: Statement; countedAt?: string | null }) {
+function Programme({ s, countedAt, own, priceSources }: { s: Statement; countedAt?: string | null; own: boolean; priceSources: Record<string, NowPriceSource> }) {
   const t = s.totals;
+  const title = own ? 'Your cost-basis statement (estimate)' : `Cost-basis estimate for ${shortAddr(s.wallet)}`;
+  const src = worthNowSource(s.lots.map((l) => l.symbol), priceSources, countedAt ?? s.asOf);
   return (
-    <article className="programme" aria-label="Your cost-basis statement (estimate)">
+    <article className="programme" aria-label={title}>
       <header className="programme-head">
         <p className="programme-brand"><Mark size={18} /> Tropa Club</p>
-        <p>Your cost-basis statement (estimate)</p>
+        <p>{title}</p>
         <p className="programme-no">Prices as counted {fmtDate(countedAt ?? s.asOf, true)}</p>
       </header>
       <div className="programme-title">
@@ -37,7 +39,7 @@ function Programme({ s, countedAt }: { s: Statement; countedAt?: string | null }
 
       <dl className="programme-totals">
         <div><dt>What you paid (still held)</dt><dd className="num">{money(t.costBasisOpenUsd)}</dd></div>
-        <div><dt>Worth now</dt><dd className="num">{money(t.marketValueUsd)}</dd></div>
+        <div><dt>Worth now</dt><dd className="num">{money(t.marketValueUsd)}</dd>{src && <p className="programme-src">{src}</p>}</div>
         <div><dt>Gain or loss on what you hold</dt><dd className="num">{plain(t.unrealizedUsd)}</dd></div>
         <div><dt>Gain or loss on what you sold</dt><dd className="num">{plain(t.realizedUsd)}</dd></div>
         <div><dt>Stock-dividend income</dt><dd className="num">{money(t.incomeUsd)}</dd></div>
@@ -155,7 +157,7 @@ const SLOW_AFTER_MS = 10_000;
 const START: State = { status: 'pending', step: 'Reading this wallet’s history', done: 0, total: 0, seconds: 0 };
 
 /** Loads a wallet's statement in the browser, with progress. It only ever shows that wallet's own records. */
-export default function StatementView({ address }: { address: string }) {
+export default function StatementView({ address, own = false, priceSources = {}, asOf }: { address: string; own?: boolean; priceSources?: Record<string, NowPriceSource>; asOf?: string }) {
   const [state, setState] = useState<State>(START);
   const [attempt, setAttempt] = useState(0);
   const started = useRef(Date.now());
@@ -207,7 +209,7 @@ export default function StatementView({ address }: { address: string }) {
     return (
       <>
         <div className="statement-actions"><CsvButton address={address} /><Link className="btn" href={`/ticket/${address}`}>See this wallet&rsquo;s tickets</Link></div>
-        <div className="programme-stage"><Programme s={state.statement} countedAt={state.countedAt} /></div>
+        <div className="programme-stage"><Programme s={state.statement} countedAt={state.countedAt ?? asOf} own={own} priceSources={priceSources} /></div>
       </>
     );
   }

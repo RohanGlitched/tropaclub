@@ -8,7 +8,7 @@ import { kitFor } from '@/lib/clubs';
 import Term from '@/components/nav/Term';
 import { GLOSSARY, type TermId } from '@/lib/glossary';
 import { fmtDate, fmtInt } from '@/lib/format';
-import { BUILDER_CODE, CHANGELOG, FIXTURE_RULE, OPENS, PAY_WITH, REAL_FAN_LINE, REGION_LINE, RULE_LINE, STREAK_SHORT, TWO_THINGS, UPCOMING, X_URL, DOCS_URL, groundName, openClubName } from '@/lib/site';
+import { BUILDER, BUILDER_CODE, BUILDER_CODE_DOCS, BUY_ROUTER, CHANGELOG, FIXTURE_RULE, OPENS, PAY_WITH, REAL_FAN_LINE, REGION_LINE, REPO_URL, RULE_LINE, SLIPSTREAM_FACTORY_LIST, STREAK_SHORT, TWO_THINGS, UPCOMING, X_URL, DOCS_URL, basescan, groundName, openClubName } from '@/lib/site';
 
 /** The fifteen site glossary terms, in reading order. */
 const GLOSSARY_ORDER: TermId[] = ['stock-token', 'ground', 'holders', 'real-fan', 'ghost-seat', 'attendance', 'ticket', 'club', 'stock-club', 'gameweek', 'bench', 'matchday', 'fixture', 'caps', 'scout'];
@@ -57,6 +57,7 @@ export default async function AboutPage() {
             <a href="#clubs" className="clubs-only">Clubs</a>
             <a href="#rules">Rules we keep</a>
             <a href="#privacy">Privacy</a>
+            <a href="#who">Who builds this</a>
             <a href="#contact">Contact</a>
             <a href="#log">Changelog</a>
           </nav>
@@ -97,7 +98,7 @@ export default async function AboutPage() {
               Each ground is drawn to hold exactly its holders: a rounded bowl of rows around a pitch, split into 16 blocks per tier. Big grounds get two tiers. Small ones get one.
             </p>
             <p>
-              Real holders are ranked by unbroken days held, then by who bought first. Rank one takes the best seat, pitchside at halfway, and the rest fill outward with a little scatter, the way a real crowd sits. Ghost seats (other holders) take what is left, drawn faint. <strong>How much a wallet holds never affects its rank or its seat.</strong> The top ten wallets own most of every token, so ranking by size would only ever show the same few.
+              Real holders are ranked by unbroken days held, then by who bought first. Rank one takes the best seat, pitchside at halfway, and the rest fill outward with a little scatter, the way a real crowd sits. <Term id="ghost-seat">Ghost seats</Term> (other holders) take what is left, drawn faint. <strong>How much a wallet holds never affects its rank or its seat.</strong> The top ten wallets own most of every token, so ranking by size would only ever show the same few.
             </p>
             <p>
               A ticket shows the block, row and seat, the real-holder number, and the wallet&rsquo;s best stat. It shows no dollar amount, and it is a picture to share, not an NFT. When you tap Share, a picture of the ticket is made once and stored as a plain file, so the link previews instantly wherever it is pasted.
@@ -137,6 +138,28 @@ export default async function AboutPage() {
               Looking is anonymous: no account, no sign-in, and wallet lookups are not stored against you. If you join a club, the link between your wallet and that club is kept on our server so the member list works; other members see your nickname or a shortened address. Signing in sets one cookie that proves the wallet is yours. Your IP address is used once per visit to tell whether you are in the United States, where buying is not offered. If you ask for a pick-up club, a scrambled form of your country is kept only until you are matched; your country itself is never stored with your wallet. IP geolocation by <a href="https://db-ip.com" rel="noopener">DB-IP</a>.
             </p>
 
+            <h2 id="who">Who builds this</h2>
+            <div className="who">
+              {BUILDER.name && <p>Tropa Club is built by {BUILDER.name}.</p>}
+              <p>Open source, recounted every 6 hours from public Base data.</p>
+              <ul className="who-links">
+                <li><span>Source code</span><a href={REPO_URL} rel="noopener">github.com/RohanGlitched/tropaclub</a></li>
+                <li><span>On X</span><a href={X_URL} rel="noopener">@tropaclubxyz</a></li>
+                <li><span>Docs</span><a href={DOCS_URL} rel="noopener">docs.tropaclub.xyz</a></li>
+                {BUILDER.email && <li><span>Email</span><a href={`mailto:${BUILDER.email}`}>{BUILDER.email}</a></li>}
+              </ul>
+              <h3 id="money">Where your money goes</h3>
+              <p>A buy goes from your own wallet to one contract, the KyberSwap router, pinned to this exact address. The app refuses any quote that names another router. The router trades only in Aerodrome Slipstream pools, made by the pool factories below. Each address opens on Basescan.</p>
+              <dl className="who-addrs">
+                <div><dt>KyberSwap router</dt><dd><a className="num addr-full" href={basescan(BUY_ROUTER)} rel="noopener">{BUY_ROUTER}</a></dd></div>
+                {SLIPSTREAM_FACTORY_LIST.map((a, i) => (
+                  <div key={a}><dt>Aerodrome Slipstream pool factory{SLIPSTREAM_FACTORY_LIST.length > 1 ? ` ${i + 1}` : ''}</dt><dd><a className="num addr-full" href={basescan(a)} rel="noopener">{a}</a></dd></div>
+                ))}
+              </dl>
+              <p><strong>Tropa Club has no contract of its own and never holds funds.</strong></p>
+              <p>Every buy carries the <Term id="builder-code">Builder Code</Term> <code>{BUILDER_CODE}</code>, a public tag Base uses to credit an app, so anyone can count buys made through Tropa Club on chain. <a href={BUILDER_CODE_DOCS} rel="noopener">How the Builder Code works</a></p>
+            </div>
+
             <h2 id="contact">Contact</h2>
             <p>
               Partners, researchers and press: the <a href={`${DOCS_URL}/for-partners`} rel="noopener">partners page in the docs</a> says what Tropa Club can share and how the data feed works. For anything else, send a direct message to <a href={X_URL} rel="noopener">@tropaclubxyz on X</a>. Tropa Club will never message you first to ask for a signature or a payment.
@@ -147,8 +170,8 @@ export default async function AboutPage() {
               {UPCOMING.map((c) => (
                 <li key={c.date}><b>{c.date}</b> <span><span className="tag tag-quiet">Next</span> {c.text}</span></li>
               ))}
-              {CHANGELOG.map((c) => (
-                <li key={c.date}><b>{c.date}</b> <span>{c.text}</span></li>
+              {CHANGELOG.map((c, i) => (
+                <li key={`${c.date}-${i}`}><b>{c.date}</b> <span>{c.text}</span></li>
               ))}
             </ul>
             <p>Questions and corrections: <a href={X_URL} rel="noopener">@tropaclubxyz on X</a>.</p>

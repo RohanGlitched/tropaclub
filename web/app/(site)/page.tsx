@@ -107,7 +107,7 @@ export default async function Home() {
               <ul className="ticks">
                 <li>Ranked by time held, then by who bought first. Never by how much you hold.</li>
                 <li>The barcode is cut from the bytes of your address. No two are alike.</li>
-                <li>No dollar amounts are shown, so a ticket is safe to share.</li>
+                <li>The ticket itself shows no dollar amounts. Like any wallet, its history is public on Base.</li>
               </ul>
               <SeatSearchBox label="Paste a wallet to see its ticket" button="Show ticket" note="Read-only. Nothing to connect or sign." />
             </div>
@@ -170,6 +170,7 @@ export default async function Home() {
               <Link className="btn" href="/clubs#join">Join with an invite</Link>
               <Link className="btn" href="/league">See club rankings</Link>
             </p>
+            <p className="muted small">Points for buying (Caps) and credit for friends you bring (Scouts) are on the <Link href="/league">league page</Link>.</p>
             <p className="muted small">Checking wallets and holder counts works everywhere, including the US.</p>
           </div>
         </section>

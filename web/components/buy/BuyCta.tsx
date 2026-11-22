@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import BuySheet from './BuySheet';
 import OpensAt from '@/components/OpensAt';
+import LookBeforeConnect from '@/components/LookBeforeConnect';
 import { REGION_LINE, X_FOLLOW_URL } from '@/lib/site';
 
 // Pages outside the clubs section have no wallet code loaded. It arrives only when Buy is tapped.
@@ -80,6 +81,7 @@ export default function BuyCta({ token = null, symbol, clubId = null, openAt, st
             {facts}
           </>
         )}
+        {!compact && <LookBeforeConnect />}
       </div>
       <p className="us-only notice"><b>Buying isn't available in your region.</b> Checking wallets and holder counts stays open.</p>
       {loaded && (standalone ? <BuyStandalone open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} /> : <BuySheet open={sheet} onClose={() => setSheet(false)} clubId={clubId} token={token} us={us} />)}

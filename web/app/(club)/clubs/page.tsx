@@ -8,10 +8,12 @@ import OpensAt from '@/components/OpensAt';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
-import { getIndex } from '@/lib/server/data';
+import { getIndex, getStats } from '@/lib/server/data';
+import PreSeason from '@/components/PreSeason';
+import LookBeforeConnect from '@/components/LookBeforeConnect';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, FIXTURE_RULE, HABIT_USD, PLAY_USD, REGION_LINE, RULE_LINE, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
+import { DOCS_URL, FIXTURE_RULE, HABIT_USD, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, buyIsOpen, buyOpenAt, openClubName } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: buy stock tokens with your group chat',
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ClubsPage() {
-  const [wallet, { data: index }] = await Promise.all([sessionWallet(), getIndex()]);
+  const [wallet, { data: index }, { data: stats }] = await Promise.all([sessionWallet(), getIndex(), getStats()]);
   const data = await tryClubs(async (svc) => {
     await ensureStockClubs(svc);
     const [stock, priv, pick, mine] = await Promise.all([svc.listClubs('stock'), svc.listClubs('private'), svc.listClubs('pickup'), wallet ? svc.walletClubs(wallet) : Promise.resolve([])]);
@@ -47,11 +49,8 @@ export default async function ClubsPage() {
         <p className="muted small">
           Free to start. No buy needed to join. {preLaunch ? <>Buying opens <OpensAt at={openAt} />. </> : ''}{REGION_LINE}
         </p>
-        {data && (
-          <p className="asof">
-            {started > 0 ? `${fmtInt(started)} ${started === 1 ? 'club' : 'clubs'} started so far.` : 'No clubs yet. Yours could be the first.'}
-          </p>
-        )}
+        {data && started > 0 && <p className="asof">{fmtInt(started)} {started === 1 ? 'club' : 'clubs'} started so far.</p>}
+        {data && started === 0 && (preLaunch ? <PreSeason openAt={openAt} holders={stats.realWallets} /> : <p className="asof">No clubs yet. Yours could be the first.</p>)}
       </section>
 
       <section className="wrap section-tight" aria-label="Three kinds of club">
@@ -96,7 +95,10 @@ export default async function ClubsPage() {
               <li>Clubs with 3 or more members are paired each week with a club of a similar size, and get 3 points if more of the club played than theirs. Bragging rights only.</li>
             </ul>
           </div>
-          <StartClub />
+          <div className="start-col">
+            <StartClub />
+            <LookBeforeConnect site={SITE_URL} />
+          </div>
         </div>
       </section>
 
@@ -122,6 +124,7 @@ export default async function ClubsPage() {
             <h2>Or join a stock token&rsquo;s open club</h2>
             <p>Each of the {index.tokens.length} stock tokens has an <Term id="stock-club">open club</Term> anyone can join for free, like the {openClubName(index.tokens[0].name, index.tokens[0].symbol)}. Its members are people who joined here, so it starts at 0 members even when the token has thousands of real holders. Open clubs are ranked on how many members buy each week and keep a streak, never on returns, and they are not paired with other clubs. The biggest tokens are listed first.</p>
           </div>
+          {preLaunch && started > 0 && stockRows.every((r) => r.supporters === 0) && <PreSeason openAt={openAt} holders={stats.realWallets} />}
           <StockClubList rows={stockRows} />
           <p className="after-table"><Link className="btn" href="/league#supporters">See open club rankings</Link></p>
         </div>
