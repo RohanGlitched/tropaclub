@@ -80,6 +80,13 @@ export const KYBER_API = 'https://aggregator-api.kyberswap.com/base/api/v1';
 export const KYBER_CLIENT_ID = 'tropaclub';
 /** KyberSwap MetaAggregationRouterV2 on Base. The only contract a buy is ever sent to or approved for. */
 export const KYBER_ROUTER: Address = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5';
+/**
+ * KyberSwap's executor on Base: the router hands the payment to it and it pays the pools. The clubs
+ * engine (clubs/src/chain/swap.ts KYBER_EXECUTORS, same address) only counts a buy whose payment goes
+ * to the router or one of these, so buildSwap refuses calldata naming any other executor or receiver.
+ * Extra addresses (e.g. the web env list) are passed to buildSwap / assertKyberSwap as `executors`.
+ */
+export const KYBER_EXECUTORS: readonly Address[] = ['0x8f10b468b06c6fd214b65f87778827f7d113f996'];
 export const COINBASE_STOCKS_API = 'https://api.coinbase.com/v1/tokenized-stocks';
 
 /** Guard: amountOutMin = mark x (1 - 1.5%). */

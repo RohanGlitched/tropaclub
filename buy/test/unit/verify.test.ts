@@ -250,3 +250,61 @@ describe('verifyAttribution: the buyer’s userOp only', () => {
     expect(r.attributed).toBe(false);
   });
 });
+
+describe('verifyAttribution: only router calls and the payment approve credit (red team r4)', () => {
+  const RANDOM = '0x5555555555555555555555555555555555555555' as Address;
+  const WETH = '0x4200000000000000000000000000000000000006' as Address;
+  const approveTo = (spender: Address) => encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [spender, 1n] });
+
+  it('suffix on an inner call to a random contract: NOT credited (code still reported)', async () => {
+    for (const cd of [execute(appendSuffix(SWAP), RANDOM), cbswBatch([{ target: RANDOM, data: appendSuffix('0x12345678') }, { target: ROUTER, data: SWAP }]), erc7579Single(appendSuffix(SWAP), RANDOM)]) {
+      const r = await verifyAttribution(HASH, { client: bundle7(cd) });
+      expect(r).toMatchObject({ attributed: false, codes: ['bc_vdp89s9b'], via: 'userop' });
+    }
+  });
+
+  it('approve with the suffix credits only on USDC / WETH and only with the router as spender', async () => {
+    const tagged = (target: Address, data: Hex) => bundle7(cbswBatch([{ target, data: appendSuffix(data) }, { target: ROUTER, data: SWAP }]));
+    expect((await verifyAttribution(HASH, { client: tagged(USDC, APPROVE) })).attributed).toBe(true);
+    expect((await verifyAttribution(HASH, { client: tagged(WETH, approveTo(ROUTER)) })).attributed).toBe(true);
+    expect((await verifyAttribution(HASH, { client: tagged(USDC, approveTo(RANDOM)) })).attributed).toBe(false);
+    expect((await verifyAttribution(HASH, { client: tagged(RANDOM, approveTo(ROUTER)) })).attributed).toBe(false);
+    // a transfer on USDC carrying the suffix is not an approve
+    const transfer = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [ROUTER, 1n] });
+    expect((await verifyAttribution(HASH, { client: tagged(USDC, transfer) })).attributed).toBe(false);
+  });
+
+  it('inner-call suffix in a handleOps tx not sent to an EntryPoint: NOT credited, even with a matching event', async () => {
+    const input = handleOps7([packedOp(SENDER, 7n, cbswBatch(buyCalls(true)))]);
+    const r = await verifyAttribution(HASH, { client: mockClient({ to: RANDOM, input }, [userOpEvent(SENDER, 7n)]) });
+    expect(r.attributed).toBe(false);
+    // the same ops sent to the EntryPoint are credited
+    const ok = await verifyAttribution(HASH, { client: mockClient({ to: EP7, input }, [userOpEvent(SENDER, 7n)]) });
+    expect(ok).toMatchObject({ attributed: true, match: 'innerCall', from: SENDER });
+  });
+
+  it('userOp callData ending in the suffix keeps its existing behaviour when the receipt shows the op', async () => {
+    const input = handleOps7([packedOp(SENDER, 7n, appendSuffix(execute(SWAP)))]);
+    const r = await verifyAttribution(HASH, { client: mockClient({ to: RANDOM, input }, [userOpEvent(SENDER, 7n)]) });
+    expect(r).toMatchObject({ attributed: true, via: 'userop', match: 'callData', from: SENDER });
+  });
+
+  it('inner-call suffix in a tx to some other contract (not an EntryPoint, not a self-call): NOT credited', async () => {
+    const r = await verifyAttribution(HASH, { client: mockClient({ to: RANDOM, from: SENDER, input: erc7579Batch(buyCalls(true)) }) });
+    expect(r.attributed).toBe(false);
+  });
+
+  it('EIP-7702 self-call: a suffixed inner call to a random contract is NOT credited, to the router it is', async () => {
+    const bad = await verifyAttribution(HASH, { client: mockClient({ to: SENDER, from: SENDER, input: erc7579Batch([{ target: RANDOM, data: appendSuffix(SWAP) }]) }) });
+    expect(bad.attributed).toBe(false);
+    const good = await verifyAttribution(HASH, { client: mockClient({ to: SENDER, from: SENDER, input: erc7579Batch([{ target: ROUTER, data: appendSuffix(SWAP) }]) }) });
+    expect(good).toMatchObject({ attributed: true, match: 'innerCall' });
+  });
+
+  it('a router call nested inside a call into another account is NOT credited to the buyer', async () => {
+    const r = await verifyAttribution(HASH, { client: bundle7(execute(cbswBatch(buyCalls(true)), OTHER)) });
+    expect(r.attributed).toBe(false);
+    // nested inside the buyer's own account it is
+    expect((await verifyAttribution(HASH, { client: bundle7(execute(cbswBatch(buyCalls(true)), SENDER)) })).attributed).toBe(true);
+  });
+});

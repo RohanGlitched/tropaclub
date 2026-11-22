@@ -15,7 +15,8 @@ service cloud.firestore {
 
     // Public aggregates: Matchday results (short addresses / nicknames only), fixtures, tables, marks.
     match /gwResults/{id} {
-      allow read: if true;
+      // private clubs' Matchday results stay server side
+      allow read: if resource.data.get('kind', 'private') != 'private';
       allow write: if false;
     }
     match /fixtures/{id} {

@@ -32,7 +32,6 @@ import 'server-only';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createPublicClient, custom, erc20Abi, parseAbiItem, type PublicClient } from 'viem';
 import { base } from 'viem/chains';
-import { DEFAULT_RPC_URLS } from '@tropaclub/buy';
 import {
   ANNOUNCEMENT_TOPIC,
   COL,
@@ -41,6 +40,7 @@ import {
   IndexerPriceSource,
   RpcHistorySource,
   StoreMarkSource,
+  baseRpcUrls,
   UI_MULTIPLIER_CANCELLED_TOPIC,
   UI_MULTIPLIER_UPDATED_TOPIC,
   buildStatement,
@@ -134,7 +134,16 @@ class StatementBusy extends Error {
   }
 }
 let rpcId = 0;
-const rpcUrl = () => process.env.BASE_RPC_URL || DEFAULT_RPC_URLS[0];
+// eth_getLogs always goes to one node (how far back a node serves logs is worked out per node, see
+// readableFrom). Every other read goes to the next node when one fails, like the buy-check client.
+const LOG_NODE = () => process.env.BASE_RPC_URL || 'https://base-rpc.publicnode.com';
+let nodes: string[] | null = null;
+let nodeTurn = 0;
+const rpcUrl = (method: string, attempt: number) => {
+  if (method === 'eth_getLogs') return LOG_NODE();
+  const list = (nodes ??= baseRpcUrls());
+  return list[(nodeTurn + attempt) % list.length]!;
+};
 const stopped = (e: unknown) => {
   const ctl = current.getStore();
   return !!ctl && (ctl.signal.aborted || ctl.overBudget || (e as Error)?.name === 'AbortError');
@@ -151,11 +160,16 @@ async function statementRpc(method: string, params: unknown): Promise<unknown> {
     }
     ctl.job.reads++;
   }
+  let attempt = 0;
   return limited(
     async () => {
-      const signal = ctl ? AbortSignal.any([ctl.signal, AbortSignal.timeout(20_000)]) : AbortSignal.timeout(20_000);
-      const res = await fetch(rpcUrl(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }), signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status} from the statement RPC`);
+      const signal = ctl ? AbortSignal.any([ctl.signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000);
+      const url = rpcUrl(method, attempt++);
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }), signal });
+      if (!res.ok) {
+        nodeTurn++;
+        throw new Error(`HTTP ${res.status} from the statement RPC`);
+      }
       const j = (await res.json()) as { result?: unknown; error?: { code: number; message: string; data?: unknown } };
       // viem maps { code, message } onto its own RPC errors, with the message kept as `details`
       if (j.error) throw Object.assign(new Error(j.error.message), { code: j.error.code, data: j.error.data });

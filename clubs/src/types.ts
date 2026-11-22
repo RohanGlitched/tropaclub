@@ -32,6 +32,7 @@ export const COL = {
   geoLog: 'geoLog', // server only: buy-gate decisions (no wallet, no IP)
   syncState: 'syncState', // server only: sweep cursors
   pendingBuys: 'pendingBuys', // server only: real buys that could not be checked yet; retried by the sweep
+  quotes: 'quotes', // server only: quotes the site issued (wallet, token, time), so the sweep counts only buys we quoted
 } as const;
 export type CollectionName = (typeof COL)[keyof typeof COL];
 
@@ -152,6 +153,7 @@ export type BuyRejectReason =
   | 'not_from_pool'
   | 'price_off_mark'
   | 'cannot_verify_now'
+  | 'not_quoted'
   | 'not_member'
   | 'region_blocked';
 
@@ -174,6 +176,19 @@ export interface PendingBuyDoc {
   lastAt: number;
   attempts: number;
   why: string;
+  /** 'client': the buyer recorded it through the site (region gate and US self-certification passed). */
+  source?: 'client' | 'sweep';
+  /** Not tried again before this time (backoff). */
+  nextAt?: number;
+}
+
+/** A quote the site issued after the region gate and the not-a-US-person answer. */
+export interface QuoteDoc {
+  id: string;
+  wallet: string;
+  token: string;
+  at: number;
+  usd: number;
 }
 
 export interface TransferDoc {

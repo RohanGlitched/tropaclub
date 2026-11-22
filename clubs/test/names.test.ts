@@ -38,8 +38,23 @@ describe('nameProblem', () => {
     expect(nameProblem('xxretardxx')).toBe('abusive');
   });
 
+  it('catches slurs and reserved words that are spaced, dotted or joined to another word', () => {
+    for (const n of ['n i g g a', 'n.i.g.g.a', 'K-K-K Club', 'f_a_g', 'f a g', 'Club K K K', 'n.igg.a', 'FagClub', 'ClubFag', 'PakiPals', 'DykeSquad', 'GookFC', 'CoonCrew', 'SpicCrew', 'The Nazi', 'NaziFC', 'Cunt United', 'N i gga']) {
+      expect(nameProblem(n), n).toBe('abusive');
+    }
+    for (const n of ['b.a.s.e', 'B A S E Club', 'c-o-i-n-b-a-s-e', 't r o p a', 't.r.o.p.a', 'o f f i c i a l', 'A d m i n']) {
+      expect(nameProblem(n), n).toBe('reserved');
+    }
+  });
+
+  it('allows real words that start or end with a short blocked entry', () => {
+    for (const n of ['Spicy Savers', 'Spiced Picks', 'Spice Girls FC', 'Raccoon Rovers', 'Cocoon Club', 'Tycoon Tribe', 'Racoons', 'Pakistan XI', 'Pakistani Savers', 'Fagin Fans', 'Fagundes United', 'Nazir FC', 'Nazim Nine', 'Heilbronn United', 'Vandyke FC', 'Coonhound Club']) {
+      expect(nameProblem(n), n).toBeNull();
+    }
+  });
+
   it('leaves ordinary names alone', () => {
-    for (const n of ['Lagos Value FC', 'Spicy Savers', 'Scunthorpe United', 'Con Amigos', 'K Club', 'Badminton Crew', 'Baseline Bros', 'Database Dads', 'Andes Rovers', 'São Paulo Poupança']) {
+    for (const n of ['Lagos Value FC', 'Spicy Savers', 'Scunthorpe United', 'Con Amigos', 'K Club', 'Badminton Crew', 'Baseline Bros', 'Database Dads', 'Andes Rovers', 'São Paulo Poupança', 'A C Milan Fans', 'Lagos-Value FC', 'Co-op Club']) {
       expect(nameProblem(n), n).toBeNull();
     }
   });

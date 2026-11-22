@@ -95,6 +95,16 @@ export class FirestoreDocStore implements DocStore {
     await this.ref(col).doc(id).delete();
   }
 
+  async transact<T extends object>(col: string, id: string, fn: (current: T | null) => T | null): Promise<T | null> {
+    const ref = this.ref(col).doc(id);
+    return this.db.runTransaction(async (tx) => {
+      const s = await tx.get(ref);
+      const next = fn(s.exists ? (s.data() as T) : null);
+      if (next) tx.set(ref, next as FirebaseFirestore.DocumentData);
+      return next;
+    });
+  }
+
   async query<T>(col: string, spec: QuerySpec = {}): Promise<T[]> {
     let q: FirebaseFirestore.Query = this.ref(col);
     for (const [f, op, v] of spec.where ?? []) q = q.where(f, op, v);

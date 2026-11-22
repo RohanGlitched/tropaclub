@@ -203,7 +203,8 @@ describe.each(stores)('clubs engine on $name store', ({ make }) => {
     expect([fx[0]!.home, fx[0]!.away].sort()).toEqual([berlin.id, lagos.id].sort());
     expect(await svc.scheduleFixtures('GW1')).toHaveLength(1); // idempotent
 
-    // A's GW1 buy is never posted by the client: the sweep finds and records it
+    // A's GW1 buy is never posted by the client: the sweep finds it, and records it because the site quoted it
+    await svc.recordQuote({ wallet: A, token: TOK.NVDAc, usd: 15, at: at('2026-12-01T14:58:00Z') });
     const tx8 = buy(A, TOK.NVDAc, 11_111_111n, 15, '2026-12-01T15:00:00Z');
     clock.set(at('2026-12-01T16:30:00Z'));
     const tx9 = buy(D, TOK.NVDAc, 7_407_407n, 10, '2026-12-01T16:00:00Z');

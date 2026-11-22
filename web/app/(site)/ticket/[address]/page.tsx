@@ -12,6 +12,7 @@ import { playedStamps } from '@/lib/server/clubs';
 import { clubName, groundPath, kitFor } from '@/lib/clubs';
 import { fmtDate, fmtInt, isAddress, shortAddr } from '@/lib/format';
 import { KIND_LABEL, statSentence } from '@/lib/ticket';
+import { ticketOgVersion } from '@/lib/og';
 import { COUNT_EVERY, RULE_LINE, SITE_URL, buyOpenAt, notAffiliated } from '@/lib/site';
 
 // Rendered per request: any address can be asked for, so nothing is stored per wallet.
@@ -46,8 +47,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // This wallet's own ticket picture, drawn on demand by /api/card/og and stored (see that route).
   // The version changes with each count and with a new "Played" stamp, so each URL can be cached long.
   const played = await playedStamps(d.address, 1500);
-  const stamp = played.byToken.get(token.address.toLowerCase()) ?? '';
-  const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(`${d.index.data.asOf.slice(0, 16)}${stamp ? `-${stamp}` : ''}`)}`;
+  const image = `${SITE_URL}/api/card/og/${d.address}.jpg?v=${encodeURIComponent(ticketOgVersion(d.index.data.asOf, played.byToken.get(token.address.toLowerCase()) ?? null))}`;
   return {
     title,
     description,

@@ -198,7 +198,11 @@ async function makeQuote(p: { token: string; pay: Pay; usd: number; taker: strin
   // nobody signs a buy their club would then refuse to count
   const wouldNotCount = await clubCountCheck(p.token, p.usd, [quote.amountOut, guard.amountOutMin]);
   if (wouldNotCount) return hold(wouldNotCount);
-  const swap = await buildSwap(quote, { amountOutMin: guard.amountOutMin });
+  const swap = await buildSwap(quote, { amountOutMin: guard.amountOutMin, executors: (process.env.KYBER_EXECUTORS ?? '').split(',').map((a) => a.trim()).filter(Boolean) });
+  // the sweep counts a buy it finds only when the site quoted it (region gate and not-a-US-person passed)
+  await getClubs()
+    .then((svc) => svc.recordQuote({ wallet: taker, token: p.token, usd: p.usd }))
+    .catch((e) => console.warn('[buy] quote not remembered:', (e as Error).message?.slice(0, 120)));
   const allowance = p.pay === 'USDC' ? await client.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [taker, swap.to] }) : 0n;
   const calls = buildBuyCalls({ quote, swap, currentAllowance: allowance, sellSymbol: p.pay, buySymbol: ok.symbol });
 

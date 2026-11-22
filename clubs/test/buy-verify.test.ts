@@ -7,10 +7,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { KYBER_ROUTER_ADDRESS, fillCheck, maxFillDeviation, poolCandidates, verifyRouterBuy } from '../src/chain/swap';
 import { USDC_ADDRESS, type RawLog } from '../src/chain/types';
+import { pendingBackoffSec } from '../src/buys';
 import { loadLedger } from '../src/ledger';
 import { StaticPriceSource } from '../src/prices';
 import { MemoryDocStore } from '../src/store/memory';
-import { COL, type BuyDoc, type BuyRejectDoc, type PendingBuyDoc, type TransferDoc } from '../src/types';
+import { COL, type BuyDoc, type BuyRejectDoc, type MarkDoc, type PendingBuyDoc, type TransferDoc } from '../src/types';
 import { Clock, ENTRYPOINT, EXECUTOR, FakeChain, POOL, TOK, addr, hash, makeService, swappedLog, transferLog } from './helpers';
 
 const at = (iso: string) => Math.floor(Date.parse(iso) / 1000);
@@ -34,7 +35,7 @@ function setup(o: { mark?: number; markToken?: string; t?: number } = {}) {
   const token = o.markToken ?? TOK.NVDAc;
   const prices = new StaticPriceSource({ [token]: [[t - 600, o.mark ?? 131]] });
   const { svc } = makeService({ store, chain, clock, prices });
-  return { store, chain, svc, t };
+  return { store, chain, svc, t, clock };
 }
 
 describe('genuine router buy (real receipt)', () => {
@@ -103,21 +104,80 @@ describe('genuine router buy (real receipt)', () => {
   });
 
   it('keeps a buy with no usable mark, and the sweep records it once a mark exists', async () => {
-    const { store, chain, svc, t } = setup({ markToken: TOK.TSLAc });
+    const { store, chain, svc, t, clock } = setup({ markToken: TOK.TSLAc });
     svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
     chain.pools.add(genuine.pool);
     chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
     expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR' })).toMatchObject({ ok: false, reason: 'cannot_verify_now', retryable: true });
+    // not tried again before its backoff
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 0 });
+    clock.add(301);
     expect(await store.query<BuyDoc>(COL.buys)).toEqual([]);
     expect(await store.get<PendingBuyDoc>(COL.pendingBuys, genuine.txHash)).toMatchObject({ wallet: BUYER, attempts: 1, why: 'no usable mark for that block' });
     // a sweep with still no mark leaves it waiting
     expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 1, recorded: 0 });
     expect((await store.get<PendingBuyDoc>(COL.pendingBuys, genuine.txHash))!.attempts).toBe(2);
+    clock.add(601);
     // the mark arrives: the next sweep records the buy and forgets the pending entry
     (svc.ctx.prices as StaticPriceSource).add(genuine.token, t - 600, 131);
     expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 1, recorded: 1 });
     expect(await store.get<BuyDoc>(COL.buys, genuine.txHash)).toMatchObject({ source: 'sweep', verified: true, priceAtBuy: 131 });
     expect(await store.get(COL.pendingBuys, genuine.txHash)).toBeNull();
+  });
+
+  it('counts the higher of the mark and the fill as the cost basis', async () => {
+    // fill $130.79: a stale mark of $125 below it never makes the return look better than it was
+    const { r } = await record({ mark: 125, t: SESSION });
+    expect(r).toMatchObject({ ok: true });
+    if (!r.ok) throw new Error();
+    expect(r.buy.priceAtBuy).toBeCloseTo(58.117933 / 0.44436138, 4);
+  });
+
+  it('falls back to the next stored mark within a day when the price sources have none', async () => {
+    const { store, chain, svc, t } = setup({ markToken: TOK.TSLAc });
+    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    chain.pools.add(genuine.pool);
+    await store.set<MarkDoc>(COL.marks, 'm1', { id: 'm1', token: genuine.token, t: t + 6 * 3600, usd: 132, source: 'close' });
+    chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
+    const r = await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, country: 'BR' });
+    expect(r).toMatchObject({ ok: true, buy: { priceAtBuy: 132, markSource: 'close (next mark)' } });
+  });
+
+  it('keeps at most 3 open pending buys per wallet, and retries the least recently tried first', async () => {
+    const { store, chain, svc, t, clock } = setup({ markToken: TOK.TSLAc });
+    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    chain.pools.add(genuine.pool);
+    const hashes = [1, 2, 3, 4].map((n) => hash(0xabc0 + n));
+    for (const h of hashes) chain.addRaw({ hash: h, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
+    for (const h of hashes) await svc.recordBuy({ txHash: h, wallet: BUYER, clubId: null, country: 'BR' });
+    expect((await store.query<PendingBuyDoc>(COL.pendingBuys)).map((p) => p.txHash).sort()).toEqual(hashes.slice(0, 3).sort());
+    expect((await store.get<BuyRejectDoc>(COL.buyRejects, hashes[3]!))!.detail).toMatch(/already waiting/);
+    // a sweep tries all three (backoff passed), each once
+    clock.add(301);
+    expect(await svc.sweepTransfers({ fromBlock: 1n, toBlock: 1n })).toMatchObject({ retried: 3 });
+    expect(pendingBackoffSec(1)).toBe(300);
+    expect(pendingBackoffSec(3)).toBe(1200);
+    expect(pendingBackoffSec(20)).toBe(6 * 3600);
+  });
+
+  it('the sweep counts a buy it finds only if the site quoted it, or the buyer recorded it', async () => {
+    const { store, chain, svc, t } = setup({ markToken: genuine.token, mark: 131 });
+    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    chain.pools.add(genuine.pool);
+    chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
+    expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, source: 'sweep' })).toMatchObject({ ok: false, reason: 'not_quoted' });
+    expect(await store.get<BuyRejectDoc>(COL.buyRejects, genuine.txHash)).toMatchObject({ reason: 'not_quoted' });
+    await svc.recordQuote({ wallet: BUYER, token: genuine.token, usd: 58, at: t - 60 });
+    expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, source: 'sweep' })).toMatchObject({ ok: true, buy: { source: 'sweep' } });
+  });
+
+  it('a quote from long before the buy does not count', async () => {
+    const { chain, svc, t } = setup({ markToken: genuine.token, mark: 131 });
+    svc.ctx.config.tokens.set(genuine.token, 'SPCXc');
+    chain.pools.add(genuine.pool);
+    chain.addRaw({ hash: genuine.txHash, wallet: BUYER, logs: genuine.logs, block: BigInt(genuine.blockNumber), time: t });
+    await svc.recordQuote({ wallet: BUYER, token: genuine.token, usd: 58, at: t - 3 * 3600 });
+    expect(await svc.recordBuy({ txHash: genuine.txHash, wallet: BUYER, clubId: null, source: 'sweep' })).toMatchObject({ ok: false, reason: 'not_quoted' });
   });
 
   it('applies 10% inside NYSE regular hours and 20% outside them', () => {

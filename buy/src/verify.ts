@@ -5,17 +5,20 @@
  *   (a) the end of the tx input (EOA buys);
  *   (b) the end of a UserOperation's callData inside EntryPoint handleOps / handleAggregatedOps
  *       (v0.6 UserOperation, v0.7 / v0.8 PackedUserOperation), matched to the receipt's UserOperationEvent;
- *   (c) the end of any inner call's data once the smart account call is decoded: execute(address,uint256,bytes),
+ *   (c) the end of an inner call's data once the smart account call is decoded: execute(address,uint256,bytes),
  *       executeBatch((address,uint256,bytes)[]) (Coinbase Smart Wallet), executeBatch(address[],uint256[],bytes[]),
  *       executeBatch(address[],bytes[]), ERC-7579 / ERC-7821 execute(bytes32,bytes) in single and batch mode,
- *       and a few common variants. This covers userOp callData and an EIP-7702 account calling itself.
+ *       and a few common variants. Only in userOp callData of a tx sent to a known EntryPoint, or in an
+ *       EIP-7702 account calling itself (tx.to == tx.from); and only an inner call to the pinned KyberSwap
+ *       router, or approve(router, ...) on the payment token (USDC or WETH). A suffixed inner call to any
+ *       other contract credits nothing.
  *
  * Base Account's dataSuffix capability is documented both ways (suffix on each call, or on userOp.callData),
  * so both are credited. Suffix bytes anywhere else (the middle of an input, a call relayed into someone
- * else's account) are not credited.
+ * else's account, a call to some other contract) are not credited.
  */
 import { type Address, type Hex, type PublicClient, decodeAbiParameters, decodeEventLog, decodeFunctionData, getAddress, parseAbi, slice, toFunctionSelector } from 'viem';
-import { ENTRYPOINTS, TROPA_BUILDER_CODE, entryPointAbi } from './constants';
+import { ENTRYPOINTS, KYBER_ROUTER, TROPA_BUILDER_CODE, USDC, WETH, entryPointAbi } from './constants';
 import { ERC8021_MARKER, parseSuffix } from './suffix';
 
 export interface UserOpAttribution {
@@ -110,37 +113,69 @@ const EXECUTE_USEROP_SELECTOR = '0x8dd7712f';
 const executionsParam = [{ type: 'tuple[]', components: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }] }] as const;
 const MAX_DEPTH = 3;
 
-/** Inner call data of a smart account call, flattened (nested account calls included, up to a small depth). */
-export function innerCallDatas(data: Hex, depth = 0): Hex[] {
+export interface InnerCall {
+  /** The contract the account calls (for an ERC-7579 delegatecall, the delegate). */
+  target: Address;
+  data: Hex;
+}
+
+/**
+ * Inner calls of a smart account call, with their targets, flattened. A nested account call is
+ * followed only when it targets the account itself (`self`), when `self` is given: a call into some
+ * other account runs as that account, not the buyer. Without `self`, every nested call is followed.
+ */
+export function innerCalls(data: Hex, self?: Address, depth = 0): InnerCall[] {
   if (depth >= MAX_DEPTH || data.length < 10) return [];
   let d = data.toLowerCase() as Hex;
   if (d.startsWith(EXECUTE_USEROP_SELECTOR)) d = `0x${d.slice(10)}` as Hex;
   const shape = SHAPES.get(d.slice(0, 10));
   if (!shape) return [];
-  let found: Hex[] = [];
+  let found: InnerCall[] = [];
   try {
     const { args } = decodeFunctionData({ abi: accountAbi, data: d }) as { args: readonly any[] };
-    if (shape === 'single') found = [args[2] as Hex];
-    else if (shape === 'batchTuples') found = (args[0] as any[]).map((c) => (c.data ?? c[2]) as Hex);
-    else if (shape === 'batchArrays3') found = [...(args[2] as Hex[])];
-    else if (shape === 'batchArrays2') found = [...(args[1] as Hex[])];
+    const call = (target: unknown, cd: unknown): InnerCall => ({ target: getAddress(target as string), data: cd as Hex });
+    if (shape === 'single') found = [call(args[0], args[2])];
+    else if (shape === 'batchTuples') found = (args[0] as any[]).map((c) => call(c.target ?? c.to ?? c[0], c.data ?? c[2]));
+    else if (shape === 'batchArrays3') found = (args[2] as Hex[]).map((cd, i) => call((args[0] as Address[])[i], cd));
+    else if (shape === 'batchArrays2') found = (args[1] as Hex[]).map((cd, i) => call((args[0] as Address[])[i], cd));
     else found = modeExecutions(args[0] as Hex, args[1] as Hex);
   } catch {
     return [];
   }
-  return found.flatMap((x) => [x, ...innerCallDatas(x, depth + 1)]);
+  const s = self?.toLowerCase();
+  return found.flatMap((c) => [c, ...(!s || c.target.toLowerCase() === s ? innerCalls(c.data, self, depth + 1) : [])]);
 }
 
-/** ERC-7579 / ERC-7821 execution calldata by call type (first byte of the mode). */
-function modeExecutions(mode: Hex, exec: Hex): Hex[] {
+/** Inner call data of a smart account call, flattened (nested account calls included, up to a small depth). */
+export function innerCallDatas(data: Hex, depth = 0): Hex[] {
+  return innerCalls(data, undefined, depth).map((c) => c.data);
+}
+
+const APPROVE_SELECTOR = '0x095ea7b3';
+const PAYMENT_TOKENS = new Set([USDC.toLowerCase(), WETH.toLowerCase()]);
+
+/** An inner call whose suffix credits a buy: a call to the pinned router, or approve(router, ...) on USDC / WETH. */
+export function isCreditableInnerCall(c: InnerCall): boolean {
+  const target = c.target.toLowerCase();
+  if (target === KYBER_ROUTER.toLowerCase()) return true;
+  if (!PAYMENT_TOKENS.has(target)) return false;
+  const d = c.data.toLowerCase();
+  if (!d.startsWith(APPROVE_SELECTOR) || d.length < 10 + 64 * 2) return false;
+  const spenderWord = d.slice(10, 74);
+  return spenderWord.slice(0, 24) === '0'.repeat(24) && `0x${spenderWord.slice(24)}` === KYBER_ROUTER.toLowerCase();
+}
+
+/** ERC-7579 / ERC-7821 executions (target and call data) by call type (first byte of the mode). */
+function modeExecutions(mode: Hex, exec: Hex): InnerCall[] {
   const callType = mode.slice(2, 4).toLowerCase();
   const bytes = (exec.length - 2) / 2;
-  if (callType === '00') return bytes >= 52 ? [slice(exec, 52)] : []; // single: target(20) || value(32) || callData
-  if (callType === 'ff') return bytes >= 20 ? [slice(exec, 20)] : []; // delegatecall: target(20) || callData
+  const head = (n: number): InnerCall => ({ target: getAddress(slice(exec, 0, 20)), data: slice(exec, n) });
+  if (callType === '00') return bytes >= 52 ? [head(52)] : []; // single: target(20) || value(32) || callData
+  if (callType === 'ff') return bytes >= 20 ? [head(20)] : []; // delegatecall: target(20) || callData
   if (callType === '01') {
     // batch: abi.encode(Execution[]) (7579), or abi.encode(Call[], opData) (7821): the first word points at the calls either way
     try {
-      return (decodeAbiParameters(executionsParam, exec)[0] as readonly (readonly [Address, bigint, Hex])[]).map((c) => c[2]);
+      return (decodeAbiParameters(executionsParam, exec)[0] as readonly (readonly [Address, bigint, Hex])[]).map((c) => ({ target: getAddress(c[0]), data: c[2] }));
     } catch {
       // 7821 batch of batches: abi.encode(bytes[]), each an encoded batch
       try {
@@ -153,16 +188,22 @@ function modeExecutions(mode: Hex, exec: Hex): Hex[] {
   return [];
 }
 
-/** Our code at the end of `callData`, or at the end of one of its decoded inner calls. */
+/**
+ * Our code at the end of `callData`, or at the end of one of its decoded inner calls to the router
+ * (or approve(router) on USDC / WETH). `self` is the account making the calls (userOp sender, or the
+ * 7702 EOA); `inner: false` credits the end of `callData` only. Codes on other inner calls are still
+ * reported in `codes`, but never credit.
+ */
 export function attributionFromAccountCall(
   callData: Hex,
   code: string = TROPA_BUILDER_CODE,
+  opts: { self?: Address; inner?: boolean } = {},
 ): { attributed: boolean; codes: string[]; where?: 'callData' | 'innerCall' } {
   const end = attributionFromData(callData, code);
   if (end.attributed) return { ...end, where: 'callData' };
-  const inner = innerCallDatas(callData).map((d) => attributionFromData(d, code));
+  const inner = innerCalls(callData, opts.self).map((c) => ({ ...attributionFromData(c.data, code), creditable: isCreditableInnerCall(c) }));
   const codes = [...new Set([...end.codes, ...inner.flatMap((i) => i.codes)])];
-  if (inner.some((i) => i.attributed)) return { attributed: true, codes, where: 'innerCall' };
+  if (opts.inner !== false && inner.some((i) => i.attributed && i.creditable)) return { attributed: true, codes, where: 'innerCall' };
   return { attributed: false, codes };
 }
 
@@ -205,7 +246,8 @@ export async function verifyAttribution(
       const matched = events.length
         ? ops.filter((o) => events.some((e) => e.sender.toLowerCase() === o.sender.toLowerCase() && e.nonce === o.nonce))
         : ops;
-      const userOps: UserOpAttribution[] = matched.map((o) => ({ sender: o.sender, nonce: o.nonce, ...attributionFromAccountCall(o.callData, code) }));
+      // inner calls credit only when the tx went straight to a known EntryPoint, which is what ran these ops
+      const userOps: UserOpAttribution[] = matched.map((o) => ({ sender: o.sender, nonce: o.nonce, ...attributionFromAccountCall(o.callData, code, { self: o.sender, inner: !!toEp }) }));
       const buyer = opts.buyer?.toLowerCase();
       const mine = buyer ? userOps.filter((u) => u.sender.toLowerCase() === buyer) : userOps;
 
@@ -224,7 +266,7 @@ export async function verifyAttribution(
 
   // EIP-7702: an account sending a batch to itself. Its own decoded inner calls count; a call relayed into someone else's account does not.
   if (tx.to && tx.to.toLowerCase() === tx.from.toLowerCase()) {
-    const self = attributionFromAccountCall(input, code);
+    const self = attributionFromAccountCall(input, code, { self: tx.from });
     if (self.attributed) return { attributed: true, codes: self.codes, via: 'tx', match: self.where === 'callData' ? 'input' : 'innerCall', from: tx.from };
   }
 

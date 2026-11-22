@@ -7,7 +7,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { type Address, type Hex } from 'viem';
 import {
   AERODROME_SOURCES,
+  KYBER_EXECUTORS,
+  KYBER_ROUTER,
   TOKENS,
+  decodeKyberSwap,
   TROPA_SUFFIX,
   createBaseClient,
   fetchAnnouncementLogs,
@@ -80,13 +83,15 @@ describe('simulated buys on Base mainnet (USDC in)', () => {
       expect(parseSuffix(swapCall.data)?.codes).toEqual(['bc_vdp89s9b']);
       expect(r.results.every((x) => x.status === 'success')).toBe(true);
       expect(r.venues.every((v) => (AERODROME_SOURCES as readonly string[]).includes(v))).toBe(true);
+      // the payment only goes where the clubs engine looks for it
+      const dec = decodeKyberSwap(r.swap!.data)!;
+      expect(KYBER_EXECUTORS).toContain(dec.callTarget.toLowerCase());
+      expect(dec.srcReceivers.every((a) => [KYBER_ROUTER.toLowerCase(), ...KYBER_EXECUTORS].includes(a.toLowerCase()))).toBe(true);
+      expect(dec.dstReceiver.toLowerCase()).toBe(r.taker.toLowerCase());
     });
   }
-  it('TSLAc $10 with sources "best" (any KyberSwap venue)', async () => {
-    const r = await simulateBuy({ sellToken: 'USDC', buyToken: TOKENS.TSLAc, sellAmount: 10_000_000n, client, sources: 'best' });
-    summary['TSLAc_$10_best'] = brief(r);
-    expect(r.ok).toBe(true);
-    expect(r.policy.passes).toBe(true);
+  it('a non-Aerodrome source list is refused, with no "best route" fallback', async () => {
+    await expect(simulateBuy({ sellToken: 'USDC', buyToken: TOKENS.TSLAc, sellAmount: 10_000_000n, client, sources: ['uniswap-v3'] })).rejects.toThrow(/only Aerodrome sources/);
   });
 });
 

@@ -7,11 +7,12 @@
  *   nameProblem: what is wrong with a cleaned name, or null. Reserved words (Base, Coinbase,
  *              official, admin, support, team, tropa) and the slur list in moderation/blocklist.ts
  *              are matched after folding case, accents, look-alike Cyrillic and Greek letters,
- *              digits used as letters and stretched letters.
+ *              digits used as letters and stretched letters; dots, dashes and underscores between letters
+ *              are folded out and runs of single letters ("n i g g a", "b.a.s.e") are merged first.
  *   isListedClub: a private or pick-up club is listed in public only once it has two members or a
  *              playing member (a qualifying buy), its name passes, and it is not hidden.
  */
-import { RESERVED_INSIDE, RESERVED_WORDS, SLURS } from './moderation/blocklist';
+import { AFFIX_ALLOW_PREFIX, AFFIX_ALLOW_SUFFIX, RESERVED_INSIDE, RESERVED_WORDS, SLURS } from './moderation/blocklist';
 import type { ClubDoc } from './types';
 
 export const MAX_CLUB_NAME = 40;
@@ -56,12 +57,30 @@ const LOOKALIKE: Record<string, string> = {
   '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '9': 'g', '@': 'a', $: 's', '!': 'i', '|': 'i', '+': 't', '\u{20AC}': 'e',
 };
 
-/** Lowercase letters only, accents and look-alikes folded, split into words. */
-function fold(s: string): string[] {
+/** Characters people put between the letters of a word to hide it: "f.a.g", "k-k-k", "n_i_g_g_a". */
+const JOINERS = /[.\-_*'’`·•~^,:;]+/g;
+
+/**
+ * Lowercase letters only, accents and look-alikes folded. Returns the words to test and the whole
+ * name squashed together. The words are: the plain words; each space-separated token with joiners
+ * ("." "-" "_" ...) removed; and runs of single-letter words merged ("n i g g a", "b.a.s.e").
+ */
+function fold(s: string): { words: string[]; squashed: string } {
   const base = s.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
   let out = '';
   for (const ch of base) out += LOOKALIKE[ch] ?? ch;
-  return out.split(/[^a-z]+/).filter(Boolean);
+  const plain = out.split(/[^a-z]+/).filter(Boolean);
+  const words = new Set<string>(plain);
+  for (const tok of out.split(/\s+/)) for (const w of tok.replace(JOINERS, '').split(/[^a-z]+/)) if (w) words.add(w);
+  let run = '';
+  for (const w of [...plain, '']) {
+    if (w.length === 1) run += w;
+    else {
+      if (run.length > 1) words.add(run);
+      run = '';
+    }
+  }
+  return { words: [...words], squashed: plain.join('') };
 }
 
 /**
@@ -77,6 +96,21 @@ const reservedWords = RESERVED_WORDS.map((w) => pattern(w, true));
 const reservedInside = RESERVED_INSIDE.map((w) => pattern(w, false));
 const slurWords = SLURS.map((w) => pattern(w, true));
 const slurInside = SLURS.filter((w) => w.length >= 6).map((w) => pattern(w, false));
+// Short entries (under 6 letters) are also refused at the start or end of a word ("fagclub",
+// "clubfag"), except for the real words in AFFIX_ALLOW_*.
+const shortSlurs = SLURS.filter((w) => w.length < 6).map((w) => {
+  const body = pattern(w, false).source;
+  return { w, start: new RegExp('^' + body), end: new RegExp(body + 's?$') };
+});
+
+function affixSlur(word: string): boolean {
+  const noS = word.replace(/s$/, '');
+  return shortSlurs.some(
+    ({ w, start, end }) =>
+      (start.test(word) && !AFFIX_ALLOW_PREFIX.some((a) => a.startsWith(w) && word.startsWith(a))) ||
+      (end.test(word) && !AFFIX_ALLOW_SUFFIX.some((a) => a.endsWith(w) && noS.endsWith(a))),
+  );
+}
 
 export type NameProblem = 'empty' | 'too_long' | 'reserved' | 'abusive' | 'link';
 
@@ -86,10 +120,10 @@ export function nameProblem(name: string, opts: { max?: number; min?: number } =
   if (nameLength(n) < (opts.min ?? 1)) return 'empty';
   if (nameLength(n) > (opts.max ?? MAX_CLUB_NAME)) return 'too_long';
   if (/https?:|www\.|\.(com|xyz|io|gg|net|org|app|me)\b|@/i.test(n)) return 'link';
-  const words = fold(n);
-  const squashed = words.join('');
-  if (words.some((w) => slurWords.some((p) => p.test(w))) || slurInside.some((p) => p.test(squashed))) return 'abusive';
-  if (words.some((w) => reservedWords.some((p) => p.test(w))) || reservedInside.some((p) => p.test(squashed))) return 'reserved';
+  const { words, squashed } = fold(n);
+  const all = [...words, squashed];
+  if (all.some((w) => slurWords.some((p) => p.test(w))) || words.some(affixSlur) || slurInside.some((p) => p.test(squashed))) return 'abusive';
+  if (all.some((w) => reservedWords.some((p) => p.test(w))) || reservedInside.some((p) => p.test(squashed))) return 'reserved';
   return null;
 }
 

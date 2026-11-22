@@ -4,8 +4,26 @@ import 'server-only';
 import { ImageResponse } from 'next/og';
 import sharp from 'sharp';
 import type { TokenSummary, WalletTokenEntry } from '@shared/types';
-import { cardFonts, ticketCard } from './card';
-import { cardName, findCard, saveCard, storedCardUrl } from './cardstore';
+import { cardFonts, defaultCard, ticketCard } from './card';
+import { cardName, findCard, homeCardName, saveCard, storedCardUrl } from './cardstore';
+
+/**
+ * Drawing is rationed per instance: at most MAX_DRAWING pictures at once, for the og route and the
+ * Share button alike. Returns a release function, or null when the drawing slots are full.
+ */
+export const MAX_DRAWING = 2;
+let drawing = 0;
+export function tryDraw(): (() => void) | null {
+  if (drawing >= MAX_DRAWING) return null;
+  drawing++;
+  let done = false;
+  return () => {
+    if (!done) {
+      done = true;
+      drawing--;
+    }
+  };
+}
 
 type Variant = 'landscape' | 'portrait';
 export interface CardInput {
@@ -27,6 +45,41 @@ const KNOWN_TTL = 6 * 3600_000;
 function remember(name: string, url: string) {
   if (known.size > 5000) known.clear();
   known.set(name, { url, at: Date.now() });
+}
+
+async function toJpeg(img: ImageResponse): Promise<Buffer> {
+  // Share pictures are JPEGs under 300 KB so every chat app previews them.
+  const png = Buffer.from(await img.arrayBuffer());
+  let quality = 86;
+  let jpeg = await sharp(png).jpeg({ quality, mozjpeg: true, chromaSubsampling: '4:4:4' }).toBuffer();
+  while (jpeg.length > 290_000 && quality > 50) {
+    quality -= 8;
+    jpeg = await sharp(png).jpeg({ quality, mozjpeg: true }).toBuffer();
+  }
+  return jpeg;
+}
+
+/** The site's share picture for this count (the biggest crowd, live numbers), drawn once per count. */
+export async function ensureHomeCard(token: TokenSummary, asOf: string): Promise<string> {
+  const name = homeCardName(asOf);
+  const hit = known.get(name);
+  if (hit) return hit.url;
+  let p = inFlight.get(name);
+  if (!p) {
+    p = (async () => {
+      const have = await storedCardUrl(name);
+      if (have) {
+        remember(name, have);
+        return have;
+      }
+      const jpeg = await toJpeg(new ImageResponse(await defaultCard(token), { width: 1200, height: 630, fonts: await cardFonts() }));
+      const url = await saveCard(name, jpeg);
+      remember(name, url);
+      return url;
+    })().finally(() => inFlight.delete(name));
+    inFlight.set(name, p);
+  }
+  return p;
 }
 
 async function render(input: CardInput, variant: Variant): Promise<string> {

@@ -1,6 +1,6 @@
 import { fail, ok, rateLimited, readJson } from '@/lib/server/api';
 import { getIndex, getWallet } from '@/lib/server/data';
-import { ensureCard } from '@/lib/server/cardmake';
+import { ensureCard, tryDraw } from '@/lib/server/cardmake';
 import { playedStamps } from '@/lib/server/clubs';
 import { isAddress } from '@/lib/format';
 
@@ -22,6 +22,9 @@ export async function POST(req: Request) {
   const entry = wallet?.tokens.find((t) => t.symbol === symbol);
   if (!token || !entry || entry.rank == null) return fail(404, 'This wallet has no real-fan seat at that club');
 
+  // the same drawing slots as the og route: a burst of Share taps cannot stack up renders
+  const release = tryDraw();
+  if (!release) return fail(503, 'Pictures are busy just now. Try Share again in a moment.');
   try {
     const played = await playedStamps(address);
     const input = { address, entry, token, asOf: index.asOf, stamp: played.byToken.get(token.address.toLowerCase()) ?? null, badge: played.badge };
@@ -30,5 +33,7 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error('[cards] render failed', (e as Error).message);
     return fail(500, 'The picture could not be made');
+  } finally {
+    release();
   }
 }

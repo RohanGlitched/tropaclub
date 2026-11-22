@@ -45,6 +45,12 @@ export interface DocStore {
   /** Partial update; supports inc(n). Throws NotFoundError if missing. */
   update(col: string, id: string, patch: Record<string, unknown>): Promise<void>;
   delete(col: string, id: string): Promise<void>;
+  /**
+   * Read a document and write its replacement atomically (a Firestore transaction). `fn` gets the
+   * current document (or null) and returns the new one, or null to leave it as it is. Resolves to
+   * what `fn` returned.
+   */
+  transact<T extends object>(col: string, id: string, fn: (current: T | null) => T | null): Promise<T | null>;
   query<T>(col: string, spec?: QuerySpec): Promise<T[]>;
 }
 

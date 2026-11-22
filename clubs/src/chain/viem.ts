@@ -3,7 +3,7 @@
  * RPC: BASE_RPC_URL (keyed Alchemy/QuickNode free tier) first, then the public fallbacks from the buy package.
  */
 import { DEFAULT_RPC_URLS, ETH_USD_FEED, SLIPSTREAM_FACTORIES, aggregatorV3Abi, b20Abi, verifyAttribution } from '@tropaclub/buy';
-import { type PublicClient, createPublicClient, fallback, getAddress, http, parseAbi, parseAbiItem } from 'viem';
+import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, type PublicClient, createPublicClient, fallback, getAddress, http, parseAbi, parseAbiItem } from 'viem';
 import { base } from 'viem/chains';
 import type { AttributionLite, ChainReader, ReceiptLite, TransferLog, TxLite } from './types';
 
@@ -18,13 +18,31 @@ const FACTORIES = new Set(SLIPSTREAM_FACTORIES.map((f) => f.toLowerCase()));
 
 const transferEvent = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
 
+/**
+ * Keyless public Base RPCs, tried in this order (BASE_RPC_URL first if it is ever set). No keyed
+ * account exists, so one node being slow or rate-limited must never decide a buy.
+ */
+export const PUBLIC_BASE_RPCS = ['https://mainnet.base.org', 'https://base-rpc.publicnode.com', 'https://base.llamarpc.com', 'https://base.drpc.org', 'https://1rpc.io/base'] as const;
+
+export function baseRpcUrls(extra: readonly string[] = []): string[] {
+  return [...new Set([process.env.BASE_RPC_URL, ...extra, ...PUBLIC_BASE_RPCS, ...DEFAULT_RPC_URLS].filter((u): u is string => !!u))];
+}
+
+/** A client over every public node: fixed order (rank: false), retries and a timeout per node. */
 export function createBaseClient(rpcUrls?: string[]): PublicClient {
-  const urls = rpcUrls ?? [process.env.BASE_RPC_URL, ...DEFAULT_RPC_URLS].filter((u): u is string => !!u);
+  const urls = rpcUrls ?? baseRpcUrls();
   return createPublicClient({
     chain: base,
-    transport: fallback(urls.map((u) => http(u, { retryCount: 2, timeout: 20_000 }))),
+    transport: fallback(
+      urls.map((u) => http(u, { retryCount: 1, retryDelay: 300, timeout: 12_000 })),
+      { rank: false, retryCount: 2, retryDelay: 500 },
+    ),
   }) as PublicClient;
 }
+
+/** Did this read fail because the contract answered (reverted, or there is no contract), not the network? */
+export const contractAnswered = (e: unknown) =>
+  e instanceof BaseError && !!e.walk((x) => x instanceof ContractFunctionRevertedError || x instanceof ContractFunctionZeroDataError);
 
 export interface ViemChainReaderOptions {
   client?: PublicClient;
@@ -107,9 +125,8 @@ export function createViemChainReader(opts: ViemChainReaderOptions = {}): ChainR
     },
     async isAerodromePool(address: string): Promise<boolean> {
       const a = address.toLowerCase();
-      const hit = pools.get(a);
-      // a pool stays a pool; a "no" is asked again after ten minutes
-      if (hit && (hit.ok || Date.now() - hit.at < 10 * 60_000)) return hit.ok;
+      // only a "yes" is kept: a pool stays a pool. A "no" is asked again every time.
+      if (pools.get(a)?.ok) return true;
       let ok = false;
       try {
         const pool = getAddress(a);
@@ -125,12 +142,15 @@ export function createViemChainReader(opts: ViemChainReaderOptions = {}): ChainR
           ok = named.toLowerCase() === a;
         }
       } catch (e) {
-        // an address with no code, or one that is not a pool, reverts or returns nothing: that is a "no".
-        // A network error is not an answer, so it is passed on and the buy is tried again.
-        if (!/revert|returned no data|ContractFunctionExecutionError|ContractFunctionZeroDataError|AbiDecoding/i.test(`${(e as Error).name} ${(e as Error).message}`)) throw e;
+        // An address with no code, or a contract that is not a pool, reverts or returns no data: that
+        // is a real "no". Anything else (HTTP error, timeout, rate limit) is not an answer: it is
+        // passed on, and the buy is kept and tried again later.
+        if (!contractAnswered(e)) throw e;
       }
-      if (pools.size > 500) pools.clear();
-      pools.set(a, { at: Date.now(), ok });
+      if (ok) {
+        if (pools.size > 500) pools.clear();
+        pools.set(a, { at: Date.now(), ok });
+      }
       return ok;
     },
     async getTransferLogs(q): Promise<TransferLog[]> {

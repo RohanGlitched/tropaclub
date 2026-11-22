@@ -1,16 +1,14 @@
-// One Base mainnet read client for the whole server: keyless public RPCs with fallback.
+// The buy-check side's Base read client (quotes, attribution, sign-in): every keyless public node,
+// in a fixed order with retries and timeouts, BASE_RPC_URL first if it is ever set. Statements use
+// a client of their own (lib/server/statement.ts), so they can never queue in front of a buy check.
 import 'server-only';
 import type { PublicClient } from 'viem';
-import { createBaseClient, DEFAULT_RPC_URLS } from '@tropaclub/buy';
+import { baseRpcUrls, createBaseClient } from '@tropaclub/clubs';
 
 let client: PublicClient | null = null;
 
 export function baseClient(): PublicClient {
-  if (!client) {
-    const first = process.env.BASE_RPC_URL ? [process.env.BASE_RPC_URL] : [];
-    client = createBaseClient([...first, ...DEFAULT_RPC_URLS]);
-  }
-  return client;
+  return (client ??= createBaseClient(baseRpcUrls()));
 }
 
 /** Run a promise with a deadline, so one slow RPC cannot hang a page. */

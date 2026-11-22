@@ -48,6 +48,15 @@ export class MemoryDocStore implements DocStore {
     this.col(col).delete(id);
   }
 
+  async transact<T extends object>(col: string, id: string, fn: (current: T | null) => T | null): Promise<T | null> {
+    // single-threaded: nothing can run between the read and the write
+    const c = this.col(col);
+    const cur = c.get(id);
+    const next = fn(cur ? (structuredClone(cur) as T) : null);
+    if (next) c.set(id, strip(structuredClone(next) as Record<string, unknown>));
+    return next ? (structuredClone(next) as T) : null;
+  }
+
   async query<T>(col: string, spec: QuerySpec = {}): Promise<T[]> {
     let rows = [...this.col(col).values()].filter((d) => (spec.where ?? []).every((w) => matchesWhere(d, w)));
     if (spec.orderBy) {

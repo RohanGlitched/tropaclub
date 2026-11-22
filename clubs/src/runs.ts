@@ -40,11 +40,20 @@ export async function runOnce<T>(
     await store.create<CronRunDoc>(CRON_RUNS, key, { key, state: 'running', startedAt, attempts });
   } catch (e) {
     if (!(e instanceof AlreadyExistsError)) throw e;
-    const d = await store.get<CronRunDoc>(CRON_RUNS, key);
-    if (d?.state === 'done' && !opts.force) return { status: 'replayed', result: JSON.parse(d.result ?? 'null') as T, finishedAt: d.finishedAt ?? d.startedAt };
-    if (d?.state === 'running' && startedAt - d.startedAt < stale) return { status: 'running', startedAt: d.startedAt };
-    attempts = (d?.attempts ?? 1) + 1;
-    await store.set<CronRunDoc>(CRON_RUNS, key, { key, state: 'running', startedAt, attempts });
+    // Decide and take the key over in one transaction, so two retries cannot both take a stale run.
+    let seen: CronRunDoc | null = null;
+    const took = await store.transact<CronRunDoc>(CRON_RUNS, key, (d) => {
+      seen = d;
+      if (d?.state === 'done' && !opts.force) return null;
+      if (d?.state === 'running' && startedAt - d.startedAt < stale) return null;
+      return { key, state: 'running', startedAt, attempts: (d?.attempts ?? 1) + 1 };
+    });
+    if (!took) {
+      const d = seen as CronRunDoc | null;
+      if (d?.state === 'done') return { status: 'replayed', result: JSON.parse(d.result ?? 'null') as T, finishedAt: d.finishedAt ?? d.startedAt };
+      return { status: 'running', startedAt: d?.startedAt ?? startedAt };
+    }
+    attempts = took.attempts;
   }
   try {
     const result = await run();

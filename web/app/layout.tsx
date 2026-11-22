@@ -3,6 +3,8 @@ import localFont from 'next/font/local';
 import './globals.css';
 import './club.css';
 import { SITE_URL, TAGLINE } from '@/lib/site';
+import { homeOgVersion } from '@/lib/og';
+import { getIndex } from '@/lib/server/data';
 
 const display = localFont({
   src: [
@@ -15,7 +17,14 @@ const display = localFont({
   fallback: ['Bahnschrift', 'DIN Alternate', 'Arial Narrow', 'system-ui', 'sans-serif'],
 });
 
-export const metadata: Metadata = {
+// The share picture shows the live count: /api/card/og/home.jpg, versioned by the count time.
+export async function generateMetadata(): Promise<Metadata> {
+  const asOf = await getIndex().then((i) => i.data.asOf).catch(() => null);
+  const image = asOf ? `${SITE_URL}/api/card/og/home.jpg?v=${encodeURIComponent(homeOgVersion(asOf))}` : '/og-default.png';
+  return { ...base, openGraph: { ...base.openGraph, images: [{ url: image, width: 1200, height: 630, alt: 'Tropa Club: the seating plan of a stock token, with real fans lit' }] }, twitter: { ...base.twitter, images: [image] } };
+}
+
+const base: Metadata = {
   metadataBase: new URL(SITE_URL),
   // every page names its own address on tropaclub.xyz as the canonical one (the *.web.app copy is a duplicate)
   alternates: { canonical: './' },

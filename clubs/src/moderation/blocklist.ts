@@ -12,8 +12,9 @@ export const RESERVED_WORDS: readonly string[] = ['base', 'coinbase', 'official'
 export const RESERVED_INSIDE: readonly string[] = ['coinbase', 'tropa', 'official'];
 
 /**
- * A small list of slurs. Short ones are matched as whole words only (so "spicy" and "Scunthorpe"
- * stay fine); entries of six letters or more are also refused inside a longer word.
+ * A small list of slurs. Entries of six letters or more are refused anywhere inside a name; short
+ * ones are refused as whole words and at the start or end of a word ("fagclub", "clubfag"), except
+ * for the real words in AFFIX_ALLOW_* below ("spicy" and "Scunthorpe" stay fine).
  */
 export const SLURS: readonly string[] = [
   'nigger',
@@ -48,3 +49,17 @@ export const SLURS: readonly string[] = [
   'maricon',
   'sudaca',
 ];
+
+/** Real words and names that start with a short entry above. A word starting with one of these is not refused. */
+export const AFFIX_ALLOW_PREFIX: readonly string[] = [
+  'spice', 'spicy', 'spici', 'spicu', 'spickandspan',
+  'pakistan',
+  'fagin', 'fagan', 'fagun', 'fagne', 'fagi',
+  'nazir', 'nazim', 'nazia', 'nazih',
+  'heilbronn', 'heilman',
+  'niggard',
+  'coonhound',
+];
+
+/** Real words that end with a short entry above ("raccoon", "tycoon", "Van Dyke" written as one word). */
+export const AFFIX_ALLOW_SUFFIX: readonly string[] = ['raccoon', 'racoon', 'cocoon', 'tycoon', 'vandyke'];

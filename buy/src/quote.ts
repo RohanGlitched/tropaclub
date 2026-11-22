@@ -9,7 +9,7 @@
  * 1inch and 0x both return 401 without an API key, so they are not used.
  */
 import { type Address, type Hex, decodeFunctionData, getAddress, isAddress } from 'viem';
-import { KYBER_API, KYBER_CLIENT_ID, KYBER_ROUTER, NATIVE_ETH, USDC, WETH, kyberRouterAbi } from './constants';
+import { KYBER_API, KYBER_CLIENT_ID, KYBER_EXECUTORS, KYBER_ROUTER, NATIVE_ETH, USDC, WETH, ZERO_ADDRESS, kyberRouterAbi } from './constants';
 
 export type Provider = 'kyberswap';
 
@@ -60,16 +60,46 @@ const kyberHeaders = { 'x-client-id': KYBER_CLIENT_ID, accept: 'application/json
 /** KyberSwap source ids for Aerodrome Slipstream on Base (observed in routes, Nov 2026). */
 export const AERODROME_SOURCES = ['aero-cl', 'aerodrome-cl-3'] as const;
 
-export type SourcePref = 'aerodrome' | 'best' | readonly string[];
+/**
+ * 'aerodrome' (default): every Aerodrome Slipstream source. A list narrows it to some of them; a list
+ * naming anything that is not an Aerodrome source is refused. There is no "best route" option: the
+ * clubs engine only counts stock that came out of verified Aerodrome pools.
+ */
+export type SourcePref = 'aerodrome' | readonly string[];
 
-async function kyberQuote(sellToken: Address, buyToken: Address, sellAmount: bigint, taker: Address, fetchImpl: typeof fetch, sources?: readonly string[]): Promise<Quote> {
-  const inc = sources?.length ? `&includedSources=${sources.join(',')}` : '';
-  const url = `${KYBER_API}/routes?tokenIn=${sellToken}&tokenOut=${buyToken}&amountIn=${sellAmount}&gasInclude=true&origin=${taker}${inc}`;
+const isAerodromeSource = (s: string) => (AERODROME_SOURCES as readonly string[]).includes(s);
+
+/** The Aerodrome sources a quote may use; throws for anything else. */
+export function aerodromeSources(pref: SourcePref = 'aerodrome'): readonly string[] {
+  if (pref === 'aerodrome') return AERODROME_SOURCES;
+  if (!Array.isArray(pref) || !pref.length) throw new Error('sources must be "aerodrome" or a list of Aerodrome sources');
+  const bad = pref.filter((s) => !isAerodromeSource(s));
+  if (bad.length) throw new Error(`only Aerodrome sources are quoted (${AERODROME_SOURCES.join(', ')}), not ${bad.join(', ')}`);
+  return pref;
+}
+
+/** Every hop of a KyberSwap routeSummary.route, flattened; throws if the route has no hops. */
+export function routeHops(route: unknown): { exchange: string; pool?: string }[] {
+  if (!Array.isArray(route) || !route.length || !route.every((r) => Array.isArray(r) && r.length)) throw new Error('KyberSwap returned a route with no hops');
+  return (route as any[][]).flat().map((h) => ({ exchange: String(h?.exchange ?? ''), pool: h?.pool ? String(h.pool) : undefined }));
+}
+
+/** Throws unless every hop of the route trades on one of `allowed` (Aerodrome sources only). Returns the venues. */
+export function assertAerodromeRoute(route: unknown, allowed: readonly string[] = AERODROME_SOURCES): string[] {
+  const hops = routeHops(route);
+  const off = hops.filter((h) => !allowed.includes(h.exchange) || !isAerodromeSource(h.exchange));
+  if (off.length) throw new Error(`KyberSwap route uses non-Aerodrome venues (${[...new Set(off.map((h) => h.exchange || 'unknown'))].join(', ')}), so it is refused`);
+  return [...new Set(hops.map((h) => h.exchange))];
+}
+
+async function kyberQuote(sellToken: Address, buyToken: Address, sellAmount: bigint, taker: Address, fetchImpl: typeof fetch, sources: readonly string[]): Promise<Quote> {
+  const url = `${KYBER_API}/routes?tokenIn=${sellToken}&tokenOut=${buyToken}&amountIn=${sellAmount}&gasInclude=true&origin=${taker}&includedSources=${sources.join(',')}`;
   const res = await fetchImpl(url, { headers: kyberHeaders });
   const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok || j.code !== 0 || !j.data?.routeSummary) throw new Error(`KyberSwap routes ${res.status}: ${j.message ?? 'no route'}`);
+  if (!res.ok || j.code !== 0 || !j.data?.routeSummary) throw new Error(`KyberSwap has no Aerodrome route (${res.status}: ${j.message ?? 'no route'})`);
   const rs = j.data.routeSummary;
-  const venues = [...new Set((rs.route as any[][]).flat().map((h) => String(h.exchange)))];
+  const venues = assertAerodromeRoute(rs.route, sources);
+  if (String(j.data.routerAddress ?? '').toLowerCase() !== KYBER_ROUTER.toLowerCase()) throw new Error(`KyberSwap quoted an unexpected router ${j.data.routerAddress}`);
   return {
     provider: 'kyberswap',
     sellToken,
@@ -94,7 +124,7 @@ export interface QuoteParams {
   providers?: Provider[];
   /**
    * 'aerodrome' (default): route only through Aerodrome Slipstream (where >95% of B20 liquidity and venue
-   * campaigns sit), falling back to the best route if Aerodrome has none. 'best': any KyberSwap source.
+   * campaigns sit). There is no fallback: if Aerodrome has no route, there is no quote.
    */
   sources?: SourcePref;
   fetchImpl?: typeof fetch;
@@ -109,16 +139,8 @@ export async function getQuote(p: QuoteParams): Promise<Quote> {
   for (const prov of p.providers ?? ['kyberswap']) {
     try {
       if (prov === 'kyberswap') {
-        const pref = p.sources ?? 'aerodrome';
-        const list = pref === 'aerodrome' ? AERODROME_SOURCES : pref === 'best' ? undefined : pref;
-        if (list) {
-          try {
-            return await kyberQuote(sellToken, buyToken, p.sellAmount, p.taker, f, list);
-          } catch (e) {
-            errors.push(`kyberswap(${list.join(',')}): ${(e as Error).message}`);
-          }
-        }
-        return await kyberQuote(sellToken, buyToken, p.sellAmount, p.taker, f);
+        // Aerodrome only, no fallback: a route through any other venue would not count as a club buy
+        return await kyberQuote(sellToken, buyToken, p.sellAmount, p.taker, f, aerodromeSources(p.sources));
       }
       // any other provider is ignored: a quote that buildSwap would refuse is never returned
     } catch (e) {
@@ -128,31 +150,69 @@ export async function getQuote(p: QuoteParams): Promise<Quote> {
   throw new Error(`no quote: ${errors.join(' | ')}`);
 }
 
+export interface DecodedKyberSwap {
+  callTarget: Address;
+  approveTarget: Address;
+  srcToken: Address;
+  dstToken: Address;
+  srcReceivers: Address[];
+  srcAmounts: bigint[];
+  feeReceivers: Address[];
+  dstReceiver: Address;
+  amount: bigint;
+  minReturnAmount: bigint;
+  flags: bigint;
+}
+
 /** Decode KyberSwap MetaAggregationRouterV2.swap calldata (suffix-tolerant). */
-export function decodeKyberSwap(data: Hex): { minReturnAmount: bigint; dstReceiver: Address; amount: bigint; srcToken: Address; dstToken: Address } | null {
+export function decodeKyberSwap(data: Hex): DecodedKyberSwap | null {
   try {
-    const { args } = decodeFunctionData({ abi: kyberRouterAbi, data });
-    const d = (args[0] as any).desc;
-    return { minReturnAmount: d.minReturnAmount, dstReceiver: getAddress(d.dstReceiver), amount: d.amount, srcToken: getAddress(d.srcToken), dstToken: getAddress(d.dstToken) };
+    const { functionName, args } = decodeFunctionData({ abi: kyberRouterAbi, data });
+    if (functionName !== 'swap') return null;
+    const e = args[0] as any;
+    const d = e.desc;
+    return {
+      callTarget: getAddress(e.callTarget),
+      approveTarget: getAddress(e.approveTarget),
+      srcToken: getAddress(d.srcToken),
+      dstToken: getAddress(d.dstToken),
+      srcReceivers: (d.srcReceivers as string[]).map((a) => getAddress(a)),
+      srcAmounts: [...(d.srcAmounts as bigint[])],
+      feeReceivers: (d.feeReceivers as string[]).map((a) => getAddress(a)),
+      dstReceiver: getAddress(d.dstReceiver),
+      amount: d.amount,
+      minReturnAmount: d.minReturnAmount,
+      flags: d.flags,
+    };
   } catch {
     return null;
   }
+}
+
+/** The router plus the pinned KyberSwap executors (and any extra ones passed in), lowercased. */
+export function kyberRouterSide(extraExecutors: readonly string[] = []): Set<string> {
+  return new Set([KYBER_ROUTER, ...KYBER_EXECUTORS, ...extraExecutors].map((a) => a.toLowerCase()));
 }
 
 /**
  * Build swap calldata whose enforced minimum is >= amountOutMin (our guard), recipient = taker.
  * KyberSwap takes slippage in integer bps relative to the quoted amountOut, so we floor the bps
  * that maps the quote onto the guard: router min = quoted*(1 - bps/1e4) >= amountOutMin.
+ * `executors` adds to the pinned KYBER_EXECUTORS (e.g. an env list shared with the clubs engine).
  */
 export async function buildSwap(
   quote: Quote,
-  p: { amountOutMin: bigint; recipient?: Address; deadlineSec?: number; fetchImpl?: typeof fetch },
+  p: { amountOutMin: bigint; recipient?: Address; deadlineSec?: number; fetchImpl?: typeof fetch; executors?: readonly string[] },
 ): Promise<BuiltSwap> {
   const f = p.fetchImpl ?? fetch;
-  const recipient = p.recipient ?? quote.taker;
+  // the clubs engine counts a buy only when the router's sender and dstReceiver are both the buyer
+  if (p.recipient && p.recipient.toLowerCase() !== quote.taker.toLowerCase()) throw new Error('the stock must be delivered to the wallet that pays for it (recipient must be the taker)');
+  const recipient = quote.taker;
   if (quote.amountOut < p.amountOutMin) throw new Error('quote is below the guard minimum');
   const bps = Number(((quote.amountOut - p.amountOutMin) * 10_000n) / quote.amountOut);
   if (quote.provider === 'kyberswap') {
+    // re-check the route before building: a Quote object can be put together by anyone
+    assertAerodromeRoute((quote.raw as any)?.route);
     const body = {
       routeSummary: quote.raw,
       sender: quote.taker,
@@ -168,8 +228,7 @@ export async function buildSwap(
     if (!res.ok || j.code !== 0 || !j.data?.data) throw new Error(`KyberSwap build ${res.status}: ${j.message ?? 'failed'}`);
     const data = j.data.data as Hex;
     const value = BigInt(j.data.transactionValue ?? 0);
-    assertKyberSwap({ router: String(j.data.routerAddress ?? ''), data, value, quote, recipient, amountOutMin: p.amountOutMin });
-    const dec = decodeKyberSwap(data)!;
+    const dec = assertKyberSwap({ router: String(j.data.routerAddress ?? ''), data, value, quote, recipient, amountOutMin: p.amountOutMin, executors: p.executors });
     return { to: KYBER_ROUTER, data, value, amountOut: BigInt(j.data.amountOut), minReturnAmount: dec.minReturnAmount, dstReceiver: dec.dstReceiver, provider: 'kyberswap' };
   }
   // Fail closed: only KyberSwap calldata is decoded and checked, so nothing else is ever built.
@@ -179,9 +238,21 @@ export async function buildSwap(
 /**
  * Every field of the router call is checked before it reaches a wallet. Throws unless the call goes to
  * the pinned KyberSwap router, decodes, spends exactly the quoted token and amount, buys the quoted
- * token, pays the recipient and enforces at least the guard minimum.
+ * token, pays the taker and enforces at least the guard minimum; and unless the payment can only go
+ * where the clubs engine (clubs/src/chain/swap.ts) looks for it: the executor (callTarget), any
+ * approveTarget and every srcReceiver are the router or a pinned KyberSwap executor, the receivers
+ * take the whole amount, and no fee is taken. Returns the decoded call.
  */
-export function assertKyberSwap(c: { router: string; data: Hex; value: bigint; quote: Pick<Quote, 'sellToken' | 'buyToken' | 'sellAmount'>; recipient: Address; amountOutMin: bigint }): void {
+export function assertKyberSwap(c: {
+  router: string;
+  data: Hex;
+  value: bigint;
+  quote: Pick<Quote, 'sellToken' | 'buyToken' | 'sellAmount'> & { taker?: Address };
+  recipient: Address;
+  amountOutMin: bigint;
+  /** Extra executors on top of KYBER_EXECUTORS. */
+  executors?: readonly string[];
+}): DecodedKyberSwap {
   const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
   if (!same(c.router, KYBER_ROUTER)) throw new Error(`KyberSwap returned an unexpected router ${c.router}`);
   const dec = decodeKyberSwap(c.data);
@@ -189,8 +260,24 @@ export function assertKyberSwap(c: { router: string; data: Hex; value: bigint; q
   if (!same(dec.srcToken, c.quote.sellToken)) throw new Error('KyberSwap calldata spends a different token');
   if (!same(dec.dstToken, c.quote.buyToken)) throw new Error('KyberSwap calldata buys a different token');
   if (dec.amount !== c.quote.sellAmount) throw new Error('KyberSwap calldata spends a different amount');
+  if (c.quote.taker && !same(c.recipient, c.quote.taker)) throw new Error('KyberSwap calldata must pay the taker');
   if (!same(dec.dstReceiver, c.recipient)) throw new Error('KyberSwap calldata pays a different receiver');
   if (dec.minReturnAmount < c.amountOutMin) throw new Error(`KyberSwap min ${dec.minReturnAmount} below guard ${c.amountOutMin}`);
   const native = isNative(c.quote.sellToken as Address);
   if (c.value !== (native ? c.quote.sellAmount : 0n)) throw new Error('KyberSwap transaction value does not match the amount paid');
+
+  // where the money goes: only to the router side, which is all the clubs engine credits
+  const side = kyberRouterSide(c.executors);
+  if (!side.has(dec.callTarget.toLowerCase())) throw new Error(`KyberSwap calldata names an unknown executor ${dec.callTarget}`);
+  if (!same(dec.approveTarget, ZERO_ADDRESS) && !side.has(dec.approveTarget.toLowerCase())) throw new Error(`KyberSwap calldata approves an unknown spender ${dec.approveTarget}`);
+  if (dec.feeReceivers.length) throw new Error('KyberSwap calldata takes a fee, which the club would not count as paid toward the stock');
+  if (dec.srcReceivers.length !== dec.srcAmounts.length) throw new Error('KyberSwap calldata payment receivers and amounts do not line up');
+  const stranger = dec.srcReceivers.find((r) => !side.has(r.toLowerCase()));
+  if (stranger) throw new Error(`KyberSwap calldata pays an unknown receiver ${stranger}`);
+  if (!native) {
+    if (!dec.srcReceivers.length) throw new Error('KyberSwap calldata names no payment receiver');
+    const paid = dec.srcAmounts.reduce((a, b) => a + b, 0n);
+    if (paid !== dec.amount) throw new Error(`KyberSwap calldata pays ${paid} to the router side, not the full ${dec.amount}`);
+  }
+  return dec;
 }

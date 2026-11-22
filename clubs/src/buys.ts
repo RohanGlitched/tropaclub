@@ -39,6 +39,7 @@ import {
   type MarkDoc,
   type MemberDoc,
   type PendingBuyDoc,
+  type QuoteDoc,
   type SyncStateDoc,
   type TransferDoc,
   type UsdSource,
@@ -61,6 +62,7 @@ const MESSAGES: Record<BuyRejectReason, string> = {
   not_from_pool: "The stock in that transaction didn't come from a known Aerodrome pool, so it isn't counted.",
   price_off_mark: "That buy's price was too far from the market price at the time (more than 10% in market hours, 20% outside them), so it isn't counted.",
   cannot_verify_now: 'The buy went through, but it could not be checked just now. It will be checked again automatically, so nothing is lost.',
+  not_quoted: "That buy wasn't started from a Tropa Club quote, so it isn't counted.",
   not_member: 'Join the club before recording a buy for it.',
   region_blocked: 'Buying is not available in your region.',
 };
@@ -96,13 +98,64 @@ async function verifiedPools(ctx: ClubsContext, candidates: string[], token: { a
 
 /** How long a buy that cannot be checked is retried by the sweep. */
 export const PENDING_BUY_TTL_SEC = 30 * 86_400;
+/** Open pending buys one wallet may have at a time. */
+export const MAX_PENDING_PER_WALLET = 3;
+/** Wait before the next try: 5 min, doubling, at most 6 h. */
+export const pendingBackoffSec = (attempts: number) => Math.min(6 * 3600, 300 * 2 ** Math.max(0, attempts - 1));
+/** How long after a quote its buy may land and still count when the sweep finds it. */
+export const QUOTE_WINDOW_SEC = 30 * 60;
+
+/**
+ * Remember a quote the site issued (after the region gate and the not-a-US-person answer). A buy
+ * the sweep finds counts only when it matches one, or was recorded by its buyer through the site.
+ */
+export async function recordQuote(ctx: ClubsContext, q: { wallet: string; token: string; usd: number; at?: number }): Promise<void> {
+  const at = q.at ?? ctx.now();
+  const wallet = normAddr(q.wallet);
+  const token = q.token.toLowerCase();
+  const id = `${wallet}_${token}_${at}`;
+  await ctx.store.set<QuoteDoc>(COL.quotes, id, { id, wallet, token, at, usd: q.usd });
+}
+
+async function quotedBefore(ctx: ClubsContext, wallet: string, token: string, blockTime: number): Promise<boolean> {
+  const qs = await ctx.store.query<QuoteDoc>(COL.quotes, { where: [['wallet', '==', wallet]] });
+  return qs.some((q) => q.token === token && q.at <= blockTime + 120 && blockTime - q.at <= QUOTE_WINDOW_SEC);
+}
 
 /** Keep a buy that could not be checked yet, so the sweep tries it again. Nothing about it is decided. */
-async function retryLater(ctx: ClubsContext, txHash: string, wallet: string, clubId: string | null, why: string): Promise<RecordBuyResult> {
+async function retryLater(ctx: ClubsContext, txHash: string, wallet: string, clubId: string | null, why: string, source: 'client' | 'sweep'): Promise<RecordBuyResult> {
   const prev = await ctx.store.get<PendingBuyDoc>(COL.pendingBuys, txHash);
   const now = ctx.now();
-  await ctx.store.set<PendingBuyDoc>(COL.pendingBuys, txHash, { txHash, wallet, clubId: clubId ?? prev?.clubId ?? null, firstAt: prev?.firstAt ?? now, lastAt: now, attempts: (prev?.attempts ?? 0) + 1, why });
+  if (!prev) {
+    // a wallet cannot fill the queue: at most a few open at a time
+    const open = await ctx.store.query<PendingBuyDoc>(COL.pendingBuys, { where: [['wallet', '==', wallet]] });
+    if (open.length >= MAX_PENDING_PER_WALLET)
+      return reject(ctx, txHash, wallet, 'cannot_verify_now', true, true, `not kept for a retry: ${open.length} buys from this wallet are already waiting (${why})`);
+  }
+  const attempts = (prev?.attempts ?? 0) + 1;
+  await ctx.store.set<PendingBuyDoc>(COL.pendingBuys, txHash, {
+    txHash,
+    wallet,
+    clubId: clubId ?? prev?.clubId ?? null,
+    firstAt: prev?.firstAt ?? now,
+    lastAt: now,
+    attempts,
+    why,
+    source: prev?.source === 'client' || source === 'client' ? 'client' : 'sweep',
+    nextAt: now + pendingBackoffSec(attempts),
+  });
   return reject(ctx, txHash, wallet, 'cannot_verify_now', true, false);
+}
+
+/**
+ * A mark when the price sources have none for that moment (a token with no Chainlink feed, a buy
+ * checked long after it landed): the next mark stored within a day after the buy (marks are
+ * captured for every token at each close).
+ */
+async function fallbackMark(ctx: ClubsContext, token: string, t: number): Promise<{ usd: number; source: string } | null> {
+  const ms = await ctx.store.query<MarkDoc>(COL.marks, { where: [['token', '==', token]] }).catch(() => [] as MarkDoc[]);
+  const next = ms.filter((m) => m.source !== 'buy' && m.t >= t && m.t - t <= 86_400 && m.usd > 0).sort((a, b) => a.t - b.t)[0];
+  return next ? { usd: next.usd, source: `${next.source} (next mark)` } : null;
 }
 
 export async function logGeoDecision(ctx: ClubsContext, d: Omit<GeoLogDoc, 'at'>): Promise<void> {
@@ -122,6 +175,8 @@ export async function recordBuy(
     /** The buyer ticked "I am not a US person" before this buy. Stored on the buy record. */
     certifiedNotUsPerson?: boolean;
     source?: 'client' | 'sweep';
+    /** Sweep only: the buyer recorded this buy through the site before (it passed the region gate then). */
+    clientRecorded?: boolean;
   },
 ): Promise<RecordBuyResult> {
   const chain = need(ctx.chain, 'chain reader');
@@ -159,7 +214,7 @@ export async function recordBuy(
   const candidates = poolCandidates(receipt.logs, wallet, knownTokens, ctx.config.kyberExecutors);
   const dst = routerSwaps(receipt.logs).find((x) => x.sender === wallet && x.dstReceiver === wallet)?.dstToken ?? '';
   const pools = await verifiedPools(ctx, candidates, { address: dst, symbol: ctx.config.tokens.get(dst) ?? null });
-  if (pools === null) return retryLater(ctx, txHash, wallet, input.clubId, 'a pool check did not answer');
+  if (pools === null) return retryLater(ctx, txHash, wallet, input.clubId, 'a pool check did not answer', source);
   const swap = verifyRouterBuy(receipt.logs, wallet, { knownTokens, pools, executors: ctx.config.kyberExecutors });
   if (!swap.ok) {
     const detail = swap.reason === 'not_from_pool' ? `${swap.detail}; senders: ${candidates.slice(0, 4).join(', ') || 'none'}` : swap.detail;
@@ -167,6 +222,10 @@ export async function recordBuy(
   }
   const leg = { token: swap.token, raw: swap.raw, logIndexes: swap.logIndexes };
   const symbol = ctx.config.tokens.get(leg.token) ?? null;
+  // The sweep skips the region gate and the US self-certification, so a buy it finds counts only if
+  // the site quoted it to this wallet, or the buyer recorded it through the site.
+  if (source === 'sweep' && !input.clientRecorded && !(await quotedBefore(ctx, wallet, leg.token, await chain.getBlockTime(receipt.blockNumber))))
+    return reject(ctx, txHash, wallet, 'not_quoted', true, true, 'found by the sweep with no matching quote');
 
   const blockNumber = receipt.blockNumber;
   const blockTime = await chain.getBlockTime(blockNumber);
@@ -182,16 +241,19 @@ export async function recordBuy(
     usdIn = ethUsd == null ? null : (Number(swap.spent) / 1e18) * ethUsd;
   }
   // The price check. Without a mark, or an ETH price, nothing can be compared yet: the sweep tries again.
-  const mark = ctx.prices ? await ctx.prices.markAt(leg.token, blockTime) : null;
+  const primary = ctx.prices ? await ctx.prices.markAt(leg.token, blockTime) : null;
+  const mark = primary && primary.usd > 0 ? primary : await fallbackMark(ctx, leg.token, blockTime);
   if (!(tokens > 0)) return reject(ctx, txHash, wallet, 'no_stock_received', true, true, 'the router returned nothing');
-  if (usdIn == null) return retryLater(ctx, txHash, wallet, input.clubId, 'no ETH price for that block');
-  if (!mark || !(mark.usd > 0)) return retryLater(ctx, txHash, wallet, input.clubId, 'no usable mark for that block');
+  if (usdIn == null) return retryLater(ctx, txHash, wallet, input.clubId, 'no ETH price for that block', source);
+  if (!mark || !(mark.usd > 0)) return retryLater(ctx, txHash, wallet, input.clubId, 'no usable mark for that block', source);
   const fillPrice = usdIn / tokens;
   const check = fillCheck(fillPrice, mark.usd, blockTime);
   if (!check.ok)
     return reject(ctx, txHash, wallet, 'price_off_mark', true, true, `fill $${fillPrice.toFixed(4)} vs ${mark.source} mark $${mark.usd.toFixed(4)} (${(check.off * 100).toFixed(1)}%, limit ${(check.limit * 100).toFixed(0)}%)`);
   // Club returns start from the mark, never from the fill.
-  const priceAtBuy: number | null = mark.usd;
+  // The higher of the mark and the fill: a stale off-hours mark below the fill can never inflate a
+  // return, and an off-mark fill below the mark cannot either.
+  const priceAtBuy: number | null = Math.max(mark.usd, fillPrice);
 
   // Prior balance (head of FIFO) on the wallet's first Tropa buy of this token.
   const ledger = await loadLedger(ctx, wallet);
@@ -342,9 +404,11 @@ export async function sweepTransfers(
   // Buys that could not be checked before (no mark yet, a check that did not answer): try them again.
   // A transaction that is real is never dropped just because its mark came late.
   let retried = 0;
-  for (const p of (await ctx.store.query<PendingBuyDoc>(COL.pendingBuys)).sort((x, y) => x.firstAt - y.firstAt).slice(0, 50)) {
+  // least recently tried first, and only those whose backoff has passed, so one stuck buy never blocks the rest
+  const due = (await ctx.store.query<PendingBuyDoc>(COL.pendingBuys)).filter((p) => (p.nextAt ?? 0) <= ctx.now()).sort((x, y) => x.lastAt - y.lastAt);
+  for (const p of due.slice(0, 50)) {
     retried++;
-    const r = await recordBuy(ctx, { txHash: p.txHash, wallet: p.wallet, clubId: p.clubId, source: 'sweep' });
+    const r = await recordBuy(ctx, { txHash: p.txHash, wallet: p.wallet, clubId: p.clubId, source: 'sweep', clientRecorded: p.source === 'client' });
     if (r.ok) recorded++;
     else if (r.reason !== 'cannot_verify_now') await ctx.store.delete(COL.pendingBuys, p.txHash).catch(() => {});
     else if (ctx.now() - p.firstAt > PENDING_BUY_TTL_SEC) {

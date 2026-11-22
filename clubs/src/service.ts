@@ -142,7 +142,9 @@ export function createClubsService(deps: ClubsDeps) {
     const gw = currentGameweek(at) ?? SEASON[0]!;
     const day = latestMatchdayCut(gw, at);
     const t = day?.closeAt ?? at;
-    const tokens = [...new Set((await ctx.store.query<BuyDoc>(COL.buys)).map((b) => b.token))];
+    // every known token, not only those already bought: a token with no Chainlink feed then has a
+    // stored mark from each close, which buys checked later fall back to
+    const tokens = [...new Set([...ctx.config.tokens.keys(), ...(await ctx.store.query<BuyDoc>(COL.buys)).map((b) => b.token)])];
     return (await captureMarks(ctx.store, source ?? need(ctx.prices, 'price source'), tokens, t)).length;
   }
 
@@ -168,6 +170,7 @@ export function createClubsService(deps: ClubsDeps) {
     getClubPage,
     // buys
     recordBuy: (i: Parameters<typeof buys.recordBuy>[1]) => buys.recordBuy(ctx, i),
+    recordQuote: (q: Parameters<typeof buys.recordQuote>[1]) => buys.recordQuote(ctx, q),
     sweepTransfers: (o?: Parameters<typeof buys.sweepTransfers>[1]) => buys.sweepTransfers(ctx, o),
     // pick-up clubs
     optInPickup: (i: Parameters<typeof pickup.optInPickup>[1]) => pickup.optInPickup(ctx, i),

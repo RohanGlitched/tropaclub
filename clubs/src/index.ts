@@ -11,7 +11,7 @@ export * from './chain/types';
 export * from './chain/receipt';
 export * from './chain/swap';
 export * from './chain/pools';
-export { createViemChainReader, createBaseClient } from './chain/viem';
+export { createViemChainReader, createBaseClient, baseRpcUrls, contractAnswered, PUBLIC_BASE_RPCS } from './chain/viem';
 export * from './prices';
 export * from './lots';
 export * from './ledger';
