@@ -29,7 +29,7 @@ export async function download(object: string, local: string, bucketName: string
   fs.mkdirSync(path.dirname(local), { recursive: true });
   if (useCli()) {
     const r = await gcloud(['storage', 'cp', `gs://${bucketName}/${object}`, local]);
-    if (r.code !== 0) { if (/No URLs matched|not found|404/i.test(r.err)) return false; throw new Error('gcloud download failed: ' + r.err.slice(0, 300)); }
+    if (r.code !== 0) { if (/No URLs matched|matched no objects|not found|404/i.test(r.err)) return false; throw new Error('gcloud download failed: ' + r.err.slice(0, 300)); }
     return true;
   }
   const f = (await bucket(bucketName)).file(object);

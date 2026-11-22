@@ -4,6 +4,7 @@ import { SUPPLY_TOLERANCE, NVDA_REAL_RANGE } from './config.ts';
 import type { State } from './state.ts';
 import type { Outputs } from './output.ts';
 import type { ApiToken } from './tokens.ts';
+import type { AttendanceHistoryFile } from '../../shared/types.ts';
 
 export async function runChecks(s: State, out: Outputs, meta: Map<string, ApiToken>, block: number): Promise<string[]> {
   const errors: string[] = [];
@@ -76,4 +77,30 @@ export function printCounts(out: Outputs) {
   const st = out.stats;
   console.log(`stats: holders ${st.holdersTotal}, real>=10 ${st.realWallets}, real>=100 ${st.realWallets100}, tokens ${st.tokensMinted}, value $${st.totalValueUsd}`);
   for (const w of st.weeklyBuyers.slice(-6)) console.log(`  week ${w.weekStart}: buyers ${w.buyers}, new ${w.newBuyers}, median $${w.medianBuyUsd}`);
+}
+
+// Attendance history: today's (last) entry must equal index.json / stats.json, and days must be contiguous to today.
+export function checkAttendance(file: AttendanceHistoryFile, out: Outputs): string[] {
+  const errors: string[] = [];
+  const last = file.days.length - 1;
+  if (last < 0) return ['attendance: no days'];
+  if (file.days[last] !== out.index.asOf.slice(0, 10)) errors.push(`attendance: last day ${file.days[last]} != index asOf ${out.index.asOf}`);
+  for (let i = 1; i < file.days.length; i++) {
+    if (Date.parse(file.days[i]) - Date.parse(file.days[i - 1]) !== 86400_000) { errors.push(`attendance: days not contiguous at ${file.days[i]}`); break; }
+  }
+  if (file.asOf !== out.index.asOf || file.block !== out.index.block) errors.push('attendance: asOf/block differ from index.json');
+  const bySym = new Map(file.tokens.map((t) => [t.symbol, t]));
+  const fields = ['holdersTotal', 'realFans', 'attendancePct', 'dust', 'farmerOnly', 'contracts', 'priceUsd'] as const;
+  for (const x of out.index.tokens) {
+    const t = bySym.get(x.symbol);
+    if (!t) { errors.push(`attendance: ${x.symbol} missing`); continue; }
+    const want = { holdersTotal: x.holdersTotal, realFans: x.realFans, attendancePct: x.attendancePct, dust: x.ghosts.dust, farmerOnly: x.ghosts.farmerOnly, contracts: x.ghosts.contracts, priceUsd: x.priceUsd };
+    for (const f of fields) if (t[f][last] !== want[f]) errors.push(`attendance: ${x.symbol} today ${f} ${t[f][last]} != index ${want[f]}`);
+  }
+  for (const t of file.tokens) if (t.holdersTotal[last] && !out.index.tokens.some((x) => x.symbol === t.symbol)) errors.push(`attendance: ${t.symbol} has holders today but is not in index.json`);
+  const realSum = out.index.tokens.reduce((s, x) => s + x.realFans, 0), holdSum = out.index.tokens.reduce((s, x) => s + x.holdersTotal, 0);
+  if (file.totals.realFans[last] !== realSum) errors.push(`attendance: totals.realFans today ${file.totals.realFans[last]} != index sum ${realSum}`);
+  if (file.totals.holdersTotal[last] !== holdSum) errors.push(`attendance: totals.holdersTotal today ${file.totals.holdersTotal[last]} != index sum ${holdSum}`);
+  if (file.totals.uniqueHolders[last] !== out.stats.holdersTotal) errors.push(`attendance: uniqueHolders today ${file.totals.uniqueHolders[last]} != stats.holdersTotal ${out.stats.holdersTotal}`);
+  return errors.slice(0, 40);
 }

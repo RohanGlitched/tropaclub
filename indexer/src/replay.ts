@@ -13,6 +13,7 @@ export interface ReplayCtx {
   // price per raw-token unit for cost basis at a given day (daily avg), falling back to current DEX price
   priceAt: (tidx: number, day: number) => number | null;
   outOfOrder?: boolean; // per-token catch-up replays run after other tokens: use min() for global first-buy
+  noHist?: boolean;     // skip wallet history (attendance backfill only needs balances and flags)
 }
 
 function pair(s: State, t: number, a: string): PairRec {
@@ -52,7 +53,7 @@ function bucket(s: State, ts: number, a: string): BucketRec {
 export function applyLogs(s: State, logs: Log[], ctx: ReplayCtx): { negatives: number } {
   const { pools, distributors, routers } = ctx;
   // ---- wallet history ----
-  const tracked = (a: string) => a !== ZERO && !pools.has(a) && !routers.has(a) && !distributors.has(a) && !s.histHeavy.has(a) && !isSink(a);
+  const tracked = (a: string) => !ctx.noHist && a !== ZERO && !pools.has(a) && !routers.has(a) && !distributors.has(a) && !s.histHeavy.has(a) && !isSink(a);
   const cpCode = (x: string, side: 'from' | 'to') =>
     x === ZERO ? (side === 'from' ? 'm' : 'b') : pools.has(x) ? 'p' : routers.has(x) ? 'r' : distributors.has(x) ? 'd' : isSink(x) ? 'b' : x;
   const record = (a: string, l: Log, sign: '+' | '-', cp: string) => {

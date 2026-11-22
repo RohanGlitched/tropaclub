@@ -176,3 +176,107 @@ export interface CorporateActionsFile {
     announcements: AnnouncementJson[];
   }[];
 }
+
+// ---------------------------------------------------------------------------------------------
+// Time series from the indexer replay (added; nothing above changed).
+// ---------------------------------------------------------------------------------------------
+
+// Price used to value seats on a day: a day mark (see HistoryEntry.priceSource), or 'live' for today's
+// partial row, which uses exactly the index.json priceUsd so today's row equals index.json.
+export type AttendancePriceSource = 'chainlink' | 'pool' | 'carry' | 'reference' | 'live';
+
+// attendance-history.json (or, when it would exceed ~2 MB gzipped, attendance-history/index.json plus
+// attendance-history/<symbol>.json holding one AttendanceSeries each; see AttendanceHistoryIndex).
+// Each day is the replay state at the end-of-day block (last block before 00:00 UTC of the next day), classified
+// with that day's mark by the same rules as index.json. The last day is today, partial, as of asOf (live prices).
+// Arrays in a series are aligned with `days`. A null count means no snapshot exists for that day (see missingDays).
+export interface AttendanceSeries {
+  symbol: string;
+  address: string;
+  name: string;
+  launchDay: string | null;           // first day with any holder
+  holdersTotal: (number | null)[];
+  realFans: (number | null)[];
+  attendancePct: (number | null)[];   // realFans / holdersTotal * 100, 1 dp; null when no holders
+  dust: (number | null)[];
+  farmerOnly: (number | null)[];
+  contracts: (number | null)[];       // contracts + pools, as in TokenSummary.ghosts.contracts
+  newBuyers: number[];                // wallets whose first DEX buy of this token was that UTC day (bots >50 swaps/7d excluded)
+  priceUsd: (number | null)[];        // USD per raw whole token used to value seats that day
+  priceSource: (AttendancePriceSource | null)[];
+}
+
+export interface AttendanceTotals {
+  holdersTotal: (number | null)[];    // sum over grounds (one wallet counts once per ground)
+  realFans: (number | null)[];        // sum over grounds
+  uniqueHolders: (number | null)[];   // distinct addresses with any nonzero balance (= stats.holdersTotal today)
+  newBuyers: number[];                // distinct wallets whose first DEX buy of any stock token was that day
+}
+
+export interface AttendanceHistoryFile {
+  asOf: string;
+  block: number;
+  days: string[];                     // YYYY-MM-DD (UTC), ascending; last = today (partial)
+  todayPartial: true;
+  missingDays: string[];
+  totals: AttendanceTotals;
+  tokens: AttendanceSeries[];         // sorted like index.json (realFans desc)
+}
+
+export interface AttendanceHistoryIndex {
+  asOf: string;
+  block: number;
+  split: true;
+  days: string[];
+  missingDays: string[];
+  totals: AttendanceTotals;
+  symbols: string[];                  // fetch attendance-history/<symbol>.json -> AttendanceSeries
+}
+
+// movers.json, rebuilt every run. Baseline = the newest stored snapshot (hourly for the last 8 days, else
+// end-of-day) at or before asOf minus the window; `hours` is the actual span. Facts only.
+export interface MoverRow {
+  symbol: string;
+  name: string;
+  realFansNow: number;
+  realFansThen: number;               // 0 if the ground had no holders at the baseline
+  change: number;
+  changePct: number | null;           // null when realFansThen is 0
+  newRealFans: number;                // real fans now whose first transfer of this token is after the baseline
+  holdersNow: number;
+  attendancePctNow: number;
+}
+
+export interface MoversWindow {
+  window: '24h' | '7d';
+  from: string;                       // baseline snapshot time (ISO)
+  to: string;                         // asOf
+  hours: number;                      // actual span, 1 dp
+  baselineBlock: number;
+  byChange: MoverRow[];               // top 10 by change in realFans
+  byChangePct: MoverRow[];            // top 10 by % change, grounds with realFansThen >= pctMinBase
+  pctMinBase: number;
+  byNewRealFans: MoverRow[];          // top 10 by newRealFans
+  totals: {
+    realFansNow: number; realFansThen: number; realFansChange: number;   // sums over grounds
+    holdersNow: number; holdersThen: number; holdersChange: number;      // sums over grounds
+    uniqueHoldersNow: number; uniqueHoldersThen: number;
+    newWallets: number;               // wallets (EOA/smart) holding now whose first stock-token transfer is after the baseline
+    newBuyerWallets: number;          // wallets whose first DEX buy of any stock token is after the baseline (bots excluded)
+  };
+}
+
+export interface NotableLine {
+  key: string;                        // stable id, e.g. 'top-gain-7d'
+  window: '24h' | '7d' | 'now';
+  symbol?: string;
+  value: number;
+  text: string;                       // one plain sentence built only from the numbers
+}
+
+export interface MoversFile {
+  asOf: string;
+  block: number;
+  windows: MoversWindow[];
+  notable: NotableLine[];
+}

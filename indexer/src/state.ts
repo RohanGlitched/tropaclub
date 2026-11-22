@@ -36,6 +36,16 @@ export interface CorpLog { address: string; topics: string[]; data: string; b: n
 
 export interface TrackedToken { address: string; symbol: string; fromBlock: number }
 
+// Attendance snapshots (attendance.ts). Per token address: [holders, real, dust, farmer, contracts(+pools), priceUsd, priceSource].
+export type AttRow = [number, number, number, number, number, number | null, string | null];
+export interface AttSnap { ts: number; block: number; uniq: number; tk: Record<string, AttRow> }
+export interface AttStore {
+  daily: Record<number, AttSnap>;  // day index -> state at the end-of-day block (last block before 00:00 UTC of day+1)
+  hourly: Record<number, AttSnap>; // hour boundary (unix s) -> state at the last block before it; last ~9 days only
+  backfill: number;                // cursor of the merged one-time backfill (0 = not merged yet)
+}
+export const emptyAtt = (): AttStore => ({ daily: {}, hourly: {}, backfill: 0 });
+
 export interface State {
   version: number;
   cursor: number;              // last fully applied block
@@ -65,10 +75,11 @@ export interface State {
   poolLive: Record<string, Record<number, number>>; // live DEX price seen by a run on that day
   refPx: Record<string, Record<number, number>>;    // Yahoo split-adjusted close per share (forward-filled)
   refDay: number;
+  att: AttStore;
 }
 
 export function emptyState(): State {
-  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '', hist: new Map(), histHeavy: new Set(), corp: [], histShardHash: {}, cl: {}, poolPx: {}, poolLive: {}, refPx: {}, refDay: 0 };
+  return { version: STATE_VERSION, cursor: 0, cursorTs: 0, tokens: [], pairs: [], flags: new Map(), firstBuyAny: new Map(), codes: new Map(), hours: new Map(), days: new Map(), pools: [], grid: new Map(), dailyPx: {}, yahooFilled: [], transfers: 0, updatedAt: '', hist: new Map(), histHeavy: new Set(), corp: [], histShardHash: {}, cl: {}, poolPx: {}, poolLive: {}, refPx: {}, refDay: 0, att: emptyAtt() };
 }
 
 const FILE = 'state.json.gz';
@@ -121,7 +132,7 @@ function serialize(s: State): Buffer {
   const obj = {
     version: s.version, cursor: s.cursor, cursorTs: s.cursorTs, tokens: s.tokens, pairs,
     flags: [...s.flags], firstBuyAny: [...s.firstBuyAny], codes: [...s.codes], hours: bk(s.hours), days: bk(s.days),
-    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, corp: s.corp, histShardHash: s.histShardHash, cl: s.cl, poolPx: s.poolPx, poolLive: s.poolLive, refPx: s.refPx, refDay: s.refDay, updatedAt: new Date().toISOString(),
+    pools: s.pools, grid: [...s.grid], dailyPx: s.dailyPx, yahooFilled: s.yahooFilled, transfers: s.transfers, corp: s.corp, histShardHash: s.histShardHash, cl: s.cl, poolPx: s.poolPx, poolLive: s.poolLive, refPx: s.refPx, refDay: s.refDay, att: s.att, updatedAt: new Date().toISOString(),
   };
   return zlib.gzipSync(Buffer.from(JSON.stringify(obj)), { level: 6 });
 }
@@ -136,7 +147,7 @@ function deserialize(buf: Buffer, allowOld = false): State {
     flags: new Map(o.flags), firstBuyAny: new Map(o.firstBuyAny), codes: new Map(o.codes), hours: bk(o.hours), days: bk(o.days),
     pools: o.pools, grid: new Map(o.grid), dailyPx: o.dailyPx || {}, yahooFilled: o.yahooFilled || [], transfers: o.transfers || 0, updatedAt: o.updatedAt,
     hist: new Map(), histHeavy: new Set(), corp: o.corp || [], histShardHash: o.histShardHash || {},
-    cl: o.cl || {}, poolPx: o.poolPx || {}, poolLive: o.poolLive || {}, refPx: o.refPx || {}, refDay: o.refDay || 0,
+    cl: o.cl || {}, poolPx: o.poolPx || {}, poolLive: o.poolLive || {}, refPx: o.refPx || {}, refDay: o.refDay || 0, att: o.att || emptyAtt(),
   };
 }
 

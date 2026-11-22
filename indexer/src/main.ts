@@ -1,84 +1,21 @@
 // Tropa Club indexer entry point: load state -> replay new Transfer logs -> classify -> checks -> write + upload.
 import fs from 'node:fs';
 import path from 'node:path';
-import { DATA_DIR, OUT_DIR, START_BLOCK, HEAD_LAG_BLOCKS, PUBLIC_PREFIX, CACHE_CONTROL } from './config.ts';
+import zlib from 'node:zlib';
+import { DATA_DIR, OUT_DIR, CACHE_DIR, START_BLOCK, HEAD_LAG_BLOCKS, PUBLIC_PREFIX, CACHE_CONTROL, STATE_PREFIX, STATE_BUCKET } from './config.ts';
 import { loadApiTokens, loadPairs, poolSet, dexPrices, referencePrices, loadDailyPrices, yahooDaily, type ApiToken } from './tokens.ts';
 import { loadState, saveLocal, mirrorState, readStateFile, type State } from './state.ts';
-import { fetchWindow, fetchStats, type Log } from './fetcher.ts';
-import type { CorpLog } from './state.ts';
 import { buildHistory, writeHistory, buildCorporateActions, historyWallets, historyCounterparties } from './history.ts';
 import { updateChainlink, updatePoolAndRef, makeMarker, CHAINLINK_FEEDS } from './marks.ts';
-import { applyLogs, compactBuckets, type ReplayCtx } from './replay.ts';
-import { batch, headBlock, rpcStats } from './rpc.ts';
+import { compactBuckets, type ReplayCtx } from './replay.ts';
+import { headBlock, rpcStats } from './rpc.ts';
+import { replayRange, makeTs, el } from './window.ts';
+import { AttCollector, HOURLY_KEEP, capture, finalize, livePricer, pruneHourly, mergeBackfill, buildAttendanceHistory, serializeAttendance, buildMovers } from './attendance.ts';
 import { ensureCodes } from './codes.ts';
 import { buildOutputs, addressesNeedingCodes, type PriceInfo } from './output.ts';
-import { runChecks, printCounts } from './checks.ts';
-import { uploadMany } from './gcs.ts';
+import { runChecks, printCounts, checkAttendance } from './checks.ts';
+import { uploadMany, download } from './gcs.ts';
 import { dayIdx } from './time.ts';
-
-const T0 = Date.now();
-const el = () => `${((Date.now() - T0) / 1000).toFixed(0)}s`;
-const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
-const GRID = 10_000;
-const TARGET_WINDOW_LOGS = 250_000;
-const TARGET_UNIT_LOGS = 6_000;
-
-// ---------- block timestamps: samples every 10k blocks + window ends, linear in between ----------
-async function ensureGrid(s: State, a: number, b: number) {
-  const want: number[] = [];
-  for (let g = Math.floor(a / GRID) * GRID; g <= b; g += GRID) if (!s.grid.has(g)) want.push(g);
-  if (!s.grid.has(b)) want.push(b);
-  const lo = want.filter((x) => x < 51_050_000), hi = want.filter((x) => x >= 51_050_000);
-  for (const grp of [lo, hi]) {
-    if (!grp.length) continue;
-    const res = await batch(grp.map((n) => ({ method: 'eth_getBlockByNumber', params: ['0x' + n.toString(16), false] })), { block: grp[0], size: 20, conc: 2 });
-    grp.forEach((n, i) => s.grid.set(n, parseInt(res[i].timestamp, 16)));
-  }
-}
-function makeTs(s: State): (b: number) => number {
-  const keys = [...s.grid.keys()].sort((x, y) => x - y);
-  const vals = keys.map((k) => s.grid.get(k)!);
-  return (b: number) => {
-    let lo = 0, hi = keys.length - 1;
-    if (b <= keys[0]) return vals[0];
-    if (b >= keys[hi]) return vals[hi];
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (keys[m] <= b) lo = m; else hi = m; }
-    return Math.round(vals[lo] + ((vals[hi] - vals[lo]) * (b - keys[lo])) / (keys[hi] - keys[lo]));
-  };
-}
-
-async function replayRange(s: State, addrs: string[], tokenIdx: Map<string, number>, from: number, to: number, ctxBase: Omit<ReplayCtx, 'ts'>, label: string) {
-  if (from > to) return;
-  let density = 0.5;
-  let lastSave = Date.now(), lastMirror = Date.now();
-  const start = (a: number) => {
-    const b = Math.min(to, a + clamp(Math.round(TARGET_WINDOW_LOGS / Math.max(density, 0.005)), 2_000, 400_000) - 1);
-    const unit = clamp(Math.round(TARGET_UNIT_LOGS / Math.max(density, 0.005)), 200, 50_000);
-    return Promise.all([fetchWindow(addrs, tokenIdx, a, b, unit), ensureGrid(s, a, b)]).then(([r]) => ({ a, b, logs: r.logs, corp: r.corp }));
-  };
-  let pending: Promise<{ a: number; b: number; logs: Log[]; corp: CorpLog[] }> | null = start(from);
-  let negTotal = 0;
-  while (pending) {
-    const { a, b, logs, corp }: { a: number; b: number; logs: Log[]; corp: CorpLog[] } = await pending;
-    density = 0.5 * density + 0.5 * (logs.length / (b - a + 1));
-    pending = b < to ? start(b + 1) : null; // prefetch next window while applying this one
-    const ts = makeTs(s);
-    const { negatives } = applyLogs(s, logs, { ...ctxBase, ts });
-    if (corp.length) s.corp.push(...corp);
-    negTotal += negatives;
-    if (label === 'main') { s.cursor = b; s.cursorTs = ts(b); }
-    console.log(`[${el()}] ${label} ${a}-${b} (${new Date(ts(b) * 1000).toISOString().slice(0, 16)}) logs ${logs.length} total ${s.transfers} req ${fetchStats.requests} splits ${fetchStats.splits} retries ${fetchStats.retries}${negatives ? ' NEG ' + negatives : ''}`);
-    if (label === 'main' && Date.now() - lastSave > 10 * 60_000) {
-      if (pending) await pending.then(() => {}, () => {}); // keep prefetch result; save after it settles is not required
-      compactBuckets(s, s.cursorTs);
-      const sz = saveLocal(s);
-      console.log(`[${el()}] checkpoint saved (${(sz / 1e6).toFixed(1)} MB) at ${s.cursor}`);
-      lastSave = Date.now();
-      if (Date.now() - lastMirror > 30 * 60_000 && process.env.SKIP_UPLOAD !== '1' && process.env.SKIP_MIRROR !== '1' && from !== START_BLOCK) { await mirrorState(); lastMirror = Date.now(); }
-    }
-  }
-  if (negTotal) console.warn(`${label}: ${negTotal} transient negative balance events`);
-}
 
 function writeOutputs(out: ReturnType<typeof buildOutputs>): { tokens: [string, string][]; wallets: [string, string][]; top: [string, string][] } {
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
@@ -148,6 +85,16 @@ async function main() {
     s.yahooFilled = seed.yahooFilled || [];
     s.pools = seed.pools; // keep every pool ever seen so swap classification matches earlier runs
     console.log(`seeded ${s.codes.size} code kinds and ${Object.keys(s.dailyPx).length} daily price series from ${process.env.SEED_STATE}`);
+  }
+  if (!s.att.backfill && s.cursor) {
+    // one-time attendance backfill (backfill-attendance.ts), merged into the state on the first run that finds it
+    const bl = path.join(CACHE_DIR, 'attendance-backfill.json.gz');
+    if (await download(STATE_PREFIX + 'attendance-backfill.json.gz', bl, STATE_BUCKET)) {
+      const bf = JSON.parse(zlib.gunzipSync(fs.readFileSync(bl)).toString());
+      if (bf.cursor > s.cursor) throw new Error(`attendance backfill cursor ${bf.cursor} is past the state cursor ${s.cursor}`);
+      const m = mergeBackfill(s.att, bf);
+      console.log(`attendance: merged backfill at ${bf.cursor}: ${m.daily} days, ${m.hourly} hourly snapshots`);
+    } else console.warn('attendance: no backfill file in the state bucket yet');
   }
   const api = await loadApiTokens();
   const minted = api.filter((t) => (t.totalSupply ?? 0) > 0 || t.firstMint);
@@ -219,17 +166,20 @@ async function main() {
 
   // main incremental replay
   const from = s.cursor ? s.cursor + 1 : START_BLOCK;
-  await replayRange(s, s.tokens.map((t) => t.address), tokenIdx, from, head, ctxBase, 'main');
+  const att = new AttCollector(s, pools, Math.floor(Date.now() / 1000) - HOURLY_KEEP);
+  await replayRange(s, s.tokens.map((t) => t.address), tokenIdx, from, head, ctxBase, 'main', att.hook());
   if (!s.cursorTs) throw new Error('no cursor timestamp');
   compactBuckets(s, s.cursorTs);
-  const sz = saveLocal(s);
-  console.log(`[${el()}] replay done at block ${s.cursor}; state ${(sz / 1e6).toFixed(1)} MB; ${s.transfers} transfers applied; rpc calls ${rpcStats()}`);
+  // while boundary snapshots are only in memory, never save a cursor past them (they are committed with the marks below)
+  const sz = att.caps.length ? 0 : saveLocal(s);
+  console.log(`[${el()}] replay done at block ${s.cursor}; state ${att.caps.length ? `not saved (${att.caps.length} snapshots pending)` : (sz / 1e6).toFixed(1) + ' MB'}; ${s.transfers} transfers applied; rpc calls ${rpcStats()}`);
 
   // wallet kinds
   const need = addressesNeedingCodes(s, pools);
+  for (const a of att.unknownAddrs()) need.add(a); // holders at a boundary snapshot that have since left
   const nNew = await ensureCodes(s, need, smartHashes, s.cursor);
   console.log(`[${el()}] getCode: ${nNew} new addresses (${s.codes.size} known)`);
-  saveLocal(s);
+  if (!att.caps.length) saveLocal(s);
 
   const out = buildOutputs(s, meta, prices, pools, s.cursorTs, s.cursor);
   printCounts(out);
@@ -260,14 +210,36 @@ async function main() {
   const liveDex = new Map([...prices].filter(([, p]) => p.source === 'dex' && p.price).map(([a, p]) => [a, p.price!]));
   await updatePoolAndRef(s, minted, dex, markStart, liveDex);
   const marker = makeMarker(s, meta, corpFile.tokens.flatMap((t) => t.multiplierEvents));
-  saveLocal(s); // keep fetched marks even if this run does not publish
+  const tAtt = Date.now();
+  const committed = att.commit(s.att, marker);
+  pruneHourly(s.att, s.cursorTs);
+  saveLocal(s); // keep fetched marks and committed snapshots even if this run does not publish
   console.log(`[${el()}] marks: ${nCl} Chainlink samples fetched`);
   if (process.env.MARK_REPORT === '1') markReport(s, marker, markStart);
+  // ---- attendance history + movers ----
+  const nowSnap = finalize(s, capture(s, pools, s.cursorTs, s.cursor), livePricer(prices));
+  const ah = buildAttendanceHistory(s, out, nowSnap, pools);
+  const attErr = checkAttendance(ah.file, out);
+  if (attErr.length) {
+    for (const e of attErr) console.error('CHECK FAILED:', e);
+    throw new Error(`${attErr.length} attendance checks failed; nothing published`);
+  }
+  const movers = buildMovers(s, out, nowSnap, pools);
+  const attSer = serializeAttendance(ah.file);
+  console.log(`[${el()}] attendance: ${committed.daily} end-of-day + ${committed.hourly} hourly snapshots taken; ${ah.file.days.length} days x ${ah.file.tokens.length} tokens, ${(attSer.gzBytes / 1e3).toFixed(0)} KB gz${attSer.split ? ' (split)' : ''}, missing days ${ah.missing.length ? ah.missing.join(',') : 'none'}; today matches index.json; movers ${movers.windows.map((w) => `${w.window}=${w.hours}h`).join(' ')}, ${movers.notable.length} notable lines (${Date.now() - tAtt} ms)`);
+  for (const n of movers.notable) console.log('  notable:', n.text);
   const hb = buildHistory(s, hw, marker, tsOf);
   const files = writeOutputs(out);
   const hres = writeHistory(s, OUT_DIR, hb.files);
   const corpLocal = path.join(OUT_DIR, 'corporate-actions.json');
   fs.writeFileSync(corpLocal, JSON.stringify(corpFile));
+  const attFiles: [string, string][] = [];
+  for (const [rel, json] of [...attSer.files, ['movers.json', JSON.stringify(movers)] as [string, string]]) {
+    const l = path.join(OUT_DIR, ...rel.split('/'));
+    fs.mkdirSync(path.dirname(l), { recursive: true });
+    fs.writeFileSync(l, json);
+    attFiles.push([l, PUBLIC_PREFIX + rel]);
+  }
   const nMult = corpFile.tokens.reduce((x, t) => x + t.multiplierEvents.length, 0), nAnn = corpFile.tokens.reduce((x, t) => x + t.announcements.length, 0);
   console.log(`[${el()}] history: ${hb.wallets} wallets (${hb.tooActive} too active), ${hb.entries} entries, ${hb.files.size} files, ${(hres.totalBytes / 1e6).toFixed(1)} MB raw / ${(hres.totalGz / 1e6).toFixed(1)} MB gz (max shard ${(hres.maxGz / 1e3).toFixed(0)} KB gz), ${hres.changed.length} changed; ${nCp} new counterparty codes; balances reconcile`);
   console.log(`[${el()}] corporate actions: ${nMult} multiplier events, ${nAnn} announcements`);
@@ -277,8 +249,9 @@ async function main() {
   await uploadMany(files.wallets, opts);
   await uploadMany(hres.changed, opts);
   await uploadMany([[corpLocal, PUBLIC_PREFIX + 'corporate-actions.json']], opts);
+  await uploadMany(attFiles, opts);
   await uploadMany(files.top, opts); // index + stats last, so they never point at missing files
-  console.log(`[${el()}] uploaded ${files.tokens.length + files.wallets.length + hres.changed.length + 1 + files.top.length} files to gs://.../${PUBLIC_PREFIX}`);
+  console.log(`[${el()}] uploaded ${files.tokens.length + files.wallets.length + hres.changed.length + 1 + attFiles.length + files.top.length} files to gs://.../${PUBLIC_PREFIX}`);
   saveLocal(s); // persists published-shard hashes + counterparty codes
   if (process.env.SKIP_MIRROR === '1') { console.log('SKIP_MIRROR=1: state not mirrored'); return; }
   await mirrorState();
