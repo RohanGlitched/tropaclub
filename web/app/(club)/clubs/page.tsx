@@ -7,13 +7,15 @@ import StockClubList from '@/components/club/StockClubList';
 import OpensAt from '@/components/OpensAt';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex, getStats } from '@/lib/server/data';
 import PreSeason from '@/components/PreSeason';
 import LookBeforeConnect from '@/components/LookBeforeConnect';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtInt } from '@/lib/format';
-import { DOCS_URL, FIXTURE_RULE, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, buyState, openClubName } from '@/lib/site';
+import { DOCS_URL, FIXTURE_RULE, HABIT_USD, LAUNCH_AT, PAUSED_MESSAGE, PLAY_USD, REGION_LINE, RULE_LINE, SITE_URL, STREAK_SHORT, buyState, openClubName } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Clubs: buy stock tokens with your group chat',
@@ -40,6 +42,18 @@ export default async function ClubsPage() {
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          { id: 'kinds', label: 'Three kinds' },
+          ...(data && data.mine.length > 0 ? [{ id: 'yours', label: 'Your clubs' }] : []),
+          { id: 'start', label: 'Start a club' },
+          { id: 'join', label: 'Join' },
+          { id: 'supporters', label: 'Open clubs' },
+          { id: 'week', label: 'Each week' },
+          { id: 'sample', label: 'Sample card' },
+          { id: 'how-scored', label: 'How it is scored' },
+        ]}
+      />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'Clubs' }]} />
         <h1>Clubs: buy stock tokens with your group chat</h1>
@@ -54,7 +68,7 @@ export default async function ClubsPage() {
         {data && started === 0 && (preLaunch ? <PreSeason openAt={openAt} holders={stats.realWallets} /> : <p className="asof">No clubs yet. Yours could be the first.</p>)}
       </section>
 
-      <section className="wrap section-tight" aria-label="Three kinds of club">
+      <section className="wrap section-tight" id="kinds" aria-label="Three kinds of club">
         <ul className="limits">
           <li><h3>Private club</h3><p>You start it and invite your group chat with a link. Up to 50 members.</p></li>
           <li><h3>Pick-up club</h3><p>No group chat? We match you with up to four others from your region. A <Term id="pickup-club">pick-up club</Term> starts once three can be put together.</p></li>
@@ -69,8 +83,8 @@ export default async function ClubsPage() {
       )}
 
       {data && data.mine.length > 0 && (
-        <section className="wrap section-tight" aria-label="Your clubs">
-          <h2 className="h3">Your clubs</h2>
+        <section className="wrap section-tight" id="yours" aria-label="Your clubs">
+          <h2 className="h3">Your clubs<Anchor id="yours" label="Your clubs" /></h2>
           <div className="club-grid">
             {data.mine.map(({ club, member }) => (
               <Link key={club.id} href={`/club/${club.id}`} className="club-card">
@@ -88,12 +102,12 @@ export default async function ClubsPage() {
       <section className="band" id="start">
         <div className="wrap split">
           <div className="split-text">
-            <h2>Start a club</h2>
+            <h2>Start a club<Anchor id="start" label="Start a club" /></h2>
             <p>Name it and we&rsquo;ll draw a crest for it. You get an invite link for the group chat. Anyone who opens the link can join for free. They don&rsquo;t need to buy.</p>
             <ul className="ticks">
               <li>Up to 50 members. One wallet can start up to 5 clubs and be in up to 12.</li>
               <li>Joining is free and needs no buy. About ${HABIT_USD} a week is the habit. Buying ${PLAY_USD} or more through Tropa Club in a <Term id="gameweek">gameweek</Term> counts as played.</li>
-              <li>Clubs with 3 or more members are paired each week with a club of a similar size, and get 3 points if more of the club played than theirs. Bragging rights only.</li>
+              <li>From Mon Nov 30, clubs of 3 or more are paired each week with a club of a similar size. Bragging rights only: <a href="#how-scored">how a club is scored</a>.</li>
             </ul>
           </div>
           <div className="start-col">
@@ -106,7 +120,7 @@ export default async function ClubsPage() {
       <section className="wrap section" id="join">
         <div className="split">
           <div className="split-text">
-            <h2>Join with an invite</h2>
+            <h2>Join with an invite<Anchor id="join" label="Join with an invite" /></h2>
             <p>Private clubs are joined with a link from someone inside. Paste it here, or just open it.</p>
             <InviteCodeForm />
           </div>
@@ -122,7 +136,7 @@ export default async function ClubsPage() {
       <section className="band" id="supporters">
         <div className="wrap">
           <div className="section-head">
-            <h2>Or join a stock token&rsquo;s open club</h2>
+            <h2>Or join a stock token&rsquo;s open club<Anchor id="supporters" label="Open clubs" /></h2>
             <p>Each of the {index.tokens.length} stock tokens has an <Term id="stock-club">open club</Term> anyone can join for free, like the {openClubName(index.tokens[0].name, index.tokens[0].symbol)}. Its members are people who joined here, so it starts at 0 members even when the token has thousands of real holders. Open clubs are ranked on how many members buy each week and keep a streak, never on returns, and they are not paired with other clubs. The biggest tokens are listed first.</p>
           </div>
           {preLaunch && started > 0 && stockRows.every((r) => r.supporters === 0) && <PreSeason openAt={openAt} holders={stats.realWallets} />}
@@ -131,9 +145,9 @@ export default async function ClubsPage() {
         </div>
       </section>
 
-      <section className="wrap section">
+      <section className="wrap section" id="week">
         <div className="section-head">
-          <h2>What happens each week</h2>
+          <h2>What happens each week<Anchor id="week" label="What happens each week" /></h2>
           <p>A gameweek runs from the first US stock market session of the week to the last close. Week 0 starts with buying, <OpensAt at={openAt} />, and is a practice week.</p>
         </div>
         <ul className="limits">
@@ -143,24 +157,25 @@ export default async function ClubsPage() {
         </ul>
       </section>
 
-      <section className="band">
+      <section className="band" id="sample">
         <div className="wrap">
           <div className="section-head">
-            <h2>A sample weekly card</h2>
+            <h2>A sample weekly card<Anchor id="sample" label="A sample weekly card" /></h2>
             <p>Made-up names. Four of five have bought this week. Send a nudge to the one on the Bench.</p>
           </div>
           <ClubPreview />
         </div>
       </section>
 
-      <section className="wrap section">
+      <section className="wrap section" id="how-scored">
         <div className="section-head">
-          <h2>How a club is scored</h2>
+          <h2>How a club is scored<Anchor id="how-scored" label="How a club is scored" /></h2>
         </div>
         <ul className="limits">
           <li><h3>You play by buying</h3><p>{RULE_LINE} Any stock token counts, bought through Tropa Club before the US stock market closes on the last trading day of the week.</p></li>
           <li><h3>Turnout comes first</h3><p>If 80% or more of members buy that week, the club gets a bonus point in the weekly rankings. That is what nudges are for.</p></li>
           <li><h3>Weekly pairings are bragging rights</h3><p>{FIXTURE_RULE} No prize ever depends on it.</p></li>
+          <li><h3>Payday streak</h3><p>{STREAK_SHORT} A habit badge: it never changes a score.</p></li>
           <li><h3>Size never counts</h3><p>Scores use percentages and head counts. Ten dollars counts the same as ten thousand.</p></li>
           <li><h3>Your money stays yours</h3><p>Each buy goes from your wallet to a public exchange. There is no club pot and nothing to withdraw.</p></li>
           <li><h3>Where buying is offered</h3><p>Buying and nudges: {REGION_LINE} Clubs can still be viewed everywhere.</p></li>

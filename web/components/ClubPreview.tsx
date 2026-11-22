@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import Scoreboard from './ds/Scoreboard';
 import TeamSheet, { type Member } from './ds/TeamSheet';
 import type { Kit } from '@/lib/clubs';
+import Term from './nav/Term';
 
 const START: Member[] = [
-  { id: 'a', name: 'Ana', status: 'playing', note: '3 weeks in a row' },
-  { id: 'k', name: 'Kofi', status: 'playing', note: '2 weeks in a row' },
-  { id: 'm', name: 'Mei', status: 'playing', note: 'First week' },
-  { id: 'd', name: 'Diego', status: 'playing', note: '3 weeks in a row' },
+  { id: 'a', name: 'Ana', status: 'playing', badge: 'Payday streak, 3' },
+  { id: 'k', name: 'Kofi', status: 'playing', badge: 'Payday streak, 2' },
+  { id: 'm', name: 'Mei', status: 'playing', badge: 'First payday' },
+  { id: 'd', name: 'Diego', status: 'playing', badge: 'Payday streak, 3' },
   { id: 's', name: 'Sam', status: 'bench', canCallUp: true },
 ];
 const KIT: Kit = { primary: '#12A874', secondary: '#F4F1E8', pattern: 'chevron' };
@@ -45,7 +46,7 @@ export default function ClubPreview() {
       <div>
         <TeamSheet members={members} kit={KIT} onCallUp={callUp} />
         <p className="muted small club-preview-note" role="status">
-          {changed && bench === 0 ? 'In the sample Sam buys at once. A real nudge is a WhatsApp or Telegram message to your friend, who then buys from their own wallet. ' : 'A sample with made-up names. Played means bought this week; Bench means not yet. Try the nudge. '}
+          {changed && bench === 0 ? 'In the sample Sam buys at once. A real nudge is a WhatsApp or Telegram message to your friend, who then buys from their own wallet. ' : <>A sample with made-up names. Played means bought this week; Bench means not yet. The badges are each member&rsquo;s <Term id="payday-streak">payday streak</Term>. Try the nudge. </>}
           {changed && (
             <button type="button" className="linklike" onClick={() => { if (timer.current) clearTimeout(timer.current); setMembers(START); }}>
               Start again

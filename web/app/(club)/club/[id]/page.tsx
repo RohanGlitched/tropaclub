@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { notFound } from 'next/navigation';
 import BuyCta from '@/components/buy/BuyCta';
 import { JoinButton, Roster } from '@/components/club/Actions';
@@ -16,7 +18,7 @@ import { requestRegion } from '@/lib/server/geo';
 import { sessionWallet } from '@/lib/server/session';
 import { fmtDate, fmtInt } from '@/lib/format';
 import { groundPath } from '@/lib/clubs';
-import { FIXTURE_RULE, LAUNCH_AT, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyOpenAt, buyState, groundName, openClubName } from '@/lib/site';
+import { FIXTURE_SHORT, LAUNCH_AT, OPENS, OPENS_UTC, PLAY_USD, RULE_LINE, STREAK_SHORT, buyOpenAt, buyState, groundName, openClubName } from '@/lib/site';
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ joined?: string; join?: string; callup?: string }> };
 
@@ -61,6 +63,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
     return (
       <main id="main">
         <section className="wrap page-head empty">
+          <Crumbs trail={[{ label: 'Clubs', href: '/clubs' }, { label: 'Club' }]} />
           <h1>The clubhouse is not answering</h1>
           <p className="lede">This club could not be loaded just now. Nothing is lost: seats and buys are safe. Try again in a minute.</p>
           <p className="closing-links"><Link className="btn" href={`/club/${rawId}`}>Try again</Link><Link href="/clubs">All clubs</Link></p>
@@ -116,6 +119,14 @@ export default async function ClubPage({ params, searchParams }: Params) {
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          { id: 'card', label: 'Matchday card' },
+          { id: 'team', label: 'Members' },
+          ...(me?.invite ? [{ id: 'invite', label: 'Invite' }] : []),
+          { id: 'rules', label: isStock ? 'How it works' : 'How it is scored' },
+        ]}
+      />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'Clubs', href: '/clubs' }, { label: name }]} note={`${KIND[club.kind] ?? 'Club'}${club.regionLabel ? `, ${club.regionLabel}` : ''}`} />
         <div className="club-title">
@@ -140,7 +151,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
         {sp.callup && !me?.playedThisGw && <p className="notice" role="status">A teammate sent you a nudge. If 80% of {theName} buys this week, the club gets a bonus point.</p>}
       </section>
 
-      <section className="wrap section-tight club-main">
+      <section className="wrap section-tight club-main" id="card" aria-label="Matchday card">
         <div className="club-board">
           <Scoreboard
             title={md ? 'Matchday card' : 'Not started yet'}
@@ -192,7 +203,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
         </div>
 
         <div className="club-sheet" id="team">
-          <h2 className="h3">Members{md ? `, ${md.gw.id.replace('GW', 'gameweek ')}` : ''}</h2>
+          <h2 className="h3">Members{md ? `, ${md.gw.id.replace('GW', 'gameweek ')}` : ''}<Anchor id="team" label="Members" /></h2>
           {members.length === 0 ? (
             <div className="sheet-empty-club">
               <h3>{preseason ? 'Be one of the first members' : 'No members yet'}</h3>
@@ -217,7 +228,7 @@ export default async function ClubPage({ params, searchParams }: Params) {
         <section className="band" id="invite">
           <div className="wrap split">
             <div className="split-text">
-              <h2>Invite the group chat</h2>
+              <h2>Invite the group chat<Anchor id="invite" label="Invite the group chat" /></h2>
               <p>Anyone who opens this link can join for free, with no buy needed. Only members can see it.</p>
             </div>
             <ScoutInviteBox url={me.invite.url} club={name} wallet={viewer} />
@@ -225,9 +236,9 @@ export default async function ClubPage({ params, searchParams }: Params) {
         </section>
       )}
 
-      <section className="wrap section">
+      <section className="wrap section" id="rules">
         <div className="section-head">
-          <h2>{isStock ? 'How an open club works' : 'How this club is scored'}</h2>
+          <h2>{isStock ? 'How an open club works' : 'How this club is scored'}<Anchor id="rules" label={isStock ? 'How an open club works' : 'How this club is scored'} /></h2>
         </div>
         <ul className="limits">
           {isStock ? (
@@ -240,10 +251,10 @@ export default async function ClubPage({ params, searchParams }: Params) {
             <>
               <li><h3>Played or Bench</h3><p>{RULE_LINE} Any stock token counts. Members who haven&rsquo;t bought yet that week are on the Bench.</p></li>
               <li><h3>The 80% bonus</h3><p>If 80% or more of members buy that week, the club gets a bonus point. One nudge per teammate each week helps get there.</p></li>
-              <li><h3>Weekly pairings (fixtures)</h3><p>{FIXTURE_RULE}</p></li>
+              <li><h3>Weekly pairings (fixtures)</h3><p>From Mon Nov 30, clubs of 3 or more are paired each week with a club of a similar size. {FIXTURE_SHORT} <Link href="/clubs#how-scored">The full rule</Link></p></li>
             </>
           )}
-          <li><h3>Streaks</h3><p>{STREAK_SHORT}</p></li>
+          <li><h3>Payday streak</h3><p>{STREAK_SHORT} A habit badge: it never changes a score.</p></li>
           <li><h3>Status, not prizes</h3><p>Scores are bragging rights. Nothing of value is ever handed out for a return.</p></li>
           <li><h3>Your records</h3><p>Every member can open their own cost-basis statement. {viewer ? <Link href={`/statement/${viewer}`}>Open yours</Link> : 'Connect a wallet to open yours.'}</p></li>
         </ul>

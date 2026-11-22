@@ -19,6 +19,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     return (
       <main id="main">
         <section className="wrap page-head empty">
+          <Crumbs trail={[{ label: 'Clubs', href: '/clubs' }, { label: 'Invite' }]} />
           <h1>That invite does not open a club</h1>
           <p className="lede">The link may be mistyped or cut short. Ask your friend to send it again, or paste the code below.</p>
           <InviteCodeForm />

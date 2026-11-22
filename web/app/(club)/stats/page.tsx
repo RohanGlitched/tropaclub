@@ -7,6 +7,8 @@ import { BUILDER_CODE, DOCS_URL, PLAY_USD, buyState } from '@/lib/site';
 import BuyWhen from '@/components/buy/BuyWhen';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 
 export const metadata: Metadata = {
   title: 'Stats: Tropa Club’s own numbers',
@@ -51,6 +53,14 @@ export default async function StatsPage() {
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          { id: 'buys', label: pre ? 'Before the first buy' : 'Builder Code buys' },
+          ...(!pre ? [{ id: 'holding', label: 'Do buyers keep holding?' }] : []),
+          { id: 'members', label: 'Members and buyers' },
+          { id: 'how', label: 'How buys are counted' },
+        ]}
+      />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'Stats' }]} />
         <h1>Tropa Club&rsquo;s own numbers</h1>
@@ -62,10 +72,10 @@ export default async function StatsPage() {
       </section>
 
       {pre ? (
-        <section className="wrap section-tight">
+        <section className="wrap section-tight" id="buys">
           <div className="season-opens">
             <p className="opens"><BuyWhen state={buyState()} /></p>
-            <h2>No buy has gone through Tropa Club yet</h2>
+            <h2>No buy has gone through Tropa Club yet<Anchor id="buys" label="Before the first buy" /></h2>
             <p>
               From the first buy, this page counts how many people bought, how many buys and approvals carry Builder Code <code>{BUILDER_CODE}</code>, total dollars, and how many buyers still hold after 1, 3 and 7 days. Nothing is shown here until it has been measured.
             </p>
@@ -76,13 +86,12 @@ export default async function StatsPage() {
             <div><dt>Wallets that are real holders</dt><dd className="num">{fmtInt(crowd.realWallets)}</dd><p>{fmtInt(seatsHeld)} real holdings across {index.tokens.length} tokens.</p></div>
             <div><dt>Buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.buyers) : '—'}</dd><p>Wallets that bought any stock token on an exchange.</p></div>
             <div><dt>First-time buyers last week</dt><dd className="num">{lastWeek ? fmtInt(lastWeek.newBuyers) : '—'}</dd><p>Wallets buying a stock token for the first time.</p></div>
-            <div><dt>Clubs started</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(totalSeats)} {totalSeats === 1 ? 'person has' : 'people have'} joined a club so far.</p></div>
           </dl>
-          <p className="muted small">These four come from the stock rankings and the club list, not from Tropa Club buys.</p>
+          <p className="muted small">These three come from the stock rankings, not from Tropa Club buys.</p>
         </section>
       ) : (
-        <section className="wrap section-tight" aria-label="Builder Code counter">
-          <h2 className="h3 table-title">Buys tagged with Builder Code <code>{BUILDER_CODE}</code>, live</h2>
+        <section className="wrap section-tight" id="buys" aria-label="Builder Code counter">
+          <h2 className="h3 table-title">Buys tagged with Builder Code <code>{BUILDER_CODE}</code>, live<Anchor id="buys" label="Builder Code buys" /></h2>
           <dl className="figures">
             <div><dt>People who bought</dt><dd className="num">{fmtInt(s.uniqueSigners)}</dd><p>Wallets with at least one counted buy.</p></div>
             <div><dt>Buys</dt><dd className="num">{fmtInt(s.attributedTx)}</dd><p>{s.pctAttributed == null ? 'Carrying the code.' : `${s.pctAttributed.toFixed(0)}% of ${fmtInt(s.submittedTx)} submitted. ${fmtInt(s.attributedVia.tx)} plain, ${fmtInt(s.attributedVia.userop)} smart-wallet.`}</p></div>
@@ -94,10 +103,10 @@ export default async function StatsPage() {
       )}
 
       {!pre && (
-        <section className="band">
+        <section className="band" id="holding">
           <div className="wrap split">
             <div className="split-text">
-              <h2>Do buyers keep holding?</h2>
+              <h2>Do buyers keep holding?<Anchor id="holding" label="Do buyers keep holding?" /></h2>
               <p>A buyer counts as still holding if at least half of what they bought through Tropa Club is in the wallet that many days later.</p>
               {retention.length ? (
                 <table className="mini-table">
@@ -155,11 +164,15 @@ export default async function StatsPage() {
         </section>
       )}
 
-      <section className="wrap section">
+      <section className="wrap section" id="members">
         <div className="split">
           <div className="split-text">
-            <h2>Members and buyers</h2>
+            <h2>Members and buyers<Anchor id="members" label="Members and buyers" /></h2>
             <p>Joining a club is free, so we report members and buyers separately. Joins can&rsquo;t make the buying look bigger.</p>
+            <dl className="figures figures-2 figures-lead">
+              <div><dt>Clubs started</dt><dd className="num">{fmtInt(league.length)}</dd><p>Friend clubs: {fmtInt(s.clubs.private)} private, {fmtInt(s.clubs.pickup)} pick-up. Open clubs are not counted here.</p></div>
+              <div><dt>Club memberships</dt><dd className="num">{fmtInt(totalSeats)}</dd><p>Across all clubs, open clubs included. One wallet can be in several. Joining needs no buy.</p></div>
+            </dl>
             {totalSeats > 0 ? (
               <>
                 <div className="gate-bar" role="img" aria-label={`${fmtInt(s.seats.playing)} memberships that bought this week and ${fmtInt(s.seats.bench)} that have not`}>
@@ -169,12 +182,11 @@ export default async function StatsPage() {
                 <dl className="figures figures-2">
                   <div><dt>Bought this week</dt><dd className="num">{fmtInt(s.seats.playing)}</dd><p>{fmtInt(s.seats.walletsPlaying)} wallets. {((s.seats.playing / totalSeats) * 100).toFixed(0)}% of memberships.</p></div>
                   <div><dt>On the Bench (not bought yet)</dt><dd className="num">{fmtInt(s.seats.bench)}</dd><p>{fmtInt(s.seats.walletsBench)} wallets yet to buy.</p></div>
-                  <div><dt>Friend clubs</dt><dd className="num">{fmtInt(league.length)}</dd><p>{fmtInt(s.clubs.private)} private, {fmtInt(s.clubs.pickup)} pick-up.</p></div>
                   <div><dt>Open clubs with members</dt><dd className="num">{fmtInt(stockWith)}</dd><p>Of {fmtInt(stockAll.length)}, one for every stock token.</p></div>
                 </dl>
               </>
             ) : (
-              <p className="notice">0 people have joined a club so far. <Link href="/clubs#start">Start a club</Link></p>
+              <p className="notice">Nobody has joined a club yet. <Link href="/clubs#start">Start a club</Link></p>
             )}
           </div>
           <div className="split-text">
@@ -186,10 +198,10 @@ export default async function StatsPage() {
         </div>
       </section>
 
-      <section className="band">
+      <section className="band" id="how">
         <div className="wrap split">
           <div className="split-text">
-            <h2 id="how">How buys are counted</h2>
+            <h2 id="how-h">How buys are counted<Anchor id="how" label="How buys are counted" /></h2>
             <ul className="ticks">
               <li>Each buy carries Builder Code <code>{BUILDER_CODE}</code> at the end of the transaction, the way Base attributes activity to an app.</li>
               <li>After a buy confirms, the server reads the transaction itself and checks the code. A buy without it is not counted.</li>
@@ -197,8 +209,8 @@ export default async function StatsPage() {
               <li>Some wallets send the approval and the swap as two transactions. Both carry the code. They are counted in separate columns, so an approval never inflates the buy count.</li>
             </ul>
           </div>
-          <div className="split-text">
-            <h2>Wallets left out</h2>
+          <div className="split-text" id="left-out">
+            <h2>Wallets left out<Anchor id="left-out" label="Wallets left out" /></h2>
             {s.exclusions.length ? (
               <ul className="ghost-list">
                 {s.exclusions.map((e) => (

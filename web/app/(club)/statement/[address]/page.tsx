@@ -4,6 +4,8 @@ import StatementView from '@/components/club/StatementView';
 import SeatSearchBox from '@/components/SeatSearchBox';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { isAddress, shortAddr } from '@/lib/format';
 import { getIndex } from '@/lib/server/data';
 import { sessionWallet } from '@/lib/server/session';
@@ -28,8 +30,14 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          ...(valid ? [{ id: 'statement', label: 'The statement' }] : []),
+          { id: 'read', label: 'How to read it' },
+        ]}
+      />
       <section className="wrap page-head">
-        <Crumbs trail={valid ? [{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span>, href: `/ticket/${address}` }, { label: 'Cost-basis statement' }] : [{ label: 'Cost-basis statement' }]} />
+        <Crumbs trail={valid ? [{ label: 'Statement' }, { label: <span className="num">{shortAddr(address)}</span> }] : [{ label: 'Statement' }]} />
         {valid && !own && <p className="public-line">Anyone can work this out from public Base data. Tropa Club only reads it.</p>}
         <h1>{valid ? (own ? 'Your cost-basis statement (estimate)' : <>Cost-basis estimate for <span className="num addr">{shortAddr(address)}</span></>) : 'That is not a wallet address'}</h1>
         <p className="lede">
@@ -41,15 +49,15 @@ export default async function StatementPage({ params }: { params: Promise<{ addr
       </section>
 
       {valid && (
-        <section className="wrap section-tight">
+        <section className="wrap section-tight" id="statement" aria-label="The statement">
           <StatementView address={address} own={own} priceSources={priceSources} asOf={index.asOf} />
         </section>
       )}
 
-      <section className="band">
+      <section className="band" id="read">
         <div className="wrap split">
           <div className="split-text">
-            <h2>How to read it</h2>
+            <h2>How to read it<Anchor id="read" label="How to read it" /></h2>
             <dl className="defs">
               <div><dt>First in, first out</dt><dd>Each purchase or receipt of a token is kept apart. When you sell or send, the oldest tokens are used up first.</dd></div>
               <div><dt>Cost basis (what you paid)</dt><dd>What the tokens cost in dollars at the time. A buy made through Tropa Club uses the <Term id="mark">market price</Term> at the moment of the buy. Older history uses that day&rsquo;s price, labelled with its source (Chainlink close, pool average, last close or reference price). Otherwise it is the payment seen on chain in the same transaction.</dd></div>

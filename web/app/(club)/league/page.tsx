@@ -4,7 +4,8 @@ import { ClubLeagueTable, PreseasonTable, SupportersTable } from '@/components/c
 import StockClubList from '@/components/club/StockClubList';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
-import ClubPreview from '@/components/ClubPreview';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { Pennant } from '@/components/ds/Pennant';
 import { crestOf, ensureStockClubs, tryClubs } from '@/lib/server/clubs';
 import { getIndex, getStats } from '@/lib/server/data';
@@ -13,11 +14,21 @@ import { fmtInt } from '@/lib/format';
 import { isListedClub, publicName } from '@tropaclub/clubs';
 import { BOARD_PAGE, BoardPager, CapsBoard, ScoutsBoard } from '@/components/club/Boards';
 import { boardNames, capsBoard, scoutsBoard } from '@/lib/server/honours';
-import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_RULE, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
+import { CAPS_COPY, CAPS_RULES, DOCS_URL, FIXTURE_SHORT, OPENS, PLAY_USD, REAL_FAN_USD, RULE_LINE, SCOUT_COPY, SCOUT_COUNTS, SCOUT_RULES, STREAK_SHORT, LAUNCH_AT, buyState, openClubName } from '@/lib/site';
 
 type Tab = 'tables' | 'caps' | 'scouts';
 type Search = { searchParams: Promise<{ tab?: string | string[]; page?: string | string[] }> };
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
+/** Made-up clubs for the example table: what the rankings look like once clubs are paired. */
+const EXAMPLE: { name: string; points: number; turnout: number; pairing: string }[] = [
+  { name: 'Sunday League Tropa', points: 9, turnout: 100, pairing: 'vs The Tuesday Five, 100% to 60%' },
+  { name: 'Night Shift FC', points: 7, turnout: 80, pairing: 'vs Harbour Lights, level at 80%' },
+  { name: 'Harbour Lights', points: 6, turnout: 80, pairing: 'vs Night Shift FC, level at 80%' },
+  { name: 'The Tuesday Five', points: 4, turnout: 60, pairing: 'vs Sunday League Tropa, 60% to 100%' },
+  { name: 'Back Row Boys', points: 3, turnout: 50, pairing: 'vs Rainy City XI, 50% to 40%' },
+  { name: 'Rainy City XI', points: 1, turnout: 40, pairing: 'vs Back Row Boys, 40% to 50%' },
+];
+
 const TABS: { id: Tab; label: string; href: string }[] = [
   { id: 'tables', label: 'Rankings', href: '/league' },
   { id: 'caps', label: 'Points (Caps)', href: '/league?tab=caps' },
@@ -81,6 +92,14 @@ export default async function LeaguePage({ searchParams }: Search) {
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          { id: 'week', label: 'How a week works' },
+          { id: 'league', label: season ? 'Friend clubs' : pre.length ? 'Practice week' : 'First clubs' },
+          ...(data ? [{ id: 'supporters', label: 'Open clubs' }] : []),
+          { id: 'how', label: 'How the rankings work' },
+        ]}
+      />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'League' }]} />
         <p className="hero-pitch">The league</p>
@@ -98,8 +117,8 @@ export default async function LeaguePage({ searchParams }: Search) {
         </p>
       </section>
 
-      <section className="wrap section-tight" aria-labelledby="week-h">
-        <h2 className="h3" id="week-h">How a week works</h2>
+      <section className="wrap section-tight" id="week" aria-labelledby="week-h">
+        <h2 className="h3" id="week-h">How a week works<Anchor id="week" label="How a week works" /></h2>
         <ul className="limits">
           <li><h3>One <Term id="gameweek">gameweek</Term></h3><p>From the first US stock market session of the week (usually Monday) to the last close (usually Friday).</p></li>
           <li><h3>Buy ${PLAY_USD}, and you&rsquo;ve played</h3><p>{RULE_LINE} Members who haven&rsquo;t bought yet are on the <Term id="bench">Bench</Term>.</p></li>
@@ -113,14 +132,14 @@ export default async function LeaguePage({ searchParams }: Search) {
         <section className="wrap section-tight"><p className="notice">The tables could not be loaded just now. Try again in a minute.</p></section>
       ) : season || pre.length ? (
         <section className="wrap section-tight" id="league" aria-label={season ? 'Friend club rankings' : 'Practice week rankings'}>
-          <h2 className="h3 table-title">{season ? 'Friend club rankings' : 'Practice week rankings, by turnout'}</h2>
+          <h2 className="h3 table-title">{season ? 'Friend club rankings' : 'Practice week rankings, by turnout'}<Anchor id="league" label="Club rankings" /></h2>
           {season ? <ClubLeagueTable rows={league} /> : <PreseasonTable rows={pre} />}
         </section>
       ) : (
         <section className="wrap section-tight" id="league" aria-label="First clubs">
           <div className="split">
             <div className="split-text">
-              <h2 className="h3 table-title">First clubs</h2>
+              <h2 className="h3 table-title">First clubs<Anchor id="league" label="First clubs" /></h2>
               {founding.length ? (
                 <>
                   <p className="muted">Clubs started before the first gameweek, in the order they were started. A club is listed once a second member joins or a member buys, and needs three members to be ranked.</p>
@@ -144,10 +163,21 @@ export default async function LeaguePage({ searchParams }: Search) {
               )}
               <p className="after-table"><Link className="btn btn-accent" href="/clubs#start">{started.length ? `Start club No. ${fmtInt(started.length + 1)}` : 'Start the first club'}</Link></p>
             </div>
-            <div className="split-text">
-              <h2 className="h3 table-title">Sample weekly club card</h2>
-              <p className="muted">Made-up names. This <Term id="matchday">Matchday card</Term> is what every club gets once its members start buying.</p>
-              <div className="preview-frame"><span className="tag">Sample</span><ClubPreview /></div>
+            <div className="split-text example">
+              <h2 className="h3 table-title"><span className="tag">Example</span> What the rankings will look like</h2>
+              <p className="muted">Six made-up clubs, not real results. From Mon Nov 30 each club is paired with one of a similar size; points add up over the season, and turnout is the share of members who bought that week.</p>
+              <table className="mini-table example-table">
+                <caption className="sr">Example club rankings with made-up clubs</caption>
+                <thead>
+                  <tr><th scope="col">Club (example)</th><th scope="col" className="r">Points</th><th scope="col" className="r">Turnout</th><th scope="col">This week&rsquo;s pairing</th></tr>
+                </thead>
+                <tbody>
+                  {EXAMPLE.map((r) => (
+                    <tr key={r.name}><th scope="row">{r.name}</th><td className="r num">{r.points}</td><td className="r num">{r.turnout}%</td><td>{r.pairing}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="muted small"><Link href="/clubs#how-scored">How a club is scored</Link></p>
             </div>
           </div>
         </section>
@@ -157,7 +187,7 @@ export default async function LeaguePage({ searchParams }: Search) {
         <section className="band" id="supporters">
           <div className="wrap">
             <div className="section-head">
-              <h2>Open club rankings</h2>
+              <h2>Open club rankings<Anchor id="supporters" label="Open club rankings" /></h2>
               <p>One open club for every stock token, open to anyone. Ranked on the share of members who bought this gameweek, then on the share on a buying streak. Returns play no part.</p>
             </div>
             {sup.length ? (
@@ -173,17 +203,15 @@ export default async function LeaguePage({ searchParams }: Search) {
         </section>
       )}
 
-      <section className="wrap section">
-        <div className="section-head"><h2>How the rankings work</h2></div>
+      <section className="wrap section" id="how">
+        <div className="section-head"><h2>How the rankings work<Anchor id="how" label="How the rankings work" /></h2></div>
         <ul className="limits">
-          <li><h3>You play by buying</h3><p>{RULE_LINE} Members who haven&rsquo;t bought are on the Bench that week.</p></li>
-          <li><h3>Points from the weekly pairing</h3><p>{FIXTURE_RULE}</p></li>
-          <li><h3>1 bonus point for turnout</h3><p>Any club where 80% or more of members bought that week gets a bonus point, whatever the pairing shows.</p></li>
-          <li><h3>Paired by size</h3><p>Clubs need three members to be paired, and they meet clubs in the same size band.</p></li>
-          <li><h3>Turnout counts, not money</h3><p>What decides a pairing is how many of your club played, as a share of members. A $5 buy counts as much as a $500 one, and returns decide nothing.</p></li>
-          <li><h3>Bragging rights only</h3><p>No prize, perk or payout ever depends on a return. Open clubs ignore returns altogether.</p></li>
+          <li><h3>Friend clubs: points from the pairing</h3><p>{FIXTURE_SHORT} Plus a bonus point when 80% or more of members buy. <Link href="/clubs#how-scored">The full rule</Link></p></li>
+          <li><h3>Open clubs: turnout, then streaks</h3><p>Ranked on the share of members who bought this gameweek, then the share on a payday streak. Never paired.</p></li>
+          <li><h3>Payday streak</h3><p>{STREAK_SHORT}</p></li>
+          <li><h3>Turnout counts, not money</h3><p>A $5 buy counts as much as a $500 one. Every number here is a head count or a percentage, and returns decide nothing.</p></li>
         </ul>
-        <p className="after-table"><a className="btn" href={DOCS_URL} rel="noopener">Scoring rules in the docs</a></p>
+        <p className="after-table"><Link className="btn" href="/clubs#how-scored">How a club is scored</Link> <a className="btn" href={`${DOCS_URL}/scoring-and-seasons`} rel="noopener">Scoring rules in the docs</a></p>
       </section>
 
       <section className="closing">
@@ -217,17 +245,23 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
 
   return (
     <main id="main">
+      <PageSections
+        sections={[
+          { id: 'board', label: caps ? 'Caps table' : 'Referrers table' },
+          { id: 'earn', label: caps ? 'How Caps are earned' : 'How referring works' },
+        ]}
+      />
       <section className="wrap page-head">
         <Crumbs trail={[{ label: 'League', href: '/league' }, { label: caps ? 'Points (Caps)' : 'Top referrers (Scouts)' }]} />
         <h1>{caps ? 'Caps (season points)' : 'Top referrers (Scouts)'}</h1>
-        <p className="asof">Cosmetic only: nothing here is money or a token.</p>
+        {!caps && <p className="asof">Cosmetic only: nothing here is money or a token.</p>}
         <p className="lede">
           {caps
-            ? <>You get <Term id="caps">Caps</Term>, our season points, for buying in a <Term id="gameweek">gameweek</Term> and for still holding a week later. They&rsquo;re points on a scoreboard, never for the size of a buy.</>
+            ? <>You get <Term id="caps">Caps</Term>, our season points, for buying in a <Term id="gameweek">gameweek</Term> and for still holding a week later. Never for the size of a buy.</>
             : <>Members whose referred friends bought ${SCOUT_RULES.holdUsd} or more through Tropa Club and still held it on day 7 (<Term id="scout">Scouts</Term>). Ranked on friends who count and still hold, then on friends who count.</>}
         </p>
       </section>
-      <section className="wrap section-tight" aria-label={caps ? 'Caps table' : 'Top referrers table'}>
+      <section className="wrap section-tight" id="board" aria-label={caps ? 'Caps table' : 'Top referrers table'}>
         {tabs}
         {!all ? (
           <p className="notice">The table could not be loaded just now. Try again in a minute.</p>
@@ -253,9 +287,9 @@ async function BoardPage({ tab, page, tabs }: { tab: 'caps' | 'scouts'; page: nu
         )}
       </section>
 
-      <section className="band">
+      <section className="band" id="earn">
         <div className="wrap">
-          <div className="section-head"><h2>{caps ? 'How Caps are earned' : 'How referring works'}</h2></div>
+          <div className="section-head"><h2>{caps ? 'How Caps are earned' : 'How referring works'}<Anchor id="earn" label={caps ? 'How Caps are earned' : 'How referring works'} /></h2></div>
           {caps ? (
             <ul className="limits">
               <li><h3>{CAPS_RULES.played} Cap for playing</h3><p>You bought ${PLAY_USD} or more through Tropa Club that gameweek.</p></li>

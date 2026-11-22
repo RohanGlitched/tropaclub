@@ -9,6 +9,8 @@ import FrontRow from '@/components/FrontRow';
 import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { dataBaseUrl, getToken } from '@/lib/server/data';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
@@ -52,6 +54,16 @@ export default async function GroundPage({ params }: Params) {
   return (
     <>
       <main id="main">
+        <PageSections
+          sections={[
+            { id: 'stadium', label: 'The ground' },
+            ...(priced ? [{ id: 'hold', label: 'Become a real holder' }] : []),
+            { id: 'count', label: 'How we count' },
+            { id: 'longest', label: 'Longest holders' },
+            { id: 'layout', label: 'How it is laid out' },
+            { id: 'others', label: 'Other stock tokens' },
+          ]}
+        />
         <section className="wrap page-head ground-head">
           <Crumbs trail={[{ label: 'Stock rankings', href: '/attendance' }, { label: club }]} note={priced ? `Rank ${pos} of ${data.tokens.length}` : 'No price yet'} />
           <div className="ground-title">
@@ -70,26 +82,26 @@ export default async function GroundPage({ params }: Params) {
           </p>
         </section>
 
-        <section className="wrap section-tight" aria-label={`The ${club}`}>
+        <section className="wrap section-tight" id="stadium" aria-label={`The ${club}`}>
           {/* the seat list starts downloading with the page, straight from the public file */}
           {seatsBase && <link rel="preload" as="fetch" crossOrigin="anonymous" href={`${seatsBase}/tokens/${encodeURIComponent(token.symbol)}.json`} />}
           <GroundStage mode="ground" clubs={clubs} initial={token.symbol} seatsBase={seatsBase} />
         </section>
 
         {priced && (
-          <section className="wrap section-tight take-seat" aria-label={`Become a real holder of ${token.symbol}`}>
+          <section className="wrap section-tight take-seat" id="hold" aria-label={`Become a real holder of ${token.symbol}`}>
             <div>
-              <h2 className="h3">Become a real holder: buy $10 of {token.symbol}</h2>
+              <h2 className="h3">Become a real holder: buy $10 of {token.symbol}<Anchor id="hold" label="Become a real holder" /></h2>
               <p>You&rsquo;d be about real holder number {fmtInt(token.realFans + 1)} at the next count (every 6 hours). Ranked by how long you&rsquo;ve held, not how much. Buying here is optional: $10 or more of {token.symbol} held in any wallet of your own counts, and no club is needed.</p>
             </div>
             <BuyCta token={token.address} symbol={token.symbol} state={buyState()} openAt={buyOpenAt()} standalone />
           </section>
         )}
 
-        <section className="band">
+        <section className="band" id="count">
           <div className="wrap split">
             <div className="split-text">
-              <h2>How we count</h2>
+              <h2>How we count<Anchor id="count" label="How we count" /></h2>
               <p>
                 {priced
                   ? <>Of {fmtInt(token.holdersTotal)} wallets with a balance, {fmtInt(token.realFans)} pass every test for a real holder. That is a real share (<Term id="attendance">attendance</Term>) of <strong className="num">{fmtPct(token.attendancePct)}</strong>.</>
@@ -106,10 +118,10 @@ export default async function GroundPage({ params }: Params) {
           </div>
         </section>
 
-        <section className="wrap section">
+        <section className="wrap section" id="longest">
           <div className="split">
             <div className="split-text">
-              <h2>Longest holders</h2>
+              <h2>Longest holders<Anchor id="longest" label="Longest holders" /></h2>
               <p>The 10 wallets that have held {token.symbol} longest without emptying their wallet of it. Amount doesn&rsquo;t matter. Rank one sits pitchside on the halfway line of the drawing.</p>
               <p className="muted small">Addresses are public blockchain records. Tap one to see its ticket.</p>
             </div>
@@ -117,10 +129,10 @@ export default async function GroundPage({ params }: Params) {
           </div>
         </section>
 
-        <section className="band">
+        <section className="band" id="layout">
           <div className="wrap">
             <div className="section-head">
-              <h2>How this ground is laid out</h2>
+              <h2>How this ground is laid out<Anchor id="layout" label="How this ground is laid out" /></h2>
               <p>
                 The {club} has {fmtInt(L.n)} seats in {L.rows} {L.rows === 1 ? 'row' : 'rows'}{L.rows >= 10 ? ', split into a lower and an upper tier' : ''}: one seat per holder. Each ground is drawn to hold exactly its holders, so a token with few holders gets a small ground.
               </p>
@@ -133,9 +145,9 @@ export default async function GroundPage({ params }: Params) {
           </div>
         </section>
 
-        <section className="wrap section">
+        <section className="wrap section" id="others">
           <div className="section-head">
-            <h2>Other stock tokens</h2>
+            <h2>Other stock tokens<Anchor id="others" label="Other stock tokens" /></h2>
           </div>
           <div className="grounds">
             {others.map((t) => (

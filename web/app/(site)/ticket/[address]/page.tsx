@@ -9,6 +9,8 @@ import BuyCta from '@/components/buy/BuyCta';
 import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { getIndex, getNeighbours, getWallet } from '@/lib/server/data';
 import { playedStamps, tryClubs } from '@/lib/server/clubs';
 import { honourStamps, walletHonours } from '@/lib/server/honours';
@@ -42,8 +44,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!d.valid) return { title: 'Page not found', robots };
   const top = d.real[0];
   if (!top) {
-    const t = d.index.data.tokens[0];
-    const title = `Become a real holder of ${t.symbol}`;
+    const title = 'Become a real holder: pick a ground';
     return { title, description: `${shortAddr(d.address)} is not a real holder of any stock token yet. That needs $10 or more of one stock token, bought and held in your own wallet.`, robots };
   }
   const token = d.bySymbol.get(top.symbol)!;
@@ -76,10 +77,17 @@ export default async function TicketPage({ params }: Params) {
   const openAt = buyOpenAt();
   const state = buyState();
   const isCode = ghosts.length > 0 && ghosts.every((g) => g.kind === 'contract' || g.kind === 'pool');
-  // The token to suggest: the one this wallet is closest to being a real holder of, else the biggest.
+  // Never pick a stock for the visitor. The grounds offered: the ones this wallet already has a ghost
+  // seat in (under $10, or only a giveaway), then the biggest grounds, six in all.
   const near = ghosts.find((g) => g.kind === 'dust' || g.kind === 'farmer');
-  const target = (near && bySymbol.get(near.symbol)) || index.data.tokens[0];
-  const targetGround = groundName(target.name, target.symbol);
+  const own = ghosts.filter((g) => g.kind === 'dust' || g.kind === 'farmer');
+  const pick = [
+    ...own.map((g) => ({ token: bySymbol.get(g.symbol)!, mine: g.kind })),
+    ...index.data.tokens.filter((t) => t.realFans > 0 && !own.some((g) => g.symbol === t.symbol)).map((t) => ({ token: t, mine: null as string | null })),
+  ].slice(0, 6);
+  // the preview ticket: the wallet's own ghost seat if it has one, else the biggest ground as an example
+  const sample = pick[0]?.token ?? index.data.tokens[0];
+  const crumbs = [{ label: 'Grounds', href: groundPath(index.data.tokens[0].symbol) }, { label: <span className="num">{shortAddr(address)}</span> }];
   const top = real[0];
   const topToken = top ? bySymbol.get(top.symbol)! : null;
   const [neighbours, played, honours, viewer] = await Promise.all([
@@ -102,10 +110,30 @@ export default async function TicketPage({ params }: Params) {
 
   return (
     <main id="main">
+      <PageSections
+        sections={
+          real.length > 0
+            ? [
+                { id: 'tickets', label: real.length === 1 ? 'Ticket' : 'Tickets' },
+                { id: 'next', label: 'Buy with friends' },
+                ...(neighbours && neighbours.length > 0 ? [{ id: 'neighbours', label: 'Ranked next to it' }] : []),
+                ...(ghosts.length > 0 || real.length > 1 ? [{ id: 'holdings', label: 'Every token it holds' }] : []),
+                { id: 'check', label: 'Check another wallet' },
+              ]
+            : isCode
+              ? [{ id: 'holdings', label: 'What it holds' }, { id: 'check', label: 'Check another wallet' }]
+              : [
+                  { id: 'pick', label: 'Pick a ground' },
+                  { id: 'real', label: 'What makes a real holder' },
+                  ...(ghosts.length > 0 ? [{ id: 'holdings', label: 'What it holds' }] : []),
+                  { id: 'check', label: 'Check another wallet' },
+                ]
+        }
+      />
       {real.length > 0 && topToken ? (
         <>
           <section className="wrap page-head">
-            <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span> }]} />
+            <Crumbs trail={crumbs} />
             <h1><span className="num addr">{shortAddr(address)}</span> is a real {real.length === 1 ? `${shortName(topToken.name, topToken.symbol)} holder` : `holder of ${real.length} stock tokens`}</h1>
             <p className="lede">
               This wallet is a <Term id="real-fan">real holder</Term> of {real.length === 1 ? `${topToken.symbol}` : `${real.length} stock tokens`}: $10 or more, bought itself, a person&rsquo;s wallet. Each <Term id="ticket">ticket</Term> shows where it ranks among that token&rsquo;s real holders, by how long they&rsquo;ve held, and its best stat. The ticket itself shows no dollar amounts. Like any wallet, its history is public on Base. It is a picture, not an NFT, and has no value. <Link href="/about#method">What “real” means</Link>
@@ -117,7 +145,7 @@ export default async function TicketPage({ params }: Params) {
             )}
             <p className="asof">Counted {fmtDate(index.data.asOf, true)}, and again {COUNT_EVERY}.</p>
           </section>
-          <section className="wrap tickets" aria-label="Tickets">
+          <section className="wrap tickets" id="tickets" aria-label="Tickets">
             {real.map((e, i) => {
               const token = bySymbol.get(e.symbol)!;
               return (
@@ -136,10 +164,10 @@ export default async function TicketPage({ params }: Params) {
             })}
           </section>
 
-          <section className="band">
+          <section className="band" id="next">
             <div className="wrap">
               <div className="section-head">
-                <h2>Next: buy with friends</h2>
+                <h2>Next: buy with friends<Anchor id="next" label="Buy with friends" /></h2>
                 <p>Clubs turn holding into a weekly habit with the people you already talk to. Each person buys from their own wallet; there is no shared pot.</p>
               </div>
               <ul className="next-steps">
@@ -155,7 +183,7 @@ export default async function TicketPage({ params }: Params) {
                 </li>
                 <li>
                   <h3>Get the &ldquo;Played&rdquo; stamp</h3>
-                  <p>Buy ${PLAY_USD} or more through Tropa Club in a week (a <Term id="gameweek">gameweek</Term>) and this ticket gets a &ldquo;Played&rdquo; stamp for that week, starting with week 0 (GW0), plus your <Term id="payday-streak">streak</Term>: how many weeks running you&rsquo;ve bought.</p>
+                  <p>Buy ${PLAY_USD} or more through Tropa Club in a week (a <Term id="gameweek">gameweek</Term>) and this ticket gets a &ldquo;Played&rdquo; stamp for that week, starting with week 0 (GW0), and it counts toward your <Term id="payday-streak">payday streak</Term>.</p>
                   <BuyCta token={topToken.address} symbol={topToken.symbol} state={state} openAt={openAt} standalone compact label={`Buy $10 more of ${topToken.symbol}`} />
                 </li>
               </ul>
@@ -163,8 +191,8 @@ export default async function TicketPage({ params }: Params) {
           </section>
 
           {neighbours && neighbours.length > 0 && top && (
-            <section className="wrap section-tight">
-              <h2 className="h3">Wallets ranked next to this one</h2>
+            <section className="wrap section-tight" id="neighbours">
+              <h2 className="h3">Wallets ranked next to this one<Anchor id="neighbours" label="Wallets ranked next to this one" /></h2>
               <p className="muted">The real holders of {topToken.symbol} either side of real holder {fmtInt(top.rank!)}. Ranked by time held, never by size.</p>
               <ul className="ghost-list neighbours">
                 {neighbours.map((n) => (
@@ -180,7 +208,7 @@ export default async function TicketPage({ params }: Params) {
         </>
       ) : isCode ? (
         <section className="wrap page-head empty">
-          <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <span className="num">{shortAddr(address)}</span> }]} />
+          <Crumbs trail={crumbs} />
           <div className="gate-shut" aria-hidden="true">
             {Array.from({ length: 28 }, (_, i) => <i key={i} />)}
           </div>
@@ -189,34 +217,48 @@ export default async function TicketPage({ params }: Params) {
           <p className="closing-links"><Link className="btn" href={groundPath(ghosts[0].symbol)}>See the stadium drawing</Link><Link href="/attendance">Stock rankings</Link></p>
         </section>
       ) : (
-        <section className="wrap page-head convert">
+        <section className="wrap page-head convert" id="pick">
           <div className="convert-text">
-            <Crumbs trail={[{ label: 'Check a wallet', href: '/#find' }, { label: <>Not a real holder yet: <span className="num addr">{shortAddr(address)}</span></> }]} />
-            <h1>Become a real holder: buy $10 of {target.symbol}</h1>
-            <p className="convert-seat">You&rsquo;d be about real holder number <span className="num">{fmtInt(target.realFans + 1)}</span> in the {targetGround} at the next count. We recount {COUNT_EVERY} and rank by time held, so the newest holder starts at the back and moves forward by holding.</p>
+            <Crumbs trail={crumbs} />
+            <p className="hero-pitch">Not a real holder yet</p>
+            <h1>Become a real holder: pick a ground</h1>
             <p className="lede">
               {near
                 ? near.kind === 'dust'
-                  ? `This wallet already holds ${target.symbol}, just under the $10 line. Top it up and the next count makes it a real holder.`
-                  : `This wallet was sent ${target.symbol} in a giveaway but has never bought. One buy of its own makes it a real holder.`
-                : <>This wallet holds no stock tokens on Base yet. {fmtInt(target.realFans)} wallets are <Term id="real-fan">real holders</Term> of {target.symbol}, {shortName(target.name, target.symbol)}&rsquo;s <Term id="stock-token">stock token</Term>.</>}
+                  ? `This wallet already holds ${near.symbol}, just under the $10 line, so it has a ghost seat in that ground.`
+                  : `This wallet was sent ${near.symbol} in a giveaway but has never bought it, so it has a ghost seat in that ground.`
+                : <>This wallet holds no <Term id="stock-token">stock tokens</Term> on Base yet.</>}{' '}
+              Any ground works: once the wallet holds $10 or more of that token, bought itself, the next count gives it a <Term id="ticket">ticket</Term> there. We recount {COUNT_EVERY} and rank by time held, so the newest holder starts at the back and moves forward by holding.
             </p>
+            <ul className="pick-grounds" aria-label="Grounds to pick from">
+              {pick.map(({ token: t, mine }) => (
+                <li key={t.symbol}>
+                  <Link className="pick-ground" href={groundPath(t.symbol)} prefetch={false}>
+                    <Pennant kit={kitFor(t.symbol)} width={22} />
+                    <span>
+                      <b>{groundName(t.name, t.symbol)}</b>
+                      <small>{mine === 'dust' ? 'You hold some, under $10' : mine === 'farmer' ? 'You were sent some in a giveaway' : <><span className="num">{fmtInt(t.realFans)}</span> real holders</>}</small>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="pick-more"><Link href="/attendance">All {index.data.tokens.length} stock tokens</Link></p>
             {honoursNote}
-            <BuyCta token={target.address} symbol={target.symbol} state={state} openAt={openAt} standalone />
-            <p className="muted small">Real holders are counted {COUNT_EVERY}. Buying is optional: holding $10 or more in any wallet of your own counts. {target.symbol} is a stock token that tracks the share price; it is not the share. Not advice.</p>
+            <p className="muted small">Each ground&rsquo;s page has its own buy button. Buying is optional: holding $10 or more in any wallet of your own counts. A stock token tracks the share price; it is not the share. Not advice.</p>
           </div>
           <div className="convert-ticket">
-            <Ticket address={address} entry={{ symbol: target.symbol, usd: 10, kind: 'real', rank: target.realFans + 1, of: target.realFans + 1, bestStat: null }} token={target} headingLevel={2} preview />
-            <p className="caption">A preview. The real ticket, with its exact rank, appears once the wallet holds $10 of {target.symbol} at a count.</p>
+            <Ticket address={address} entry={{ symbol: sample.symbol, usd: 10, kind: 'real', rank: sample.realFans + 1, of: sample.realFans + 1, bestStat: null }} token={sample} headingLevel={2} preview />
+            <p className="caption">{own.length ? `A preview for the ${groundName(sample.name, sample.symbol)}, where this wallet already has a ghost seat.` : `A preview, using the biggest ground as an example. Every ground's ticket looks like this.`} The real ticket, with its exact rank, appears at the first count after the wallet holds $10.</p>
           </div>
         </section>
       )}
 
       {real.length === 0 && !isCode && (
-        <section className="band">
+        <section className="band" id="real">
           <div className="wrap split">
             <div className="split-text">
-              <h2>What makes a real holder</h2>
+              <h2>What makes a real holder<Anchor id="real" label="What makes a real holder" /></h2>
               <ul className="ticks">
                 <li>$10 or more of one stock token, held in a wallet a person controls.</li>
                 <li>At least one purchase. Tokens that were only sent by a giveaway do not count.</li>
@@ -233,8 +275,8 @@ export default async function TicketPage({ params }: Params) {
       )}
 
       {(ghosts.length > 0 || real.length > 1) && (
-        <section className="wrap section-tight">
-          <h2 className="h3">{real.length > 0 ? 'Every stock token this wallet holds' : 'What this wallet holds'}</h2>
+        <section className="wrap section-tight" id="holdings">
+          <h2 className="h3">{real.length > 0 ? 'Every stock token this wallet holds' : 'What this wallet holds'}<Anchor id="holdings" label="Every stock token this wallet holds" /></h2>
           <p className="muted">{real.length > 0 ? 'Tokens it is a real holder of first, then holdings that do not count as real.' : 'Holdings that do not count as a real holder, and why.'}</p>
           <ul className="ghost-list">
             {[...real, ...ghosts].map((e) => {
@@ -251,10 +293,10 @@ export default async function TicketPage({ params }: Params) {
         </section>
       )}
 
-      <section className={real.length === 0 && !isCode ? 'wrap section' : 'band'}>
+      <section className={real.length === 0 && !isCode ? 'wrap section' : 'band'} id="check">
         <div className={real.length === 0 && !isCode ? 'split' : 'wrap split'}>
           <div className="split-text">
-            <h2>{real.length > 0 ? 'Not your wallet? Paste yours' : 'Try another wallet'}</h2>
+            <h2>{real.length > 0 ? 'Not your wallet? Paste yours' : 'Try another wallet'}<Anchor id="check" label="Check another wallet" /></h2>
             <p>Any address on Base works. Nothing to connect, nothing to sign.</p>
             <SeatSearchBox label="Wallet address or name" button="Check wallet" />
           </div>
@@ -263,7 +305,7 @@ export default async function TicketPage({ params }: Params) {
             <dl className="defs">
               <div><dt>Block, row, seat</dt><dd>Your spot in the stadium drawing of that token&rsquo;s holders. Lower rows near halfway go to the longest holders.</dd></div>
               <div><dt>Real holder number</dt><dd>Rank among that token&rsquo;s real holders by unbroken days held, then by first buy. Never by size.</dd></div>
-              <div><dt>The bold line</dt><dd>This wallet&rsquo;s best stat: hold time, arrival, entry price against the median real holder, or weekly streak.</dd></div>
+              <div><dt>The bold line</dt><dd>This wallet&rsquo;s best stat: hold time, arrival, entry price against the median real holder, or <Term id="weekly-run">weeks in a row</Term> its balance grew. That last one is counted for every holder from public Base data, so it is not the club payday streak.</dd></div>
               <div><dt>Barcode</dt><dd>Drawn from the bytes of the address. It is a pattern, not a code anyone can scan for value.</dd></div>
             </dl>
           </div>
@@ -272,7 +314,7 @@ export default async function TicketPage({ params }: Params) {
 
       <section className="wrap section-tight">
         <p className="muted small fine">
-          {notAffiliated((real.length ? real : ghosts.length ? ghosts : [{ symbol: target.symbol }]).slice(0, 6).map((e) => bySymbol.get(e.symbol)?.name ?? ''))}
+          {notAffiliated((real.length ? real : ghosts.length && isCode ? ghosts : pick.map((p) => p.token)).slice(0, 6).map((e) => bySymbol.get(e.symbol)?.name ?? ''))}
         </p>
       </section>
 

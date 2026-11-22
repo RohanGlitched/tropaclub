@@ -75,9 +75,14 @@ export const PAY_WITH: string = rules.payWith;
 /** About $10 a week is the habit (not a rule). */
 export const HABIT_USD: number = rules.habitUsd;
 export const RULE_LINE = `About $${rules.habitUsd} a week is the habit. Buying $${rules.playUsd} or more through Tropa Club in a gameweek counts as played.`;
-/** The buying streak, as clubs/src/streaks.ts implements it. */
+/** The club payday streak, as clubs/src/streaks.ts (paydayStreak) implements it. */
 export const STREAK_RULE: string = rules.streakRule;
 export const STREAK_SHORT: string = rules.streakShort;
+/**
+ * The ticket's "weeks in a row" best stat: the indexer's streakWeeks (consecutive ISO weeks with a net
+ * increase in the wallet's balance of that token, from any source). Not the payday streak.
+ */
+export const WEEKLY_RUN_RULE: string = rules.weeklyRunRule;
 export const REAL_FAN_LINE: string = rules.realFanLine;
 /** The indexer recounts at :17 past 00, 06, 12 and 18 UTC. */
 export const COUNT_EVERY = 'every 6 hours';
@@ -85,7 +90,7 @@ export const X_FOLLOW_URL = 'https://x.com/intent/follow?screen_name=tropaclubxy
 
 /** Caps, the season scoreboard (clubs/src/caps.ts reads the same values). Cosmetic: no money, no tokens. */
 export const CAPS_RULES = rules.caps;
-/** "Caps are a scoreboard, not a currency. …" Shown under every Caps table and in the docs. */
+/** "Caps are points on a scoreboard, not a currency: …" Once per page: under the Caps table, in the /about glossary, and in the docs. */
 export const CAPS_COPY: string = rules.caps.copy;
 /** Scouts: credit for a friend whose first buy is still held a week later (clubs/src/scouts.ts). */
 export const SCOUT_RULES = rules.scouts;

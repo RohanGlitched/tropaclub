@@ -60,7 +60,8 @@ const TABS: { label: string; glyph: Glyph; href: (g: string) => string; section:
   { label: 'League', glyph: 'league', href: () => '/league', section: 'league' },
 ];
 
-const R = 21;
+// the progress ring is an outline around the solid button, never on top of it
+const R = 25;
 const C = 2 * Math.PI * R;
 
 /** Phones: a fixed bar with the four main destinations and the map. Plus the back-to-top button everywhere. */
@@ -79,7 +80,7 @@ export default function Floating({ ground }: { ground: string }) {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const p = max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
       if (ring.current) ring.current.style.strokeDashoffset = String(C * (1 - p));
-      const next = y > window.innerHeight * 1.5;
+      const next = y > window.innerHeight * 0.9;
       if (next !== shown) {
         shown = next;
         setShow(next);
@@ -117,11 +118,13 @@ export default function Floating({ ground }: { ground: string }) {
   return (
     <>
       <button type="button" className="totop" data-show={show && !hidden ? '' : undefined} onClick={toTop} aria-label="Back to top">
-        <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false">
-          <circle cx="24" cy="24" r={R} className="totop-track" />
-          <circle ref={ring} cx="24" cy="24" r={R} className="totop-ring" strokeDasharray={C} strokeDashoffset={C} transform="rotate(-90 24 24)" />
+        <svg className="totop-ring" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true" focusable="false">
+          <circle cx="28" cy="28" r={R} className="totop-track" />
+          <circle ref={ring} cx="28" cy="28" r={R} className="totop-prog" strokeDasharray={C} strokeDashoffset={C} transform="rotate(-90 28 28)" />
         </svg>
-        <Icon name="up" size={18} />
+        <span className="totop-disc"><Icon name="up" size={18} /></span>
+        <span className="totop-tip" aria-hidden="true">Back to top</span>
+        <span className="totop-word" aria-hidden="true">Top</span>
       </button>
       <nav className="bbar" aria-label="Quick links" data-hidden={hidden ? '' : undefined}>
         <ul>

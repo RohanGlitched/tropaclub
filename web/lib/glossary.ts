@@ -1,7 +1,7 @@
 // The one place every <Term> reads its definition from. Short, plain and true to the code:
 // rule numbers come from rules.json (through lib/site.ts), so the copy moves when a rule does.
-// The first fifteen entries are the site glossary; the rest are extra terms that pages use.
-import { BUILDER_CODE, CAPS_RULES, OPENS, PLAY_USD, REAL_FAN_USD, SCOUT_RULES, STREAK_SHORT } from './site';
+// /about lists the site glossary (its GLOSSARY_ORDER); the rest are extra terms that pages use.
+import { BUILDER_CODE, CAPS_RULES, OPENS, PLAY_USD, REAL_FAN_USD, SCOUT_RULES, STREAK_SHORT, WEEKLY_RUN_RULE } from './site';
 
 export interface GlossaryEntry {
   /** The term as a heading would print it. */
@@ -65,7 +65,7 @@ export const GLOSSARY = {
   },
   caps: {
     term: 'Caps (season points)',
-    def: `Points you earn by buying each week (${CAPS_RULES.played}) and still holding a week later (${CAPS_RULES.heldD7}). A scoreboard only: not money, not a token, and they can’t be traded.`,
+    def: `Season points: ${CAPS_RULES.played} for playing a gameweek, ${CAPS_RULES.heldD7} more if that buy is still held 7 days later, and ${CAPS_RULES.scout} for each credited friend (at most ${CAPS_RULES.scoutPerGw} a gameweek). At most ${CAPS_RULES.perGw} Caps a gameweek, never for the size of a buy.`,
   },
   scout: {
     term: 'Scouts',
@@ -77,8 +77,12 @@ export const GLOSSARY = {
     def: `A member who bought $${PLAY_USD} or more of any stock token through Tropa Club inside this gameweek. Only members who played count toward a club’s result.`,
   },
   'payday-streak': {
-    term: 'Streak',
-    def: `How many weeks running you have kept buying. ${STREAK_SHORT}`,
+    term: 'Payday streak',
+    def: STREAK_SHORT,
+  },
+  'weekly-run': {
+    term: 'Weeks in a row (ticket)',
+    def: WEEKLY_RUN_RULE,
   },
   'pickup-club': {
     term: 'Pick-up club',

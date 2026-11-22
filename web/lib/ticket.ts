@@ -62,7 +62,8 @@ export function statSentence(b: WalletTokenEntry['bestStat']): string {
     case 'entryVsMedian':
       return `Entry price lower than ${beat}% of real holders`;
     case 'streak':
-      return `Longer weekly streak than ${beat}% of real holders`;
+      // the indexer's streakWeeks: weeks in a row the balance grew. Not the club payday streak.
+      return `Topped up more weeks in a row than ${beat}% of real holders`;
     case 'heldThroughGap':
       return 'Held through the weekend gap';
     default:

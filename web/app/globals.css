@@ -2405,3 +2405,114 @@ code {
   color: var(--ink-2);
   margin-top: 8px;
 }
+
+/* about: one reading column (the "On this page" rail replaces the old side list) */
+.prose-solo {
+  padding-bottom: var(--section);
+}
+
+/* home, phones: a light strip of lit and faint seats under the headline, on the night stage */
+.seat-strip {
+  display: none;
+}
+@media (max-width: 640px) {
+  .seat-strip {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px 12px 9px;
+    background: var(--stage);
+    border-radius: 6px;
+    color: var(--chalk);
+    text-decoration: none;
+    max-width: 420px;
+  }
+  .seat-strip svg {
+    display: block;
+    width: 100%;
+    height: 10px;
+  }
+  .seat-strip-ghost {
+    fill: rgba(169, 171, 217, 0.28);
+  }
+  .seat-strip-cap {
+    font: 600 0.9375rem/1.2 var(--display);
+    color: #d4d5f2;
+  }
+  .seat-strip-cap .num {
+    color: var(--chalk);
+  }
+  .seat-strip:hover .seat-strip-cap,
+  .seat-strip:focus-visible .seat-strip-cap {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* ticket, not a real holder yet: six grounds to pick from */
+.pick-grounds {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 560px;
+}
+.pick-ground {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  height: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.pick-ground:hover {
+  border-color: var(--ink);
+}
+.pick-ground > span {
+  display: grid;
+  min-width: 0;
+}
+.pick-ground b {
+  font: 600 1.0625rem/1.2 var(--display);
+}
+.pick-ground:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pick-ground small {
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+.pick-more a {
+  font: 600 1rem var(--display);
+}
+@media (max-width: 420px) {
+  .pick-grounds {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* league: the example table of made-up clubs */
+.example .table-title .tag {
+  vertical-align: 0.15em;
+}
+.example-table td:last-child {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+.example-table th,
+.example-table td {
+  vertical-align: top;
+}
+
+/* stats: the club count leads "Members and buyers" */
+.figures-lead {
+  margin-top: 24px !important;
+  margin-bottom: 24px;
+}

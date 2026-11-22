@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import MyTicketLink from './MyTicketLink';
+import MapCard from './MapCard';
 
 export interface Crumb { label: ReactNode; href?: string }
 
-/** "You are here": Home › … › this page. The last crumb is the current page. */
+/** "You are here": Home › … › this page. The last crumb is the current page; the note is dropped on phones. */
 export function Crumbs({ trail, note }: { trail: Crumb[]; note?: ReactNode }) {
   return (
-    <nav className="crumbs" aria-label="You are here">
+    <nav className="crumbs" aria-label="Breadcrumb">
       <ol>
         <li><Link href="/">Home</Link></li>
         {trail.map((c, i) => (
@@ -44,6 +45,9 @@ export function NextStrip({ items }: { items: NextItem[] }) {
               )}
             </li>
           ))}
+          <li>
+            <MapCard />
+          </li>
         </ul>
       </div>
     </nav>

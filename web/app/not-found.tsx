@@ -3,6 +3,7 @@ import { SiteFooter, SiteHeader } from '@/components/Chrome';
 import SeatSearchBox from '@/components/SeatSearchBox';
 import { getIndex } from '@/lib/server/data';
 import { groundPath } from '@/lib/clubs';
+import { Crumbs } from '@/components/nav/Wayfinding';
 
 export const metadata = { title: 'Page not found' };
 
@@ -14,6 +15,7 @@ export default async function NotFound() {
       <SiteHeader source={source} ground={ground} />
       <main id="main">
         <section className="wrap page-head empty">
+          <Crumbs trail={[{ label: 'Page not found' }]} />
           <div className="gate-shut" aria-hidden="true">
             {Array.from({ length: 28 }, (_, i) => <i key={i} className={i === 17 ? 'gone' : undefined} />)}
           </div>

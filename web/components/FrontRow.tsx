@@ -62,7 +62,7 @@ export default function FrontRow({ symbol, club, total, realFans, seatsBase }: {
           <div><dt>Longest unbroken hold</dt><dd className="num">{fmtInt(facts.longest)} days</dd></div>
           <div><dt>Median hold among real holders</dt><dd className="num">{fmtInt(facts.median)} days</dd></div>
           <div><dt>Held through a weekend gap</dt><dd className="num">{facts.gapPct.toFixed(0)}% of real holders</dd></div>
-          <div><dt>Bought two weeks running or more</dt><dd className="num">{fmtInt(facts.streak)} real holders</dd></div>
+          <div><dt>Topped up two or more weeks in a row</dt><dd className="num">{fmtInt(facts.streak)} real holders</dd></div>
         </dl>
       )}
     </div>

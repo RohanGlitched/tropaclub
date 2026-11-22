@@ -290,6 +290,7 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
             <span className="num">{fmtInt(club.holdersTotal)}</span> wallets hold {shortName(club.name, club.symbol)}&rsquo;s stock token.{' '}
             <span className="h1-fans">Only <span className="num">{fmtInt(club.realFans)}</span> are real holders.</span>
           </h1>
+          <SeatStrip club={club} color={kit.primary} name={gname} />
           <p className="lede">
             {lede ?? <>Tropa Club shows who really holds each stock token, across all {clubs.length} on Base.</>}
           </p>
@@ -345,5 +346,23 @@ export default function GroundStage({ mode, clubs, tabs, initial, examples = [],
       {stage}
       {form}
     </div>
+  );
+}
+
+/** Phones: a light strip of seats under the headline, lit in the share of real holders, linking to the ground. */
+function SeatStrip({ club, color, name }: { club: Club; color: string; name: string }) {
+  const N = 40;
+  const ratio = club.holdersTotal > 0 ? club.realFans / club.holdersTotal : 0;
+  const k = club.realFans > 0 ? Math.max(1, Math.round(N * ratio)) : 0;
+  const lit = new Set(Array.from({ length: k }, (_, j) => Math.min(N - 1, Math.floor(((j + 0.5) * N) / k))));
+  return (
+    <Link className="seat-strip" href={groundPath(club.symbol)} prefetch={false} aria-label={`${fmtInt(club.realFans)} lit of ${fmtInt(club.holdersTotal)} seats. Open the ${name}`}>
+      <svg viewBox={`0 0 ${N * 7 - 2} 8`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        {Array.from({ length: N }, (_, i) => (
+          <rect key={i} x={i * 7} y={0} width={5} height={8} rx={1} className={lit.has(i) ? undefined : 'seat-strip-ghost'} fill={lit.has(i) ? color : undefined} />
+        ))}
+      </svg>
+      <span className="seat-strip-cap" aria-hidden="true"><span className="num">{fmtInt(club.realFans)}</span> lit of <span className="num">{fmtInt(club.holdersTotal)}</span></span>
+    </Link>
   );
 }

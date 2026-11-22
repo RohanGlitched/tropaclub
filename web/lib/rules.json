@@ -4,8 +4,9 @@
   "habitUsd": 10,
   "realFanUsd": 10,
   "payWith": "USDC or ETH",
-  "streakRule": "One buy of $5 or more through Tropa Club in any rolling 14 days keeps your streak alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
-  "streakShort": "Buy $5 or more through Tropa Club at least once every 14 days to keep your streak alive, with one free skip a calendar month (a gap of up to 28 days).",
+  "streakRule": "Your payday streak counts the days you bought $5 or more through Tropa Club (same-day buys count once). One such buy in any rolling 14 days keeps it alive. Each calendar month has one free skip: a gap of up to 28 days survives if that month's skip is unused.",
+  "streakShort": "Your payday streak counts the days you buy $5 or more through Tropa Club, as long as you buy at least once every 14 days, with one free skip a calendar month (a gap of up to 28 days).",
+  "weeklyRunRule": "A ticket's “weeks in a row” is a different count from the payday streak: calendar weeks (Monday to Sunday, UTC) in a row in which the wallet's balance of that token grew, from any buy or transfer in, read from public Base data for every holder.",
   "realFanLine": "A real fan (real holder) holds $10 or more of the token. That is a different line from the $5 that counts as played in a gameweek.",
   "caps": {
     "played": 1,
@@ -13,7 +14,7 @@
     "scout": 0.25,
     "scoutPerGw": 4,
     "perGw": 2.5,
-    "copy": "Caps are a scoreboard, not a currency. They can't be bought, sold, transferred or redeemed. Caps are a scoreboard, not a promise: anything we launch later will be announced separately."
+    "copy": "Caps are points on a scoreboard, not a currency: they can't be bought, sold, transferred or redeemed. Anything we launch later will be announced separately."
   },
   "scouts": {
     "holdUsd": 5,

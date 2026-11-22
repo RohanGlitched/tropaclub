@@ -154,7 +154,7 @@ export interface StatsFile {
     <tr><td><code>usd</code></td><td>Current value at <code>priceUsd</code>, rounded to cents.</td></tr>
     <tr><td><code>firstBuy</code></td><td>Unix seconds of the wallet&rsquo;s first inbound transfer of this token, or <code>null</code>.</td></tr>
     <tr><td><code>holdDays</code></td><td>Days of the current unbroken nonzero holding. The main ranking key.</td></tr>
-    <tr><td><code>streakWeeks</code></td><td>Consecutive ISO weeks, ending with the latest buy, in which the wallet made a net buy. <code>0</code> if none.</td></tr>
+    <tr><td><code>streakWeeks</code></td><td>Consecutive ISO weeks (Monday to Sunday, UTC), ending this week or last week, in which the wallet&rsquo;s balance of the token grew on net, from any buy or transfer in. <code>0</code> if none. This is the ticket&rsquo;s &ldquo;weeks in a row&rdquo;, not the club payday streak.</td></tr>
     <tr><td><code>entryVsMedianPct</code></td><td>The wallet&rsquo;s average entry price against the median real fan&rsquo;s, in percent. Negative means a cheaper entry. <code>null</code> when there are no priced buys.</td></tr>
     <tr><td><code>heldThroughGap</code></td><td><code>true</code> if the wallet held across at least one weekend reopen gap.</td></tr>
   </tbody>

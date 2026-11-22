@@ -5,6 +5,8 @@ import SeatSearchBox from '@/components/SeatSearchBox';
 import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
 import { Crumbs, NextStrip } from '@/components/nav/Wayfinding';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { dataBaseUrl, getIndex, getStats } from '@/lib/server/data';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { groundName } from '@/lib/site';
@@ -30,6 +32,15 @@ export default async function AttendancePage() {
   return (
     <>
       <main id="main">
+        <PageSections
+          sections={[
+            { id: 'rankings', label: 'The table' },
+            { id: 'highlights', label: 'Three things it shows' },
+            { id: 'top-10', label: 'The 10 biggest' },
+            { id: 'read', label: 'How to read it' },
+            { id: 'limits', label: 'Limits' },
+          ]}
+        />
         <section className="wrap page-head">
           <Crumbs trail={[{ label: 'Stock rankings' }]} />
           <p className="hero-pitch">Stock rankings</p>
@@ -42,15 +53,15 @@ export default async function AttendancePage() {
           <p className="hero-cta"><a className="btn btn-accent" href="#check">Check my wallet</a></p>
         </section>
 
-        <section className="wrap section-tight" aria-label="Stock rankings">
+        <section className="wrap section-tight" id="rankings" aria-label="Stock rankings">
           <AttendanceTable rows={tokens} />
           <p className="muted small table-note">Buyers in 7 days can be more than holders: some bought and sold again.</p>
         </section>
 
-        <section className="band">
+        <section className="band" id="highlights">
           <div className="wrap">
             <div className="section-head">
-              <h2>Three things the table shows</h2>
+              <h2>Three things the table shows<Anchor id="highlights" label="Three things the table shows" /></h2>
             </div>
             <ul className="limits limits-3">
               {best && (
@@ -75,9 +86,9 @@ export default async function AttendancePage() {
           </div>
         </section>
 
-        <section className="wrap section">
+        <section className="wrap section" id="top-10">
           <div className="section-head">
-            <h2>Who holds the 10 biggest tokens</h2>
+            <h2>Who holds the 10 biggest tokens<Anchor id="top-10" label="Who holds the 10 biggest tokens" /></h2>
             <p>Each bar is every holder of one token, split by type. Colour shows real holders.</p>
           </div>
           <div className="stacks">
@@ -106,10 +117,10 @@ export default async function AttendancePage() {
           </p>
         </section>
 
-        <section className="band">
+        <section className="band" id="read">
           <div className="wrap split">
             <div className="split-text">
-              <h2>How to read it</h2>
+              <h2>How to read it<Anchor id="read" label="How to read it" /></h2>
               <dl className="defs">
                 <div><dt>All holders</dt><dd>Every wallet with a balance above zero. The number a block explorer calls &ldquo;holders&rdquo;.</dd></div>
                 <div><dt>Real holders (real fans)</dt><dd>Wallets holding $10 or more that belong to a person and did more than receive a giveaway.</dd></div>
@@ -122,7 +133,7 @@ export default async function AttendancePage() {
               <p><Link href="/about#method">The full method</Link></p>
             </div>
             <div className="split-text" id="feed">
-              <h2>For developers: free JSON feed</h2>
+              <h2>For developers: free JSON feed<Anchor id="feed" label="Free JSON feed" /></h2>
               <p>The table is a public file, rewritten at every count, every 6 hours. Use it in a dashboard, a bot or a research note. No key, no sign-up.</p>
               <pre className="code" tabIndex={0}><code>GET {dataBaseUrl}/index.json{'\n'}GET {dataBaseUrl}/tokens/NVDAc.json{'\n'}GET {dataBaseUrl}/stats.json</code></pre>
               <p className="muted small">{source === 'mock' ? 'The first files are published with the indexer’s first run. Until then this page shows sample data.' : `Last written ${fmtDate(index.asOf, true)}.`} Please credit Tropa Club.</p>
@@ -132,9 +143,9 @@ export default async function AttendancePage() {
           </div>
         </section>
 
-        <section className="wrap section">
+        <section className="wrap section" id="limits">
           <div className="section-head">
-            <h2>Limits</h2>
+            <h2>Limits<Anchor id="limits" label="Limits" /></h2>
           </div>
           <ul className="limits limits-3">
             <li><h3>Counts, not people</h3><p>{fmtInt(stats.realWallets)} distinct wallets make up the {fmtInt(fans)} real holdings. One person can stand behind several of them.</p></li>

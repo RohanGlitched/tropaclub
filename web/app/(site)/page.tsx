@@ -12,6 +12,8 @@ import OpensAt from '@/components/OpensAt';
 import BuyWhen from '@/components/buy/BuyWhen';
 import { Pennant } from '@/components/ds/Pennant';
 import Term from '@/components/nav/Term';
+import PageSections from '@/components/nav/PageSections';
+import Anchor from '@/components/nav/Anchor';
 import { getExamples, getIndex, getStats } from '@/lib/server/data';
 import { groundPath, kitFor, shortName } from '@/lib/clubs';
 import { fmtDate, fmtInt, fmtPct, fmtUsd } from '@/lib/format';
@@ -47,6 +49,18 @@ export default async function Home() {
   return (
     <>
       <main id="main">
+        <PageSections
+          sections={[
+            { id: 'what', label: 'What it does' },
+            { id: 'truth', label: 'Real holders' },
+            { id: 'find', label: 'Tickets' },
+            { id: 'clubs', label: 'Clubs', clubsOnly: true },
+            { id: 'attendance', label: 'Stock rankings' },
+            { id: 'evidence', label: 'What the count found' },
+            { id: 'limits', label: 'Limits' },
+            { id: 'check', label: 'Check a wallet' },
+          ]}
+        />
         <section className="hero wrap" aria-label="What Tropa Club is">
           <GroundStage
             mode="hero"
@@ -62,7 +76,7 @@ export default async function Home() {
 
         <section className="wrap section" id="what" aria-labelledby="what-h">
           <div className="section-head">
-            <h2 id="what-h">What Tropa Club does</h2>
+            <h2 id="what-h">What Tropa Club does<Anchor id="what" label="What Tropa Club does" /></h2>
             <p>Two things. You can use the first without the second.</p>
           </div>
           <div className="split">
@@ -85,7 +99,7 @@ export default async function Home() {
         <section className="band" id="truth">
           <div className="wrap split">
             <div className="split-text">
-              <h2>Who really holds {topName}&rsquo;s stock token</h2>
+              <h2>Who really holds {topName}&rsquo;s stock token<Anchor id="truth" label="Who really holds it" /></h2>
               <p>
                 We draw each token as a stadium, a <Term id="ground">ground</Term>. Every holder is a seat. Lit seats are real holders: {fmtInt(top.realFans)} wallets hold at least $10 of {top.symbol}, bought it themselves, and are a person&rsquo;s wallet, not a contract. Separately, {fmtInt(top.newBuyers7d)} wallets bought {top.symbol} for the first time in the last week, and some of them are already in that count.
               </p>
@@ -101,7 +115,7 @@ export default async function Home() {
         <section className="wrap section" id="find">
           <div className="split split-ticket">
             <div className="split-text">
-              <h2>Every real holder gets a shareable ticket</h2>
+              <h2>Every real holder gets a shareable ticket<Anchor id="find" label="Every real holder gets a shareable ticket" /></h2>
               <p>
                 Paste any wallet to see its rank. If it is a real holder, it gets a <Term id="ticket">ticket</Term> for each token it really holds: its seat in that ground, its rank and its best stat, like how long it has held. It is a picture to share, not an NFT.
               </p>
@@ -122,7 +136,7 @@ export default async function Home() {
         <section className="band clubs-only" id="clubs">
           <div className="wrap">
             <div className="section-head">
-              <h2>Part two: clubs for your group chat</h2>
+              <h2>Part two: clubs for your group chat<Anchor id="clubs" label="Clubs for your group chat" /></h2>
               <p>
                 A <Term id="club">club</Term> is you and your friends each buying about $10 of stock tokens a week, from your own wallets. Tropa Club shows who bought each week, keeps your streaks and keeps a cost-basis record. Starting a club is free and needs no buy.
               </p>
@@ -178,7 +192,7 @@ export default async function Home() {
 
         <section className="wrap section" id="attendance">
           <div className="section-head">
-            <h2>Real holders of all {tokens.length} stock tokens</h2>
+            <h2>Real holders of all {tokens.length} stock tokens<Anchor id="attendance" label="Stock rankings" /></h2>
             <p>
               Every Coinbase stock token on Base, ranked by how many real holders it has, counted again every 6 hours. Here is the top of the list.
             </p>
@@ -190,7 +204,7 @@ export default async function Home() {
         <section className="band" id="evidence">
           <div className="wrap">
             <div className="section-head">
-              <h2>What the count found</h2>
+              <h2>What the count found<Anchor id="evidence" label="What the count found" /></h2>
               <p>Every transfer of every stock token since the first mint on 12 Aug 2026, replayed into balances and checked against supply.</p>
             </div>
             <dl className="figures">
@@ -230,7 +244,7 @@ export default async function Home() {
 
         <section className="wrap section" id="limits">
           <div className="section-head">
-            <h2>What this does not tell you</h2>
+            <h2>What this does not tell you<Anchor id="limits" label="What this does not tell you" /></h2>
           </div>
           <ul className="limits">
             <li><h3>A token is not a share</h3><p>Stock tokens track the share price. Holding one gives economic exposure, not ownership of the share and not a vote.</p></li>
@@ -242,7 +256,7 @@ export default async function Home() {
           </ul>
         </section>
 
-        <section className="closing">
+        <section className="closing" id="check">
           <div className="wrap">
             <div className="rail rail-wide" aria-hidden="true">
               {rail.map((t, i) => (
