@@ -1,6 +1,7 @@
 // Server-side data access. Live files come from the indexer's public bucket; any file
 // that is missing, slow or malformed falls back to the sample generator, per file.
 import 'server-only';
+import { rawGet } from './rawget';
 import type { IndexFile, MoverRow, MoversFile, MoversWindow, NotableLine, StatsFile, TokenSummary, WalletShard, WalletSummary } from '@shared/types';
 import { shortName } from '@/lib/clubs';
 import { mockIndex, mockStats, mockShard, mockSeats, mockExamples } from '@/mock/generate';
@@ -24,7 +25,8 @@ const lastGood = new Map<string, { etag: string | null; body: unknown }>();
 /**
  * The indexer rewrites its files about every 6 hours and pages must show a new count within a
  * minute or two. So a file is checked at most once a minute (ttlSec), past every cache on the way:
- * not Next's fetch cache (no-store), and not Google's edge cache for public objects, which honours
+ * not Next's fetch at all (rawGet: inside a cached page's background render an uncached fetch
+ * throws, and a cached one would keep a copy per minute), and not Google's edge cache for public objects, which honours
  * the files' max-age=300 per URL (a per-minute query string). The ETag makes an unchanged file a
  * cheap 304. On any failure the last good copy is served.
  */
@@ -37,16 +39,12 @@ function fetchJson(path: string, ttlSec = 60, timeoutMs = 4000): Promise<unknown
   entry.p = (async () => {
     const prev = lastGood.get(path);
     try {
-      const res = await fetch(`${BASE}/${path}?m=${Math.floor(now / 60_000)}`, {
-        cache: 'no-store',
-        headers: prev?.etag ? { 'if-none-match': prev.etag } : undefined,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      const res = await rawGet(`${BASE}/${path}?m=${Math.floor(now / 60_000)}`, { timeoutMs, etag: prev?.etag });
       if (res.status === 304 && prev) return prev.body;
-      if (res.ok) {
-        const body = await res.json();
+      if (res.status >= 200 && res.status < 300) {
+        const body = JSON.parse(res.text) as unknown;
         if (lastGood.size > 400) lastGood.clear();
-        lastGood.set(path, { etag: res.headers.get('etag'), body });
+        lastGood.set(path, { etag: res.etag, body });
         return body;
       }
     } catch {
@@ -189,9 +187,10 @@ export function getRealSeats(symbol: string): Promise<string[] | null> {
   const p = (async () => {
     if (MODE === 'mock') return null;
     try {
-      const res = await fetch(`${BASE}/tokens/${encodeURIComponent(symbol)}.json`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
-      if (!res.ok) return null;
-      const file = (await res.json()) as { seats?: { a?: string; k?: string }[] };
+      // (outside Next's fetch: this runs inside cached page renders too, see rawget.ts)
+      const res = await rawGet(`${BASE}/tokens/${encodeURIComponent(symbol)}.json`, { timeoutMs: 12000 });
+      if (res.status !== 200) return null;
+      const file = JSON.parse(res.text) as { seats?: { a?: string; k?: string }[] };
       const out: string[] = [];
       for (const x of file.seats ?? []) {
         if (x.k !== 'real') break; // real fans come first
