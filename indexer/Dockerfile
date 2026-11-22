@@ -12,4 +12,4 @@ ENV NODE_ENV=production \
     OUT_DIR=/tmp/out/public \
     GCS_MODE=sdk \
     STATE_FROM_GCS=1
-CMD ["node", "--max-old-space-size=1792", "--import", "tsx", "src/main.ts"]
+CMD ["node", "--max-old-space-size=3584", "--import", "tsx", "src/main.ts"]

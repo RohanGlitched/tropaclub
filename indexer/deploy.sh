@@ -22,6 +22,7 @@ G="gcloud --project=$PROJECT --quiet"
 echo "== runtime service account (storage on $BUCKET only)"
 $G iam service-accounts describe "$SA" >/dev/null 2>&1 || $G iam service-accounts create "$SA_NAME" --display-name="Tropa indexer runtime"
 $G storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:$SA" --role=roles/storage.objectAdmin --condition=None >/dev/null
+$G storage buckets add-iam-policy-binding "gs://tropaclub-state" --member="serviceAccount:$SA" --role=roles/storage.objectAdmin --condition=None >/dev/null
 
 echo "== stage build context"
 STAGE="$(mktemp -d)"
@@ -34,7 +35,7 @@ cp "$HERE/Dockerfile" "$STAGE/Dockerfile"
 
 echo "== build + deploy job $JOB"
 $G run jobs deploy "$JOB" --source="$STAGE" --region="$REGION" \
-  --service-account="$SA" --tasks=1 --max-retries=1 --cpu=1 --memory=2Gi --task-timeout=3600s \
+  --service-account="$SA" --tasks=1 --max-retries=1 --cpu=1 --memory=4Gi --task-timeout=3600s \
   --set-env-vars="BUCKET=$BUCKET,STATE_BUCKET=tropaclub-state"
 
 echo "== scheduler trigger"
